@@ -1,7 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(claude skills *)",
+      "Bash(claude plugins *)",
+      "Bash(unzip -l \"/Users/miguelmendosa/Documents/GitLab/valleflor/.claude/skills/valleflor-stack-best-practices.skill\")",
+      "Read(//private/tmp/**)",
+      "Bash(unzip -o \"/Users/miguelmendosa/Documents/GitLab/valleflor/.claude/skills/valleflor-stack-best-practices.skill\" \"valleflor-stack-best-practices/SKILL.md\" -d /tmp/skill-preview)",
+      "Read(//tmp/skill-preview/valleflor-stack-best-practices/**)",
+      "Read(//Users/miguelmendosa/.claude/**)",
+      "Bash(mkdir -p /Users/miguelmendosa/Documents/GitLab/valleflor/.claude/commands)",
+      "Bash(unzip -o \"/Users/miguelmendosa/Documents/GitLab/valleflor/.claude/skills/valleflor-stack-best-practices.skill\" -d /tmp/skill-install)",
+      "Bash(cp /tmp/skill-install/valleflor-stack-best-practices/SKILL.md /Users/miguelmendosa/Documents/GitLab/valleflor/.claude/commands/valleflor-stack-best-practices.md)",
+      "Bash(mkdir -p /Users/miguelmendosa/Documents/GitLab/valleflor/.claude/commands/references)",
+      "Bash(cp /tmp/skill-install/valleflor-stack-best-practices/references/*.md /Users/miguelmendosa/Documents/GitLab/valleflor/.claude/commands/references/)",
+      "Bash(docker compose up *)",
+      "Bash(pg_isready *)",
+      "Bash(psql *)",
+      "Bash(npm run *)",
+      "Bash(echo \"API PID: $!\")"
     ]
   }
 }
