@@ -39,6 +39,12 @@ export class User {
   @OneToOne(() => Responsable, (responsable) => responsable.user)
   responsable: Responsable;
 
+  @Column({ name: 'reset_password_token', type: 'varchar', nullable: true })
+  resetPasswordToken: string | null;
+
+  @Column({ name: 'reset_password_expires', type: 'timestamptz', nullable: true })
+  resetPasswordExpires: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

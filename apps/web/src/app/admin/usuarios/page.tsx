@@ -19,12 +19,19 @@ export default function UsuariosPage() {
   });
 
   const create = useMutation({
-    mutationFn: (data: typeof form) => api.post('/users', data),
+    mutationFn: (data: typeof form) => {
+      const payload: Record<string, string> = { email: data.email, password: data.password, role: data.role };
+      if (data.role === 'responsable') {
+        if (data.nombre) payload.nombre = data.nombre;
+        if (data.fincaId) payload.fincaId = data.fincaId;
+      }
+      return api.post('/users', payload);
+    },
     onSuccess: () => {
       toast.success('Usuario creado');
       setForm({ email: '', password: '', role: 'responsable', nombre: '', fincaId: '' });
     },
-    onError: () => toast.error('Error al crear usuario'),
+    onError: (err: any) => toast.error(err?.response?.data?.message?.[0] ?? err?.response?.data?.message ?? 'Error al crear usuario'),
   });
 
   return (
@@ -44,7 +51,7 @@ export default function UsuariosPage() {
           </div>
           <div>
             <label className="form-label">Contraseña</label>
-            <input type="password" required className="input-field" value={form.password}
+            <input type="password" required minLength={8} className="input-field" value={form.password}
               onChange={(e) => setForm(p => ({ ...p, password: e.target.value }))}
               placeholder="Mínimo 8 caracteres"
             />

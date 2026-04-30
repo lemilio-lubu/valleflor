@@ -101,4 +101,24 @@ export class UsersService {
     const user = await this.findOne(id);
     await this.userRepo.remove(user);
   }
+
+  async findByResetToken(token: string): Promise<User | null> {
+    return this.userRepo.findOne({ where: { resetPasswordToken: token } });
+  }
+
+  async setResetToken(userId: string, token: string, expires: Date): Promise<void> {
+    await this.userRepo.update(userId, {
+      resetPasswordToken: token,
+      resetPasswordExpires: expires,
+    });
+  }
+
+  async resetPassword(userId: string, newPassword: string): Promise<void> {
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.userRepo.update(userId, {
+      passwordHash,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+    });
+  }
 }
