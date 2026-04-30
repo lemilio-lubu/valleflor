@@ -60,7 +60,7 @@ export default function FincasPage() {
   function closeModal() { setModal(null); setEditing(null); }
 
   return (
-    <div className="max-w-4xl">
+    <div className="w-full">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="section-title">Fincas</h1>

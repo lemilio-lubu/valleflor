@@ -39,7 +39,7 @@ export class FincasService {
   async findOne(id: string): Promise<Finca> {
     const finca = await this.fincaRepo.findOne({
       where: { id },
-      relations: ['admin'],
+      relations: ['admin', 'responsables', 'responsables.user'],
     });
     if (!finca) throw new NotFoundException(`Finca ${id} no encontrada`);
     return finca;
@@ -69,6 +69,14 @@ export class FincasService {
     });
   }
 
+  async removeResponsable(fincaId: string, responsableId: string): Promise<void> {
+    const responsable = await this.responsableRepo.findOne({
+      where: { id: responsableId, fincaId },
+    });
+    if (!responsable) throw new NotFoundException('Responsable no encontrado en esta finca');
+    await this.responsableRepo.remove(responsable);
+  }
+
   async assignResponsable(
     fincaId: string,
     dto: AssignResponsableDto,
@@ -85,7 +93,17 @@ export class FincasService {
       where: { userId: dto.userId },
     });
     if (existing) {
-      throw new ConflictException('El usuario ya es responsable de una finca');
+      if (existing.fincaId === fincaId) {
+        throw new ConflictException('El usuario ya está asignado a esta finca');
+      }
+      await this.responsableRepo.update(existing.id, {
+        fincaId,
+        nombre: dto.nombre.toUpperCase().trim(),
+      });
+      return this.responsableRepo.findOne({
+        where: { id: existing.id },
+        relations: ['user'],
+      });
     }
 
     const responsable = this.responsableRepo.create({

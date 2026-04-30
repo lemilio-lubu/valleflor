@@ -30,6 +30,7 @@ const authOptions: NextAuthOptions = {
             id: data.user.id,
             email: data.user.email,
             role: data.user.role,
+            nombre: data.user.nombre,
             fincaId: data.user.fincaId,
             fincaNombre: data.user.fincaNombre,
             responsableNombre: data.user.responsableNombre,
@@ -43,18 +44,24 @@ const authOptions: NextAuthOptions = {
   ],
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session: sessionUpdate }) {
       if (user) {
         token.role = (user as any).role;
+        token.nombre = (user as any).nombre;
         token.fincaId = (user as any).fincaId;
         token.fincaNombre = (user as any).fincaNombre;
         token.responsableNombre = (user as any).responsableNombre;
         token.accessToken = (user as any).accessToken;
       }
+      if (trigger === 'update' && sessionUpdate) {
+        if (sessionUpdate.nombre !== undefined) token.nombre = sessionUpdate.nombre;
+        if (sessionUpdate.email) token.email = sessionUpdate.email;
+      }
       return token;
     },
     async session({ session, token }) {
       (session.user as any).role = token.role;
+      (session.user as any).nombre = token.nombre;
       (session.user as any).fincaId = token.fincaId;
       (session.user as any).fincaNombre = token.fincaNombre;
       (session.user as any).responsableNombre = token.responsableNombre;

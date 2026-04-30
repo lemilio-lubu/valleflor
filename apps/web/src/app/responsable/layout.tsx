@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LogOut, ClipboardList, BarChart2, type LucideIcon } from 'lucide-react';
+import { LogOut, ClipboardList, BarChart2, UserCircle, type LucideIcon } from 'lucide-react';
 
 function Spinner() {
   return (
@@ -61,9 +61,16 @@ export default function ResponsableLayout({ children }: { children: React.ReactN
             </p>
             <p className="text-[10px] text-carbon-400 truncate">{session.user?.email}</p>
           </div>
+          <Link
+            href="/responsable/perfil"
+            className={pathname.startsWith('/responsable/perfil') ? 'nav-link-active' : 'nav-link'}
+          >
+            <UserCircle className="w-4 h-4" />
+            Mi perfil
+          </Link>
           <button
             onClick={() => signOut({ callbackUrl: '/auth/login' })}
-            className="nav-link w-full text-left"
+            className="nav-link w-full text-left mt-1"
           >
             <LogOut className="w-4 h-4" />
             Cerrar sesión

@@ -23,7 +23,7 @@ export class UsersService {
   ) {}
 
   async findAll(): Promise<Omit<User, 'passwordHash'>[]> {
-    const users = await this.userRepo.find();
+    const users = await this.userRepo.find({ relations: ['responsable'] });
     return users.map(({ passwordHash: _, ...u }) => u as Omit<User, 'passwordHash'>);
   }
 
@@ -100,6 +100,30 @@ export class UsersService {
   async remove(id: string): Promise<void> {
     const user = await this.findOne(id);
     await this.userRepo.remove(user);
+  }
+
+  async updateProfile(
+    userId: string,
+    dto: { email?: string; currentPassword?: string; password?: string; nombre?: string },
+  ): Promise<Omit<User, 'passwordHash'>> {
+    const user = await this.findOne(userId);
+    if (dto.email && dto.email !== user.email) {
+      const existing = await this.findByEmail(dto.email);
+      if (existing) throw new ConflictException(`Ya existe un usuario con email ${dto.email}`);
+      user.email = dto.email;
+    }
+    if (dto.password) {
+      const valid = await bcrypt.compare(dto.currentPassword ?? '', user.passwordHash);
+      if (!valid) throw new ConflictException('La contraseña actual es incorrecta');
+      user.passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    }
+    if (dto.nombre) {
+      user.nombre = dto.nombre.toUpperCase().trim();
+      await this.respRepo.update({ userId }, { nombre: user.nombre });
+    }
+    const saved = await this.userRepo.save(user);
+    const { passwordHash: _, ...safe } = saved;
+    return safe as Omit<User, 'passwordHash'>;
   }
 
   async findByResetToken(token: string): Promise<User | null> {

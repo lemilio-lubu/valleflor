@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LogOut, MapPin, Users, type LucideIcon } from 'lucide-react';
+import { LogOut, MapPin, Users, UserCircle, type LucideIcon } from 'lucide-react';
 
 function Spinner() {
   return (
@@ -58,9 +58,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="px-3 py-2 mb-1">
             <p className="text-xs text-carbon-400 truncate">{session.user?.email}</p>
           </div>
+          <Link
+            href="/admin/perfil"
+            className={pathname.startsWith('/admin/perfil') ? 'nav-link-active' : 'nav-link'}
+          >
+            <UserCircle className="w-4 h-4" />
+            Mi perfil
+          </Link>
           <button
             onClick={() => signOut({ callbackUrl: '/auth/login' })}
-            className="nav-link w-full text-left"
+            className="nav-link w-full text-left mt-1"
           >
             <LogOut className="w-4 h-4" />
             Cerrar sesión

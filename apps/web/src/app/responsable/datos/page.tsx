@@ -30,7 +30,7 @@ export default function DatosPage() {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <div className="mb-8">
         <h1 className="section-title">Gestión de Datos</h1>
         <p className="text-carbon-400 text-sm mt-1">Administra productos, variedades y colores de tu finca</p>

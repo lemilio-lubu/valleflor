@@ -14,7 +14,7 @@ import { RegisterDto } from './dto/register.dto';
 
 export interface AuthPayload {
   accessToken: string;
-  user: { id: string; email: string; role: UserRole; fincaId?: string; fincaNombre?: string; responsableNombre?: string };
+  user: { id: string; email: string; role: UserRole; nombre?: string | null; fincaId?: string; fincaNombre?: string; responsableNombre?: string };
 }
 
 @Injectable()
@@ -36,10 +36,11 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role: user.role };
     return {
       accessToken: this.jwtService.sign(payload),
-      user: { 
-        id: user.id, 
-        email: user.email, 
+      user: {
+        id: user.id,
+        email: user.email,
         role: user.role,
+        nombre: user.nombre ?? user.responsable?.nombre ?? null,
         ...(user.responsable?.fincaId && { fincaId: user.responsable.fincaId }),
         ...(user.responsable?.finca?.nombre && { fincaNombre: user.responsable.finca.nombre }),
         ...(user.responsable?.nombre && { responsableNombre: user.responsable.nombre }),
@@ -90,5 +91,9 @@ export class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash: _, ...safe } = user;
     return safe as Omit<User, 'passwordHash'>;
+  }
+
+  async updateProfile(userId: string, dto: { email?: string; password?: string; nombre?: string }) {
+    return this.usersService.updateProfile(userId, dto);
   }
 }

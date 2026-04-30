@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -72,5 +74,16 @@ export class FincasController {
     @Body() dto: AssignResponsableDto,
   ) {
     return this.fincasService.assignResponsable(id, dto);
+  }
+
+  @Delete(':id/responsables/:responsableId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  removeResponsable(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('responsableId', ParseUUIDPipe) responsableId: string,
+  ) {
+    return this.fincasService.removeResponsable(id, responsableId);
   }
 }
