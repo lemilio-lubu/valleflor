@@ -1,0 +1,35 @@
+{
+  "name": "@floricultura/web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --port 3000",
+    "start": "next start",
+    "lint": "next lint",
+    "clean": "rimraf .next"
+  },
+  "dependencies": {
+    "@floricultura/shared-types": "*",
+    "@hookform/resolvers": "^3.3.4",
+    "@tanstack/react-query": "^5.28.0",
+    "axios": "^1.6.8",
+    "next": "14.2.0",
+    "next-auth": "^4.24.14",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.51.0",
+    "react-hot-toast": "^2.6.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "@types/react": "^18.2.75",
+    "@types/react-dom": "^18.2.24",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "rimraf": "^5.0.0",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.4.0"
+  }
+}

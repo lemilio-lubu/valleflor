@@ -1,0 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --overlay: #21262d;
+  --border: #30363d;
+  --verde: #16a34a;
+  --verde-light: #22c55e;
+  --dorado: #f59e0b;
+  --text: #e6edf3;
+  --muted: #8b949e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+/* Selection */
+::selection { background: rgba(22,163,74,0.25); color: #fff; }
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--verde);
+  outline-offset: 2px;
+}
+
+/* ── Componentes reutilizables ── */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-verde-600 hover:bg-verde-700 text-white font-medium rounded-md transition-all duration-150 text-sm shadow-verde-sm hover:shadow-verde-glow active:scale-95;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-carbon-300 hover:text-white hover:bg-surface-overlay font-medium rounded-md transition-all duration-150 text-sm border border-surface-border hover:border-carbon-700;
+  }
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-800 hover:bg-red-700 text-white font-medium rounded-md transition-all duration-150 text-sm;
+  }
+  .input-field {
+    @apply w-full bg-surface-overlay border border-surface-border rounded-md px-3 py-2 text-sm text-carbon-50 placeholder-carbon-400 focus:border-verde-600 focus:ring-1 focus:ring-verde-600 transition-colors duration-150 outline-none;
+  }
+  .card {
+    @apply bg-surface-raised border border-surface-border rounded-lg p-6;
+  }
+  .table-row-hover {
+    @apply hover:bg-surface-overlay transition-colors duration-100;
+  }
+  .badge-real {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono bg-verde-900 text-verde-400 border border-verde-700;
+  }
+  .badge-estimado {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono bg-carbon-800 text-carbon-400 border border-carbon-700;
+  }
+  .section-title {
+    @apply font-serif text-2xl text-carbon-50;
+  }
+  .nav-link {
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-carbon-400 hover:text-white hover:bg-surface-overlay transition-all duration-150;
+  }
+  .nav-link-active {
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-verde-400 bg-verde-900/30 border-l-2 border-verde-500;
+  }
+}
