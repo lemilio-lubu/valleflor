@@ -57,7 +57,7 @@ export function VariedadForm({ productoId, fincaId }: Props) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-carbon-200 uppercase tracking-widest font-mono">Variedades</h3>
+        <h3 className="card-section-title">Variedades</h3>
         <button id="btn-nueva-variedad" onClick={() => { reset(); setOpen(true); }} className="btn-ghost text-xs py-1.5">+ Nueva</button>
       </div>
 
@@ -97,17 +97,17 @@ export function VariedadForm({ productoId, fincaId }: Props) {
         <table className="w-full text-sm">
           <tbody>
             {!selectedProductoId && (
-              <tr><td className="text-center py-6 text-carbon-400 font-mono text-xs">Selecciona un producto</td></tr>
+              <tr><td className="empty-state py-6">Selecciona un producto</td></tr>
             )}
             {selectedProductoId && variedades.length === 0 && (
-              <tr><td className="text-center py-6 text-carbon-400 font-mono text-xs">Sin variedades</td></tr>
+              <tr><td className="empty-state py-6">Sin variedades</td></tr>
             )}
             {variedades.map((v) => (
               <tr key={v.id} className="table-row-hover border-b border-surface-border/30">
-                <td className="px-4 py-2.5 font-mono text-xs text-carbon-200">{v.nombre}</td>
+                <td className="px-4 py-2.5 text-sm text-carbon-50">{v.nombre}</td>
                 <td className="px-4 py-2.5 text-right">
-                  <button onClick={() => startEdit(v)} className="text-carbon-400 hover:text-verde-400 text-xs mr-3 transition-colors">editar</button>
-                  <button onClick={() => { if (confirm('¿Eliminar?')) remove.mutate(v.id); }} className="text-carbon-400 hover:text-red-400 text-xs transition-colors">eliminar</button>
+                  <button onClick={() => startEdit(v)} className="text-carbon-300 hover:text-verde-600 text-xs mr-3 transition-colors">editar</button>
+                  <button onClick={() => { if (confirm('¿Eliminar?')) remove.mutate(v.id); }} className="text-carbon-300 hover:text-red-600 text-xs transition-colors">eliminar</button>
                 </td>
               </tr>
             ))}

@@ -5,19 +5,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import { X, Plus } from 'lucide-react';
 
 interface Finca { id: string; nombre: string; ubicacion?: string; }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-md mx-4 shadow-2xl animate-slide-up">
+    <div className="modal-overlay">
+      <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-md mx-4 shadow-lg animate-slide-up">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
-          <h3 className="font-serif text-lg text-carbon-50">{title}</h3>
-          <button onClick={onClose} className="text-carbon-400 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <h3 className="modal-title">{title}</h3>
+          <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors">
+            <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-6">{children}</div>
@@ -68,9 +67,7 @@ export default function FincasPage() {
           <p className="text-carbon-400 text-sm mt-1">Gestiona las fincas registradas en el sistema</p>
         </div>
         <button id="btn-crear-finca" onClick={openCreate} className="btn-primary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
+          <Plus className="w-4 h-4" />
           Nueva finca
         </button>
       </div>
@@ -83,20 +80,20 @@ export default function FincasPage() {
         <div className="card p-0 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-surface-border bg-surface-overlay/50">
-                <th className="text-left px-6 py-3 text-xs font-mono uppercase tracking-widest text-carbon-400">Nombre</th>
-                <th className="text-left px-6 py-3 text-xs font-mono uppercase tracking-widest text-carbon-400">Ubicación</th>
-                <th className="px-6 py-3 text-xs font-mono uppercase tracking-widest text-carbon-400 text-right">Acciones</th>
+              <tr className="border-b border-surface-border bg-surface-overlay">
+                <th className="table-th px-6 py-3">Nombre</th>
+                <th className="table-th px-6 py-3">Ubicación</th>
+                <th className="table-th px-6 py-3 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {fincas.length === 0 && (
-                <tr><td colSpan={3} className="text-center py-12 text-carbon-400 font-mono text-sm">Sin fincas registradas</td></tr>
+                <tr><td colSpan={3} className="empty-state">Sin fincas registradas</td></tr>
               )}
               {fincas.map((f, i) => (
-                <tr key={f.id} className={`table-row-hover border-b border-surface-border/40 ${i % 2 === 0 ? '' : 'bg-surface-overlay/20'}`}>
-                  <td className="px-6 py-3.5 font-medium text-carbon-100">{f.nombre}</td>
-                  <td className="px-6 py-3.5 text-carbon-400 font-mono text-xs">{f.ubicacion ?? '—'}</td>
+                <tr key={f.id} className={`table-row-hover border-b border-surface-border/40 ${i % 2 === 0 ? '' : 'bg-surface-overlay'}`}>
+                  <td className="px-6 py-3.5 font-medium text-carbon-50">{f.nombre}</td>
+                  <td className="px-6 py-3.5 text-carbon-400 text-xs">{f.ubicacion ?? '—'}</td>
                   <td className="px-6 py-3.5">
                     <div className="flex items-center justify-end gap-2">
                       <Link href={`/admin/fincas/${f.id}`} className="btn-ghost text-xs py-1 px-3">Ver detalle</Link>
@@ -118,14 +115,14 @@ export default function FincasPage() {
         <Modal title={modal === 'create' ? 'Nueva finca' : 'Editar finca'} onClose={closeModal}>
           <form onSubmit={(e) => { e.preventDefault(); save.mutate(form); }} className="space-y-4">
             <div>
-              <label className="block text-xs font-mono uppercase tracking-widest text-carbon-300 mb-1.5">Nombre</label>
+              <label className="form-label">Nombre</label>
               <input className="input-field" required value={form.nombre}
                 onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value.toUpperCase() }))}
                 onInput={(e) => { (e.target as HTMLInputElement).value = (e.target as HTMLInputElement).value.toUpperCase(); }}
               />
             </div>
             <div>
-              <label className="block text-xs font-mono uppercase tracking-widest text-carbon-300 mb-1.5">Ubicación (opcional)</label>
+              <label className="form-label">Ubicación (opcional)</label>
               <input className="input-field" value={form.ubicacion}
                 onChange={(e) => setForm(p => ({ ...p, ubicacion: e.target.value }))}
               />

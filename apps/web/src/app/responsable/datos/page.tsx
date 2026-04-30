@@ -5,13 +5,14 @@ import { useSession } from 'next-auth/react';
 import { ProductoForm } from './components/ProductoForm';
 import { VariedadForm } from './components/VariedadForm';
 import { ColorForm } from './components/ColorForm';
+import { ChevronDown, Package, Layers, Palette, type LucideIcon } from 'lucide-react';
 
 type Section = 'productos' | 'variedades' | 'colores';
 
-const sections: { key: Section; label: string; icon: string }[] = [
-  { key: 'productos', label: 'Productos', icon: '🌹' },
-  { key: 'variedades', label: 'Variedades', icon: '🪻' },
-  { key: 'colores', label: 'Colores', icon: '🎨' },
+const sections: { key: Section; label: string; Icon: LucideIcon }[] = [
+  { key: 'productos', label: 'Productos', Icon: Package },
+  { key: 'variedades', label: 'Variedades', Icon: Layers },
+  { key: 'colores', label: 'Colores', Icon: Palette },
 ];
 
 export default function DatosPage() {
@@ -36,7 +37,7 @@ export default function DatosPage() {
       </div>
 
       <div className="space-y-4">
-        {sections.map(({ key, label, icon }) => (
+        {sections.map(({ key, label, Icon }) => (
           <div key={key} className="card p-0 overflow-hidden">
             <button
               id={`toggle-${key}`}
@@ -44,15 +45,10 @@ export default function DatosPage() {
               className="w-full flex items-center justify-between px-6 py-4 hover:bg-surface-overlay/50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-lg">{icon}</span>
-                <span className="font-medium text-carbon-100 text-sm uppercase tracking-widest font-mono">{label}</span>
+                <Icon className="w-5 h-5 text-carbon-300" />
+                <span className="font-medium text-carbon-50 text-sm">{label}</span>
               </div>
-              <svg
-                className={`w-4 h-4 text-carbon-400 transition-transform duration-200 ${open[key] ? 'rotate-180' : ''}`}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
+              <ChevronDown className={`w-4 h-4 text-carbon-400 transition-transform duration-200 ${open[key] ? 'rotate-180' : ''}`} />
             </button>
 
             {open[key] && (

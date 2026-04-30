@@ -81,16 +81,16 @@ async function runSeed() {
     const colorRepo = queryRunner.manager.getRepository(Color);
 
     // 1. Create Admin User
-    let adminUser = await userRepo.findOne({ where: { email: 'admin@villaflor.com' } });
+    let adminUser = await userRepo.findOne({ where: { email: 'admin@valleflor.com' } });
     if (!adminUser) {
       const passwordHash = await bcrypt.hash('admin123', 10);
       adminUser = userRepo.create({
-        email: 'admin@villaflor.com',
+        email: 'admin@valleflor.com',
         passwordHash,
         role: UserRole.ADMIN,
       });
       await userRepo.save(adminUser);
-      console.log('✅ Created admin user: admin@villaflor.com / admin123');
+      console.log('✅ Created admin user: admin@valleflor.com / admin123');
     } else {
       console.log('✅ Admin user already exists.');
     }
@@ -108,7 +108,7 @@ async function runSeed() {
       }
 
       for (const respNombre of responsables) {
-        const email = `${respNombre.toLowerCase()}@villaflor.com`;
+        const email = `${respNombre.toLowerCase()}@valleflor.com`;
         let user = await userRepo.findOne({ where: { email } });
         
         if (!user) {

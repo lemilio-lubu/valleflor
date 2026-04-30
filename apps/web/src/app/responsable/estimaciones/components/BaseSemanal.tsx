@@ -88,9 +88,7 @@ export function BaseSemanal({ fincaId, semanas = 10 }: Props) {
   );
 
   if (!data || data.rows.length === 0) return (
-    <div className="text-center py-12 text-carbon-400 font-mono text-sm">
-      Sin datos de base semanal para esta finca
-    </div>
+    <div className="empty-state">Sin datos de base semanal para esta finca</div>
   );
 
   const { semanas: targetWeeks, rows } = data;
@@ -116,11 +114,11 @@ export function BaseSemanal({ fincaId, semanas = 10 }: Props) {
         <table className="w-full text-xs">
         <thead>
           <tr className="bg-surface-overlay border-b border-surface-border">
-            <th className="px-3 py-2.5 text-left font-mono uppercase tracking-widest text-carbon-400 whitespace-nowrap">Producto</th>
-            <th className="px-3 py-2.5 text-left font-mono uppercase tracking-widest text-carbon-400 whitespace-nowrap">Variedad</th>
-            <th className="px-3 py-2.5 text-left font-mono uppercase tracking-widest text-carbon-400 whitespace-nowrap">Color</th>
+            <th className="table-th">Producto</th>
+            <th className="table-th">Variedad</th>
+            <th className="table-th">Color</th>
             {targetWeeks.map((s) => (
-              <th key={`${s.anio}-${s.numeroSemana}`} className="px-3 py-2.5 text-center font-mono uppercase tracking-widest text-carbon-400 whitespace-nowrap min-w-[90px]">
+              <th key={`${s.anio}-${s.numeroSemana}`} className="table-th text-center min-w-[90px]">
                 Sem {s.numeroSemana}
               </th>
             ))}
@@ -132,9 +130,9 @@ export function BaseSemanal({ fincaId, semanas = 10 }: Props) {
               key={row.colorId}
               className={`table-row-hover border-b border-surface-border/30 ${i % 2 === 0 ? '' : 'bg-surface-overlay/15'}`}
             >
-              <td className="px-3 py-2.5 text-carbon-300 whitespace-nowrap">{row.producto}</td>
-              <td className="px-3 py-2.5 text-carbon-300 whitespace-nowrap">{row.variedad}</td>
-              <td className="px-3 py-2.5 font-medium text-carbon-100 whitespace-nowrap">{row.color}</td>
+              <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap">{row.producto}</td>
+              <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap">{row.variedad}</td>
+              <td className="px-3 py-2.5 font-medium text-carbon-50 whitespace-nowrap">{row.color}</td>
               {targetWeeks.map((s) => {
                 const d = row.semanas[String(s.numeroSemana)];
                 const key = `${row.colorId}-${s.anio}-${s.numeroSemana}`;
@@ -145,9 +143,9 @@ export function BaseSemanal({ fincaId, semanas = 10 }: Props) {
                 return (
                   <td key={key} className="px-2 py-2 text-center">
                     {isReal ? (
-                      <div className="inline-flex flex-col items-center rounded px-2 py-1 bg-verde-900/40 text-verde-400 border border-verde-800/60 w-full max-w-[80px]">
+                      <div className="inline-flex flex-col items-center rounded px-2 py-1 bg-agro-50 text-agro-600 border border-agro-100 w-full max-w-[80px]">
                         <span className="font-mono font-medium tabular-nums">{reales.toFixed(2)}</span>
-                        <span className="text-[9px] opacity-60 font-mono text-carbon-300 mt-0.5">Real</span>
+                        <span className="text-[9px] opacity-70 text-agro-500 mt-0.5">Real</span>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center">
@@ -156,12 +154,12 @@ export function BaseSemanal({ fincaId, semanas = 10 }: Props) {
                           step="0.01"
                           min="0"
                           placeholder="0.00"
-                          className="w-full max-w-[80px] bg-surface-overlay border border-surface-border rounded px-2 py-1 text-dorado-300 font-mono text-xs focus:border-dorado-500 focus:ring-1 focus:ring-dorado-500 outline-none transition-colors text-right placeholder:text-carbon-600"
+                          className="w-full max-w-[80px] bg-surface-overlay border border-surface-border rounded px-2 py-1 text-dorado-500 font-mono text-xs focus:border-dorado-500 focus:ring-1 focus:ring-dorado-500 outline-none transition-colors text-right placeholder:text-carbon-400"
                           value={localEstimaciones[key] ?? (estimadas === 0 ? '' : estimadas.toFixed(2))}
                           onChange={(e) => handleChange(key, e.target.value)}
                           onBlur={() => handleBlur(row.colorId, s.numeroSemana, s.anio, estimadas)}
                         />
-                        <span className="text-[9px] opacity-60 font-mono text-carbon-500 mt-1">Est.</span>
+                        <span className="text-[9px] opacity-70 text-carbon-400 mt-1">Est.</span>
                       </div>
                     )}
                   </td>

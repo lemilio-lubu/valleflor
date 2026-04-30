@@ -36,21 +36,21 @@ export default function UsuariosPage() {
       <div className="card">
         <form onSubmit={(e) => { e.preventDefault(); create.mutate(form); }} className="space-y-5">
           <div>
-            <label className="block text-xs font-mono uppercase tracking-widest text-carbon-300 mb-1.5">Email</label>
+            <label className="form-label">Email</label>
             <input type="email" required className="input-field" value={form.email}
               onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
-              placeholder="usuario@villaflor.com"
+              placeholder="usuario@valleflor.com"
             />
           </div>
           <div>
-            <label className="block text-xs font-mono uppercase tracking-widest text-carbon-300 mb-1.5">Contraseña</label>
+            <label className="form-label">Contraseña</label>
             <input type="password" required className="input-field" value={form.password}
               onChange={(e) => setForm(p => ({ ...p, password: e.target.value }))}
               placeholder="Mínimo 8 caracteres"
             />
           </div>
           <div>
-            <label className="block text-xs font-mono uppercase tracking-widest text-carbon-300 mb-1.5">Rol</label>
+            <label className="form-label">Rol</label>
             <select className="input-field" value={form.role}
               onChange={(e) => setForm(p => ({ ...p, role: e.target.value }))}>
               <option value="responsable">Responsable</option>
@@ -61,14 +61,14 @@ export default function UsuariosPage() {
           {form.role === 'responsable' && (
             <div className="space-y-5 pt-3 border-t border-surface-border animate-fade-in">
               <div>
-                <label className="block text-xs font-mono uppercase tracking-widest text-carbon-300 mb-1.5">Nombre del Responsable</label>
+                <label className="form-label">Nombre del Responsable</label>
                 <input type="text" required={form.role === 'responsable'} className="input-field" value={form.nombre}
                   onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value.toUpperCase() }))}
                   placeholder="Ej: ANDRES PEREZ"
                 />
               </div>
               <div>
-                <label className="block text-xs font-mono uppercase tracking-widest text-carbon-300 mb-1.5">Finca Asignada</label>
+                <label className="form-label">Finca Asignada</label>
                 <select className="input-field" required={form.role === 'responsable'} value={form.fincaId}
                   onChange={(e) => setForm(p => ({ ...p, fincaId: e.target.value }))}>
                   <option value="">Selecciona una finca</option>
@@ -84,7 +84,7 @@ export default function UsuariosPage() {
             {create.isPending ? 'Creando...' : 'Crear usuario'}
           </button>
           {create.isSuccess && (
-            <div className="p-3 bg-verde-900/30 border border-verde-700/40 rounded-md text-verde-400 text-sm font-mono animate-fade-in">
+            <div className="p-3 bg-verde-50 border border-verde-100 rounded-lg text-verde-600 text-sm animate-fade-in">
               ✓ Usuario creado exitosamente
             </div>
           )}

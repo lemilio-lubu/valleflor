@@ -1,85 +1,145 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --overlay: #21262d;
-  --border: #30363d;
-  --verde: #16a34a;
-  --verde-light: #22c55e;
-  --dorado: #f59e0b;
-  --text: #e6edf3;
-  --muted: #8b949e;
+  /* Marca Terrazul */
+  --brand-primary:       #1B3FA0;
+  --brand-primary-dark:  #142E78;
+  --brand-primary-light: #E8EDF8;
+  --brand-secondary:     #2E8B3D;
+  --brand-accent:        #D32F2F;
+
+  /* Fondos light */
+  --bg-base:        #FFFFFF;
+  --bg-surface:     #FAFBFC;
+  --bg-muted:       #F2F4F7;
+  --border-subtle:  #E4E7EC;
+  --border-default: #D0D5DD;
+
+  /* Texto */
+  --text-primary:   #101828;
+  --text-secondary: #475467;
+  --text-tertiary:  #667085;
+  --text-disabled:  #98A2B3;
+
+  /* Funcionales */
+  --success:    #2E8B3D;
+  --success-bg: #ECFDF3;
+  --warning:    #DC9B04;
+  --warning-bg: #FFFAEB;
+  --error:      #D32F2F;
+  --error-bg:   #FEF3F2;
+
+  /* Espaciado áureo (φ = 1.618, base 8px) */
+  --space-1:  4px;   /* base / φ      — icono + texto */
+  --space-2:  8px;   /* base          — padding mínimo */
+  --space-3: 12px;   /* base × φ⁰·⁵  — gap estándar */
+  --space-4: 20px;   /* base × φ¹    — padding inputs, gap cards */
+  --space-5: 32px;   /* base × φ²    — separación secciones */
+  --space-6: 52px;   /* base × φ³    — margen bloques */
+  --space-7: 84px;   /* base × φ⁴    — espaciado de página */
+  --space-8: 136px;  /* base × φ⁵    — separaciones macro */
+
+  /* Escala tipográfica áurea */
+  --text-xs:   12px;  /* captions, badges */
+  --text-sm:   14px;  /* labels, texto apoyo */
+  --text-base: 16px;  /* texto base */
+  --text-lg:   20px;  /* énfasis, subtítulos */
+  --text-xl:   26px;  /* títulos sección h3 */
+  --text-2xl:  42px;  /* títulos principales h2 */
+  --text-3xl:  68px;  /* hero h1 */
+
+  /* Radios áureos */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+
+  /* Transiciones */
+  --transition-fast: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
-  background-color: var(--bg);
-  color: var(--text);
-  font-family: 'DM Sans', sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
 }
 
-/* Scrollbar styling */
+/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #484f58; }
+::-webkit-scrollbar-track { background: var(--bg-muted); }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-disabled); }
 
 /* Selection */
-::selection { background: rgba(22,163,74,0.25); color: #fff; }
+::selection { background: rgba(27,63,160,0.15); color: var(--text-primary); }
 
 /* Focus ring */
 :focus-visible {
-  outline: 2px solid var(--verde);
+  outline: 2px solid var(--brand-primary);
   outline-offset: 2px;
 }
 
 /* ── Componentes reutilizables ── */
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-verde-600 hover:bg-verde-700 text-white font-medium rounded-md transition-all duration-150 text-sm shadow-verde-sm hover:shadow-verde-glow active:scale-95;
+    @apply inline-flex items-center gap-phi-1 px-phi-4 py-phi-2 bg-verde-600 hover:bg-verde-700 text-white font-medium rounded-md transition-all duration-200 text-sm shadow-verde-sm hover:shadow-verde-glow active:scale-95;
   }
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-4 py-2 text-carbon-300 hover:text-white hover:bg-surface-overlay font-medium rounded-md transition-all duration-150 text-sm border border-surface-border hover:border-carbon-700;
+    @apply inline-flex items-center gap-phi-1 px-phi-4 py-phi-2 text-carbon-300 hover:text-carbon-50 hover:bg-surface-overlay font-medium rounded-md transition-all duration-200 text-sm border border-surface-border;
   }
   .btn-danger {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-800 hover:bg-red-700 text-white font-medium rounded-md transition-all duration-150 text-sm;
+    @apply inline-flex items-center gap-phi-1 px-phi-4 py-phi-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md transition-all duration-200 text-sm;
   }
   .input-field {
-    @apply w-full bg-surface-overlay border border-surface-border rounded-md px-3 py-2 text-sm text-carbon-50 placeholder-carbon-400 focus:border-verde-600 focus:ring-1 focus:ring-verde-600 transition-colors duration-150 outline-none;
+    @apply w-full bg-white border border-surface-border rounded-sm px-phi-4 py-phi-2 text-sm text-carbon-50 placeholder-carbon-400 focus:border-verde-600 focus:ring-2 focus:ring-verde-50 transition-colors duration-200 outline-none shadow-xs;
   }
   .card {
-    @apply bg-surface-raised border border-surface-border rounded-lg p-6;
+    @apply bg-surface-raised border border-surface-border rounded-lg p-phi-4 shadow-sm;
   }
   .table-row-hover {
     @apply hover:bg-surface-overlay transition-colors duration-100;
   }
   .badge-real {
-    @apply inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono bg-verde-900 text-verde-400 border border-verde-700;
+    @apply inline-flex items-center px-phi-1 py-[2px] rounded-sm text-xs font-mono bg-agro-50 text-agro-600 border border-agro-100;
   }
   .badge-estimado {
-    @apply inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono bg-carbon-800 text-carbon-400 border border-carbon-700;
+    @apply inline-flex items-center px-phi-1 py-[2px] rounded-sm text-xs font-mono bg-surface-overlay text-carbon-400 border border-surface-border;
   }
   .section-title {
-    @apply font-serif text-2xl text-carbon-50;
+    @apply font-sans text-2xl font-semibold text-carbon-50 tracking-tight;
   }
   .nav-link {
-    @apply flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-carbon-400 hover:text-white hover:bg-surface-overlay transition-all duration-150;
+    @apply flex items-center gap-phi-2 px-phi-3 py-phi-2 rounded-md text-sm font-medium text-carbon-300 hover:text-carbon-50 hover:bg-surface-overlay transition-all duration-200;
   }
   .nav-link-active {
-    @apply flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-verde-400 bg-verde-900/30 border-l-2 border-verde-500;
+    @apply flex items-center gap-phi-2 px-phi-3 py-phi-2 rounded-md text-sm font-medium text-verde-600 bg-verde-50 border-l-2 border-verde-600;
+  }
+  .form-label {
+    @apply block text-sm font-medium text-carbon-300 mb-phi-2;
+  }
+  .table-th {
+    @apply px-phi-3 py-phi-2 text-left text-xs font-semibold text-carbon-400 uppercase tracking-wide whitespace-nowrap;
+  }
+  .modal-overlay {
+    @apply fixed inset-0 bg-[rgba(16,24,40,0.5)] flex items-center justify-center z-50;
+  }
+  .modal-title {
+    @apply font-sans font-semibold text-lg text-carbon-50;
+  }
+  .card-section-title {
+    @apply text-sm font-semibold text-carbon-50;
+  }
+  .empty-state {
+    @apply text-center py-phi-5 text-carbon-400 text-sm;
   }
 }

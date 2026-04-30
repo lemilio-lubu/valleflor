@@ -13,14 +13,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
           position="top-right"
           toastOptions={{
             style: {
-              background: '#21262d',
-              color: '#e6edf3',
-              border: '1px solid #30363d',
-              fontFamily: '"DM Sans", sans-serif',
+              background: '#FFFFFF',
+              color: '#101828',
+              border: '1px solid #E4E7EC',
+              fontFamily: 'Inter, system-ui, sans-serif',
               fontSize: '0.875rem',
+              boxShadow: '0 4px 8px rgba(16,24,40,0.08)',
             },
-            success: { iconTheme: { primary: '#22c55e', secondary: '#0d1117' } },
-            error: { iconTheme: { primary: '#f87171', secondary: '#0d1117' } },
+            success: { iconTheme: { primary: '#2E8B3D', secondary: '#ECFDF3' } },
+            error: { iconTheme: { primary: '#D32F2F', secondary: '#FEF3F2' } },
           }}
         />
       </ReactQueryProvider>

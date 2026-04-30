@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { SemanaSelector } from './components/SemanaSelector';
 import { PlantillaDiaria } from './components/PlantillaDiaria';
 import { BaseSemanal } from './components/BaseSemanal';
+import { Plus, X, MapPin } from 'lucide-react';
 
 type Tab = 'plantilla' | 'base';
 
@@ -38,14 +39,12 @@ function CreateSemanaModal({ onClose, onCreated }: { onClose: () => void; onCrea
   });
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-sm mx-4 shadow-2xl animate-slide-up">
+    <div className="modal-overlay">
+      <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-sm mx-4 shadow-lg animate-slide-up">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
-          <h3 className="font-serif text-lg">Nueva Semana</h3>
-          <button onClick={onClose} className="text-carbon-400 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <h3 className="modal-title">Nueva Semana</h3>
+          <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors">
+            <X className="w-5 h-5" />
           </button>
         </div>
         <form
@@ -54,23 +53,23 @@ function CreateSemanaModal({ onClose, onCreated }: { onClose: () => void; onCrea
         >
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-mono uppercase tracking-widest text-carbon-300 mb-1.5"># Semana</label>
+              <label className="form-label"># Semana</label>
               <input type="number" min="1" max="53" required className="input-field"
                 value={form.numero_semana} onChange={(e) => setForm(p => ({ ...p, numero_semana: e.target.value }))} />
             </div>
             <div>
-              <label className="block text-xs font-mono uppercase tracking-widest text-carbon-300 mb-1.5">Año</label>
+              <label className="form-label">Año</label>
               <input type="number" min="2000" required className="input-field"
                 value={form.anio} onChange={(e) => setForm(p => ({ ...p, anio: e.target.value }))} />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-mono uppercase tracking-widest text-carbon-300 mb-1.5">Fecha inicio</label>
+            <label className="form-label">Fecha inicio</label>
             <input type="date" required className="input-field"
               value={form.fecha_inicio} onChange={(e) => setForm(p => ({ ...p, fecha_inicio: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-xs font-mono uppercase tracking-widest text-carbon-300 mb-1.5">Fecha fin</label>
+            <label className="form-label">Fecha fin</label>
             <input type="date" required className="input-field"
               value={form.fecha_fin} onChange={(e) => setForm(p => ({ ...p, fecha_fin: e.target.value }))} />
           </div>
@@ -104,9 +103,7 @@ export default function EstimacionesPage() {
           <p className="text-carbon-400 text-sm mt-1">Ingreso de cajas y consulta de base semanal</p>
         </div>
         <button id="btn-nueva-semana" onClick={() => setShowCreate(true)} className="btn-primary">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
+          <Plus className="w-4 h-4" />
           Nueva semana
         </button>
       </div>
@@ -114,14 +111,14 @@ export default function EstimacionesPage() {
       {fincaNombre && responsableNombre && (
         <div className="bg-surface-overlay border border-dorado-500/20 rounded-lg p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
           <div>
-            <p className="text-[10px] font-mono text-dorado-400 uppercase tracking-widest mb-1">Responsable Actual</p>
-            <h2 className="text-carbon-100 font-medium text-lg">{responsableNombre}</h2>
+            <p className="text-[10px] font-medium text-dorado-500 uppercase tracking-widest mb-1">Responsable Actual</p>
+            <h2 className="text-carbon-50 font-medium text-lg">{responsableNombre}</h2>
           </div>
           <div className="sm:text-right">
-            <p className="text-[10px] font-mono text-dorado-400 uppercase tracking-widest mb-1">Finca Asignada</p>
+            <p className="text-[10px] font-medium text-dorado-500 uppercase tracking-widest mb-1">Finca Asignada</p>
             <div className="flex items-center sm:justify-end gap-2">
-              <span className="text-xl">📍</span>
-              <h2 className="text-verde-400 font-mono font-bold text-lg">{fincaNombre}</h2>
+              <MapPin className="w-5 h-5 text-verde-600" />
+              <h2 className="text-verde-600 font-semibold text-lg">{fincaNombre}</h2>
             </div>
           </div>
         </div>
@@ -129,7 +126,7 @@ export default function EstimacionesPage() {
 
       {/* Selector de semanas */}
       <div className="mb-6">
-        <p className="text-xs font-mono uppercase tracking-widest text-carbon-400 mb-3">Seleccionar semana</p>
+        <p className="text-xs font-medium text-carbon-400 mb-3">Seleccionar semana</p>
         <SemanaSelector selectedId={selectedSemana} onSelect={setSelectedSemana} />
       </div>
 
@@ -142,8 +139,8 @@ export default function EstimacionesPage() {
             onClick={() => setActiveTab(key)}
             className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-all duration-150 -mb-px ${
               activeTab === key
-                ? 'border-verde-500 text-verde-400'
-                : 'border-transparent text-carbon-400 hover:text-carbon-200'
+                ? 'border-verde-600 text-verde-600'
+                : 'border-transparent text-carbon-400 hover:text-carbon-50'
             }`}
           >
             {label}
@@ -155,13 +152,13 @@ export default function EstimacionesPage() {
       {activeTab === 'plantilla' && (
         selectedSemana
           ? <PlantillaDiaria semanaId={selectedSemana} />
-          : <div className="text-center py-16 text-carbon-400 font-mono text-sm">← Selecciona una semana para ver la plantilla</div>
+          : <div className="empty-state py-16">← Selecciona una semana para ver la plantilla</div>
       )}
 
       {activeTab === 'base' && (
         fincaId
           ? <BaseSemanal fincaId={fincaId} semanas={10} />
-          : <div className="text-center py-16 text-carbon-400 font-mono text-sm">No se pudo obtener la finca del responsable</div>
+          : <div className="empty-state py-16">No se pudo obtener la finca del responsable</div>
       )}
 
       {showCreate && (

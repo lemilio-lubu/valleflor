@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { Pencil } from 'lucide-react';
 
 interface PlantillaRow {
   registroId: string;
@@ -42,10 +43,10 @@ function DivisorModal({ row, onClose }: { row: PlantillaRow; onClose: () => void
   });
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-surface-raised border border-surface-border rounded-xl w-80 p-6 shadow-2xl animate-slide-up">
-        <h3 className="font-serif text-lg mb-1">Editar divisor</h3>
-        <p className="text-carbon-400 text-xs font-mono mb-4">{row.color} · {row.dia}</p>
+    <div className="modal-overlay">
+      <div className="bg-surface-raised border border-surface-border rounded-xl w-80 p-6 shadow-lg animate-slide-up">
+        <h3 className="modal-title mb-1">Editar divisor</h3>
+        <p className="text-carbon-400 text-xs mb-4">{row.color} · {row.dia}</p>
         <input
           type="number"
           min="1"
@@ -83,7 +84,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
     onSuccess: (res, vars) => {
       qc.invalidateQueries({ queryKey: ['plantilla', semanaId] });
       if (res.data?.warning) {
-        toast(`⚠️ ${res.data.warning}`, { style: { background: '#78350f', color: '#fef3c7', border: '1px solid #92400e' } });
+        toast(`${res.data.warning}`, { style: { background: 'var(--warning-bg)', color: 'var(--text-primary)', border: '1px solid var(--warning)' } });
       }
     },
     onError: () => toast.error('Error al guardar cajas'),
@@ -129,7 +130,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
   );
 
   if (rows.length === 0) return (
-    <div className="text-center py-12 text-carbon-400 font-mono text-sm">Sin registros para esta semana</div>
+    <div className="empty-state">Sin registros para esta semana</div>
   );
 
   // Extraer valores únicos para filtros
@@ -180,7 +181,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
           <thead>
             <tr className="bg-surface-overlay border-b border-surface-border">
               {['DIA', 'FECHA', 'PRODUCTO', 'VARIEDAD', 'COLOR', 'CAJAS', 'TALLOS', '÷'].map((h) => (
-                <th key={h} className="px-3 py-2.5 text-left font-mono uppercase tracking-widest text-carbon-400 whitespace-nowrap">{h}</th>
+                <th key={h} className="table-th">{h}</th>
               ))}
             </tr>
           </thead>
@@ -192,14 +193,14 @@ export function PlantillaDiaria({ semanaId }: Props) {
                   className={`table-row-hover border-b border-surface-border/30 ${idx === 0 ? 'border-t border-surface-border/60' : ''}`}
                 >
                   {idx === 0 ? (
-                    <td className="px-3 py-2.5 font-mono font-medium text-verde-500 whitespace-nowrap" rowSpan={byDia[dia].length}>
+                    <td className="px-3 py-2.5 font-mono font-semibold text-verde-600 whitespace-nowrap" rowSpan={byDia[dia].length}>
                       {DIA_SHORT[dia]}
                     </td>
                   ) : null}
                   <td className="px-3 py-2.5 text-carbon-400 font-mono whitespace-nowrap">{row.fecha}</td>
-                  <td className="px-3 py-2.5 text-carbon-300 whitespace-nowrap">{row.producto}</td>
-                  <td className="px-3 py-2.5 text-carbon-300 whitespace-nowrap">{row.variedad}</td>
-                  <td className="px-3 py-2.5 text-carbon-200 font-medium whitespace-nowrap">{row.color}</td>
+                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap">{row.producto}</td>
+                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap">{row.variedad}</td>
+                  <td className="px-3 py-2.5 text-carbon-50 font-semibold whitespace-nowrap">{row.color}</td>
                   <td className="px-3 py-2">
                     <input
                       id={`cajas-${row.registroId}`}
@@ -207,13 +208,13 @@ export function PlantillaDiaria({ semanaId }: Props) {
                       step="0.01"
                       min="0"
                       placeholder="0.00"
-                      className="w-24 bg-surface-overlay border border-surface-border rounded px-2 py-1 text-carbon-50 font-mono text-xs focus:border-verde-600 focus:ring-1 focus:ring-verde-600 outline-none transition-colors text-right placeholder:text-carbon-500/50"
+                      className="w-24 bg-surface-overlay border border-surface-border rounded px-2 py-1 text-carbon-50 font-mono text-xs focus:border-verde-600 focus:ring-1 focus:ring-verde-600 outline-none transition-colors text-right placeholder:text-carbon-400"
                       value={localCajas[row.registroId] ?? (row.cajas === 0 ? '' : Number(row.cajas).toFixed(2))}
                       onChange={(e) => handleChange(row.registroId, e.target.value)}
                       onBlur={() => handleBlur(row)}
                     />
                   </td>
-                  <td className="px-3 py-2.5 font-mono text-verde-400 tabular-nums">
+                  <td className="px-3 py-2.5 font-mono text-agro-500 tabular-nums">
                     {getTallos(row).toFixed(2)}
                   </td>
                   <td className="px-3 py-2.5">
@@ -221,11 +222,9 @@ export function PlantillaDiaria({ semanaId }: Props) {
                       id={`divisor-${row.registroId}`}
                       onClick={() => setDivisorModal(row)}
                       title={`Divisor: ${row.divisorTallos}`}
-                      className="text-carbon-500 hover:text-dorado-400 transition-colors"
+                      className="text-carbon-400 hover:text-dorado-500 transition-colors"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                   </td>
                 </tr>

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import Image from 'next/image';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,37 +43,32 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
       {/* Background grid */}
       <div
-        className="absolute inset-0 opacity-[0.03]"
+        className="absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(22,163,74,0.5) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(22,163,74,0.5) 1px, transparent 1px)
+            linear-gradient(rgba(27,63,160,0.4) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(27,63,160,0.4) 1px, transparent 1px)
           `,
           backgroundSize: '40px 40px',
         }}
       />
       {/* Glow orb */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-verde-700/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-verde-50 rounded-full blur-3xl pointer-events-none opacity-60" />
 
       <div className="relative w-full max-w-sm mx-auto px-6 animate-slide-up">
         {/* Logo / Brand */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-verde-600/20 border border-verde-700/40 shadow-verde-sm mb-4">
-            <svg className="w-7 h-7 text-verde-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1M4.22 4.22l.7.7m14.14 14.14.7.7M3 12H2m20 0h-1M4.22 19.78l.7-.7M19.07 4.93l-.7.7M12 7a5 5 0 100 10A5 5 0 0012 7z" />
-            </svg>
+          <div className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-verde-600 shadow-md mb-4">
+            <Image src="/logo.webp" alt="Valleflor" width={160} height={46} className="object-contain" priority />
           </div>
-          <h1 className="font-serif text-3xl text-carbon-50 tracking-tight">Villaflor</h1>
-          <p className="text-carbon-400 text-sm mt-1 font-mono">Sistema de estimaciones florícolas</p>
+          <p className="text-carbon-400 text-sm mt-3">Sistema de estimaciones florícolas</p>
         </div>
 
         {/* Form card */}
-        <div className="card border-surface-border/60 shadow-2xl">
+        <div className="card border-surface-border/60 shadow-lg">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-medium text-carbon-300 uppercase tracking-widest mb-1.5">
-                Correo electrónico
-              </label>
+              <label className="form-label" htmlFor="email">Correo electrónico</label>
               <input
                 id="email"
                 type="email"
@@ -80,13 +77,11 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-field"
-                placeholder="usuario@villaflor.com"
+                placeholder="usuario@valleflor.com"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-carbon-300 uppercase tracking-widest mb-1.5">
-                Contraseña
-              </label>
+              <label className="form-label" htmlFor="password">Contraseña</label>
               <input
                 id="password"
                 type="password"
@@ -106,10 +101,7 @@ export default function LoginPage() {
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                  </svg>
+                  <Loader2 className="animate-spin w-4 h-4" />
                   Ingresando...
                 </span>
               ) : 'Ingresar'}
@@ -117,8 +109,8 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-carbon-400/50 text-xs mt-8 font-mono">
-          © {new Date().getFullYear()} Villaflor · Todos los derechos reservados
+        <p className="text-center text-carbon-400 text-xs mt-8">
+          © {new Date().getFullYear()} Valleflor · Todos los derechos reservados
         </p>
       </div>
     </div>

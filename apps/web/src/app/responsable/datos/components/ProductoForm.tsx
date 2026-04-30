@@ -45,7 +45,7 @@ export function ProductoForm({ fincaId }: Props) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-carbon-200 uppercase tracking-widest font-mono">Productos</h3>
+        <h3 className="card-section-title">Productos</h3>
         <button
           id="btn-nuevo-producto"
           onClick={() => { reset(); setOpen(true); }}
@@ -77,14 +77,14 @@ export function ProductoForm({ fincaId }: Props) {
         <table className="w-full text-sm">
           <tbody>
             {productos.length === 0 && (
-              <tr><td className="text-center py-6 text-carbon-400 font-mono text-xs">Sin productos</td></tr>
+              <tr><td className="empty-state py-6">Sin productos</td></tr>
             )}
             {productos.map((p) => (
               <tr key={p.id} className="table-row-hover border-b border-surface-border/30">
-                <td className="px-4 py-2.5 font-mono text-xs text-carbon-200">{p.nombre}</td>
+                <td className="px-4 py-2.5 text-sm text-carbon-50">{p.nombre}</td>
                 <td className="px-4 py-2.5 text-right">
-                  <button onClick={() => startEdit(p)} className="text-carbon-400 hover:text-verde-400 text-xs mr-3 transition-colors">editar</button>
-                  <button onClick={() => { if (confirm('¿Eliminar?')) remove.mutate(p.id); }} className="text-carbon-400 hover:text-red-400 text-xs transition-colors">eliminar</button>
+                  <button onClick={() => startEdit(p)} className="text-carbon-300 hover:text-verde-600 text-xs mr-3 transition-colors">editar</button>
+                  <button onClick={() => { if (confirm('¿Eliminar?')) remove.mutate(p.id); }} className="text-carbon-300 hover:text-red-600 text-xs transition-colors">eliminar</button>
                 </td>
               </tr>
             ))}
