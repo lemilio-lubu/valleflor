@@ -99,6 +99,7 @@ export class UsersService {
 
   async remove(id: string): Promise<void> {
     const user = await this.findOne(id);
+    await this.respRepo.delete({ userId: id });
     await this.userRepo.remove(user);
   }
 

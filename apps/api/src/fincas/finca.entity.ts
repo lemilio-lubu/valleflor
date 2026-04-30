@@ -20,6 +20,9 @@ export class Finca {
   @Column({ type: 'varchar', nullable: false })
   nombre: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  ubicacion: string | null;
+
   @Column({ name: 'admin_id' })
   adminId: string;
 

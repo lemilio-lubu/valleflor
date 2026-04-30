@@ -70,7 +70,7 @@ export default function LoginPage() {
         <div className="card border-surface-border/60 shadow-lg">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="form-label" htmlFor="email">Correo electrónico</label>
+              <label className="form-label" htmlFor="email">Correo electrónico <span className="text-red-500 ml-0.5">*</span></label>
               <input
                 id="email"
                 type="email"
@@ -83,7 +83,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="form-label" htmlFor="password">Contraseña</label>
+              <label className="form-label" htmlFor="password">Contraseña <span className="text-red-500 ml-0.5">*</span></label>
               <div className="relative">
                 <input
                   id="password"

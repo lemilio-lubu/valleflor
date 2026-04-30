@@ -4,14 +4,17 @@ import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, X, Search } from 'lucide-react';
+import { Plus, Trash2, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ConfirmModal } from '@/app/components/ConfirmModal';
+
+const PAGE_SIZE = 11;
 
 interface Finca { id: string; nombre: string; }
 interface Usuario { id: string; email: string; role: string; createdAt: string; responsable?: { nombre: string; }; }
 
 function CreateModal({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({ email: '', password: '', role: 'responsable', nombre: '', fincaId: '' });
+  const [form, setForm] = useState({ email: '', password: '', role: '', nombre: '', fincaId: '' });
 
   const { data: fincas = [] } = useQuery<Finca[]>({
     queryKey: ['fincas'],
@@ -21,15 +24,13 @@ function CreateModal({ onClose }: { onClose: () => void }) {
   const create = useMutation({
     mutationFn: (data: typeof form) => {
       const payload: Record<string, string> = { email: data.email, password: data.password, role: data.role };
-      if (data.role === 'responsable') {
-        if (data.nombre) payload.nombre = data.nombre;
-        if (data.fincaId) payload.fincaId = data.fincaId;
-      }
+      if (data.nombre) payload.nombre = data.nombre;
+      if (data.role === 'responsable' && data.fincaId) payload.fincaId = data.fincaId;
       return api.post('/users', payload);
     },
-    onSuccess: () => {
+    onSuccess: (_, data) => {
       qc.invalidateQueries({ queryKey: ['usuarios'] });
-      toast.success('Usuario creado');
+      toast.success(`Usuario "${data.nombre || data.email}" creado`);
       onClose();
     },
     onError: (err: any) => toast.error(err?.response?.data?.message?.[0] ?? err?.response?.data?.message ?? 'Error al crear usuario'),
@@ -44,41 +45,42 @@ function CreateModal({ onClose }: { onClose: () => void }) {
         </div>
         <form onSubmit={(e) => { e.preventDefault(); create.mutate(form); }} className="p-6 space-y-4">
           <div>
-            <label className="form-label">Email</label>
+            <label className="form-label">Nombre <span className="text-red-500 ml-0.5">*</span></label>
+            <input type="text" required className="input-field" value={form.nombre}
+              onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value.toUpperCase() }))}
+              placeholder="Ej: ANDRES PEREZ" />
+          </div>
+          <div>
+            <label className="form-label">Email <span className="text-red-500 ml-0.5">*</span></label>
             <input type="email" required className="input-field" value={form.email}
+              autoComplete="off"
               onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
               placeholder="usuario@valleflor.com" />
           </div>
           <div>
-            <label className="form-label">Contraseña</label>
+            <label className="form-label">Contraseña <span className="text-red-500 ml-0.5">*</span></label>
             <input type="password" required minLength={8} className="input-field" value={form.password}
+              autoComplete="new-password"
               onChange={(e) => setForm(p => ({ ...p, password: e.target.value }))}
               placeholder="Mínimo 8 caracteres" />
           </div>
           <div>
-            <label className="form-label">Rol</label>
-            <select className="input-field" value={form.role}
+            <label className="form-label">Rol <span className="text-red-500 ml-0.5">*</span></label>
+            <select required className="input-field" value={form.role}
               onChange={(e) => setForm(p => ({ ...p, role: e.target.value }))}>
+              <option value="" disabled>Selecciona un rol</option>
               <option value="responsable">Responsable</option>
               <option value="admin">Admin</option>
             </select>
           </div>
           {form.role === 'responsable' && (
-            <div className="space-y-4 pt-3 border-t border-surface-border animate-fade-in">
-              <div>
-                <label className="form-label">Nombre del responsable</label>
-                <input type="text" required className="input-field" value={form.nombre}
-                  onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value.toUpperCase() }))}
-                  placeholder="Ej: ANDRES PEREZ" />
-              </div>
-              <div>
-                <label className="form-label">Finca asignada</label>
-                <select className="input-field" required value={form.fincaId}
-                  onChange={(e) => setForm(p => ({ ...p, fincaId: e.target.value }))}>
-                  <option value="">Selecciona una finca</option>
-                  {fincas.map(f => <option key={f.id} value={f.id}>{f.nombre}</option>)}
-                </select>
-              </div>
+            <div>
+              <label className="form-label">Finca asignada</label>
+              <select className="input-field" value={form.fincaId}
+                onChange={(e) => setForm(p => ({ ...p, fincaId: e.target.value }))}>
+                <option value="">Selecciona una finca</option>
+                {fincas.map(f => <option key={f.id} value={f.id}>{f.nombre}</option>)}
+              </select>
             </div>
           )}
           <div className="flex gap-3 pt-2">
@@ -97,6 +99,9 @@ export default function UsuariosPage() {
   const qc = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'responsable'>('all');
+  const [page, setPage] = useState(1);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string } | null>(null);
 
   const { data: usuarios = [], isLoading } = useQuery<Usuario[]>({
     queryKey: ['usuarios'],
@@ -105,17 +110,28 @@ export default function UsuariosPage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return usuarios;
-    return usuarios.filter((u) =>
-      u.email.toLowerCase().includes(q) ||
-      (u.responsable?.nombre ?? '').toLowerCase().includes(q)
-    );
-  }, [usuarios, search]);
+    return usuarios.filter((u) => {
+      const matchRole = roleFilter === 'all' || u.role === roleFilter;
+      const matchSearch = !q || u.email.toLowerCase().includes(q) || (u.responsable?.nombre ?? '').toLowerCase().includes(q);
+      return matchRole && matchSearch;
+    });
+  }, [usuarios, search, roleFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  function handleSearchChange(v: string) { setSearch(v); setPage(1); }
+  function handleRoleChange(v: typeof roleFilter) { setRoleFilter(v); setPage(1); }
 
   const remove = useMutation({
-    mutationFn: (id: string) => api.delete(`/users/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['usuarios'] }); toast.success('Usuario eliminado'); },
-    onError: () => toast.error('No se puede eliminar'),
+    mutationFn: ({ id }: { id: string; label: string }) => api.delete(`/users/${id}`),
+    onSuccess: (_, { label }) => {
+      qc.invalidateQueries({ queryKey: ['usuarios'] });
+      toast.success(`Usuario "${label}" eliminado`);
+      setConfirmDelete(null);
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'No se puede eliminar'),
   });
 
   return (
@@ -131,15 +147,32 @@ export default function UsuariosPage() {
         </button>
       </div>
 
-      <div className="relative mb-4 max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-carbon-400" />
-        <input
-          type="text"
-          placeholder="Buscar por nombre o email..."
-          className="input-field pl-9"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-carbon-400" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre o email..."
+            className="input-field pl-9"
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
+        </div>
+        <div className="flex rounded-lg border border-surface-border overflow-hidden text-sm">
+          {(['all', 'responsable', 'admin'] as const).map((r) => (
+            <button
+              key={r}
+              onClick={() => handleRoleChange(r)}
+              className={`px-3 py-2 transition-colors ${
+                roleFilter === r
+                  ? 'bg-verde-600 text-white font-medium'
+                  : 'bg-surface-raised text-carbon-400 hover:text-carbon-50 hover:bg-surface-overlay'
+              }`}
+            >
+              {r === 'all' ? 'Todos' : r === 'admin' ? 'Admin' : 'Responsable'}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-surface-border">
@@ -162,9 +195,9 @@ export default function UsuariosPage() {
               ))
             )}
             {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan={5} className="empty-state">{search ? 'Sin resultados' : 'Sin usuarios registrados'}</td></tr>
+              <tr><td colSpan={5} className="empty-state">{search || roleFilter !== 'all' ? 'Sin resultados' : 'Sin usuarios registrados'}</td></tr>
             )}
-            {filtered.map((u) => (
+            {paginated.map((u) => (
               <tr key={u.id} className="table-row-hover border-b border-surface-border/30">
                 <td className="px-3 py-3 font-medium text-carbon-50">
                   {u.responsable?.nombre ?? <span className="text-carbon-400">—</span>}
@@ -184,7 +217,7 @@ export default function UsuariosPage() {
                 </td>
                 <td className="px-3 py-3 text-right">
                   <button
-                    onClick={() => { if (confirm('¿Eliminar usuario?')) remove.mutate(u.id); }}
+                    onClick={() => setConfirmDelete({ id: u.id, label: u.responsable?.nombre ?? u.email })}
                     className="text-carbon-400 hover:text-red-600 transition-colors"
                     title="Eliminar"
                   >
@@ -197,7 +230,51 @@ export default function UsuariosPage() {
         </table>
       </div>
 
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 text-sm text-carbon-400">
+          <span>{filtered.length} usuario{filtered.length !== 1 ? 's' : ''} · página {currentPage} de {totalPages}</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-lg hover:bg-surface-overlay disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
+                  p === currentPage
+                    ? 'bg-verde-600 text-white'
+                    : 'hover:bg-surface-overlay text-carbon-400 hover:text-carbon-50'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded-lg hover:bg-surface-overlay disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {showCreate && <CreateModal onClose={() => setShowCreate(false)} />}
+
+      {confirmDelete && (
+        <ConfirmModal
+          message={`¿Eliminar al usuario "${confirmDelete.label}"?`}
+          onConfirm={() => remove.mutate(confirmDelete)}
+          onCancel={() => setConfirmDelete(null)}
+          isPending={remove.isPending}
+        />
+      )}
     </div>
   );
 }

@@ -66,9 +66,10 @@ export default function AdminPerfilPage() {
       <div className="card">
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="form-label">Nombre</label>
+            <label className="form-label">Nombre <span className="text-red-500 ml-0.5">*</span></label>
             <input
               type="text"
+              required
               className="input-field"
               value={form.nombre}
               onChange={(e) => setForm(f => ({ ...f, nombre: e.target.value.toUpperCase() }))}
@@ -77,7 +78,7 @@ export default function AdminPerfilPage() {
           </div>
 
           <div>
-            <label className="form-label">Email</label>
+            <label className="form-label">Email <span className="text-red-500 ml-0.5">*</span></label>
             <input
               type="email"
               required
@@ -101,7 +102,7 @@ export default function AdminPerfilPage() {
             {changePass && (
               <div className="mt-4 space-y-4 animate-fade-in">
                 <div>
-                  <label className="form-label">Contraseña actual</label>
+                  <label className="form-label">Contraseña actual <span className="text-red-500 ml-0.5">*</span></label>
                   <div className="relative">
                     <input
                       type={showCurrent ? 'text' : 'password'}
@@ -109,7 +110,7 @@ export default function AdminPerfilPage() {
                       placeholder="Tu contraseña actual"
                       value={pass.currentPassword}
                       onChange={(e) => setPass(p => ({ ...p, currentPassword: e.target.value }))}
-                      autoComplete="current-password"
+                      autoComplete="new-password"
                     />
                     <button type="button" tabIndex={-1} onClick={() => setShowCurrent(v => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-carbon-400 hover:text-carbon-50">
@@ -118,7 +119,7 @@ export default function AdminPerfilPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="form-label">Nueva contraseña</label>
+                  <label className="form-label">Nueva contraseña <span className="text-red-500 ml-0.5">*</span></label>
                   <div className="relative">
                     <input
                       type={showPass ? 'text' : 'password'}
@@ -135,7 +136,7 @@ export default function AdminPerfilPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="form-label">Confirmar contraseña</label>
+                  <label className="form-label">Confirmar contraseña <span className="text-red-500 ml-0.5">*</span></label>
                   <div className="relative">
                     <input
                       type={showConfirm ? 'text' : 'password'}

@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { X, Plus } from 'lucide-react';
+import { ConfirmModal } from '@/app/components/ConfirmModal';
 
 interface Finca { id: string; nombre: string; ubicacion?: string; }
 
@@ -30,6 +31,7 @@ export default function FincasPage() {
   const [modal, setModal] = useState<'create' | 'edit' | null>(null);
   const [editing, setEditing] = useState<Finca | null>(null);
   const [form, setForm] = useState({ nombre: '', ubicacion: '' });
+  const [confirmDelete, setConfirmDelete] = useState<Finca | null>(null);
 
   const { data: fincas = [], isLoading } = useQuery<Finca[]>({
     queryKey: ['fincas'],
@@ -41,18 +43,22 @@ export default function FincasPage() {
       editing
         ? api.patch(`/fincas/${editing.id}`, data)
         : api.post('/fincas', data),
-    onSuccess: () => {
+    onSuccess: (_, data) => {
       qc.invalidateQueries({ queryKey: ['fincas'] });
-      toast.success(editing ? 'Finca actualizada' : 'Finca creada');
+      toast.success(editing ? `Finca "${data.nombre}" actualizada` : `Finca "${data.nombre}" creada`);
       closeModal();
     },
     onError: () => toast.error('Error al guardar'),
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) => api.delete(`/fincas/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['fincas'] }); toast.success('Finca eliminada'); },
-    onError: () => toast.error('No se puede eliminar'),
+    mutationFn: ({ id }: { id: string; nombre: string }) => api.delete(`/fincas/${id}`),
+    onSuccess: (_, { nombre }) => {
+      qc.invalidateQueries({ queryKey: ['fincas'] });
+      toast.success(`Finca "${nombre}" eliminada`);
+      setConfirmDelete(null);
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'No se puede eliminar'),
   });
 
   function openCreate() { setEditing(null); setForm({ nombre: '', ubicacion: '' }); setModal('create'); }
@@ -98,10 +104,7 @@ export default function FincasPage() {
                     <div className="flex items-center justify-end gap-2">
                       <Link href={`/admin/fincas/${f.id}`} className="btn-ghost text-xs py-1 px-3">Ver detalle</Link>
                       <button onClick={() => openEdit(f)} className="btn-ghost text-xs py-1 px-3">Editar</button>
-                      <button
-                        onClick={() => { if (confirm('¿Eliminar esta finca?')) remove.mutate(f.id); }}
-                        className="btn-danger text-xs py-1 px-3"
-                      >Eliminar</button>
+                      <button onClick={() => setConfirmDelete(f)} className="btn-danger text-xs py-1 px-3">Eliminar</button>
                     </div>
                   </td>
                 </tr>
@@ -115,14 +118,14 @@ export default function FincasPage() {
         <Modal title={modal === 'create' ? 'Nueva finca' : 'Editar finca'} onClose={closeModal}>
           <form onSubmit={(e) => { e.preventDefault(); save.mutate(form); }} className="space-y-4">
             <div>
-              <label className="form-label">Nombre</label>
+              <label className="form-label">Nombre <span className="text-red-500 ml-0.5">*</span></label>
               <input className="input-field" required value={form.nombre}
                 onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value.toUpperCase() }))}
                 onInput={(e) => { (e.target as HTMLInputElement).value = (e.target as HTMLInputElement).value.toUpperCase(); }}
               />
             </div>
             <div>
-              <label className="form-label">Ubicación (opcional)</label>
+              <label className="form-label">Ubicación</label>
               <input className="input-field" value={form.ubicacion}
                 onChange={(e) => setForm(p => ({ ...p, ubicacion: e.target.value }))}
               />
@@ -135,6 +138,15 @@ export default function FincasPage() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          message={`¿Eliminar la finca "${confirmDelete.nombre}"?`}
+          onConfirm={() => remove.mutate({ id: confirmDelete.id, nombre: confirmDelete.nombre })}
+          onCancel={() => setConfirmDelete(null)}
+          isPending={remove.isPending}
+        />
       )}
     </div>
   );

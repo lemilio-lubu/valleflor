@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -46,7 +47,7 @@ export class FincasService {
   }
 
   async create(dto: CreateFincaDto, user: JwtUser): Promise<Finca> {
-    const finca = this.fincaRepo.create({ nombre: dto.nombre, adminId: user.id });
+    const finca = this.fincaRepo.create({ nombre: dto.nombre, ubicacion: dto.ubicacion ?? null, adminId: user.id });
     return this.fincaRepo.save(finca);
   }
 
@@ -57,7 +58,21 @@ export class FincasService {
   }
 
   async remove(id: string): Promise<void> {
-    const finca = await this.findOne(id);
+    const finca = await this.fincaRepo.findOne({
+      where: { id },
+      relations: ['responsables', 'productos'],
+    });
+    if (!finca) throw new NotFoundException(`Finca ${id} no encontrada`);
+    if (finca.responsables?.length) {
+      throw new BadRequestException(
+        `No se puede eliminar: la finca tiene ${finca.responsables.length} responsable(s) asignado(s). Quítalos primero.`,
+      );
+    }
+    if (finca.productos?.length) {
+      throw new BadRequestException(
+        `No se puede eliminar: la finca tiene ${finca.productos.length} producto(s) registrado(s). Elimínalos primero.`,
+      );
+    }
     await this.fincaRepo.remove(finca);
   }
 

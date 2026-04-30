@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, Search, X, UserPlus, Check, UserMinus } from 'lucide-react';
+import { ConfirmModal } from '@/app/components/ConfirmModal';
 
 interface Responsable { id: string; nombre: string; userId: string; user?: { email: string }; }
 interface Finca { id: string; nombre: string; ubicacion?: string; responsables?: Responsable[]; }
@@ -94,7 +95,7 @@ function AsignarModal({
 
           {selected && (
             <div className="animate-fade-in">
-              <label className="form-label">Nombre del responsable</label>
+              <label className="form-label">Nombre del responsable <span className="text-red-500 ml-0.5">*</span></label>
               <input
                 className="input-field"
                 value={nombre}
@@ -128,6 +129,7 @@ export default function FincaDetallePage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<{ responsableId: string; nombre: string } | null>(null);
 
   const { data: finca, isLoading, refetch } = useQuery<Finca>({
     queryKey: ['finca', id],
@@ -139,20 +141,21 @@ export default function FincaDetallePage() {
   const assign = useMutation({
     mutationFn: ({ userId, nombre }: { userId: string; nombre: string }) =>
       api.post(`/fincas/${id}/responsables`, { userId, nombre }),
-    onSuccess: async () => {
+    onSuccess: async (_, { nombre }) => {
       setShowModal(false);
       await refetch();
-      toast.success('Responsable asignado');
+      toast.success(`Responsable "${nombre}" asignado`);
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al asignar responsable'),
   });
 
   const removeResp = useMutation({
-    mutationFn: (responsableId: string) =>
+    mutationFn: ({ responsableId }: { responsableId: string; nombre: string }) =>
       api.delete(`/fincas/${id}/responsables/${responsableId}`),
-    onSuccess: async () => {
+    onSuccess: async (_, { nombre }) => {
       await refetch();
-      toast.success('Responsable removido');
+      toast.success(`Responsable "${nombre}" removido`);
+      setConfirmRemove(null);
     },
     onError: () => toast.error('Error al remover responsable'),
   });
@@ -202,7 +205,7 @@ export default function FincaDetallePage() {
                 <td className="py-3 px-3 text-carbon-400 font-mono text-xs">{r.user?.email ?? '—'}</td>
                 <td className="py-3 px-3 text-right">
                   <button
-                    onClick={() => { if (confirm(`¿Quitar a ${r.nombre} de esta finca?`)) removeResp.mutate(r.id); }}
+                    onClick={() => setConfirmRemove({ responsableId: r.id, nombre: r.nombre })}
                     className="text-carbon-400 hover:text-red-600 transition-colors"
                     title="Quitar responsable"
                   >
@@ -220,6 +223,16 @@ export default function FincaDetallePage() {
           onClose={() => setShowModal(false)}
           onConfirm={(userId, nombre) => assign.mutate({ userId, nombre })}
           isPending={assign.isPending}
+        />
+      )}
+
+      {confirmRemove && (
+        <ConfirmModal
+          message={`¿Quitar a "${confirmRemove.nombre}" de esta finca?`}
+          onConfirm={() => removeResp.mutate(confirmRemove)}
+          onCancel={() => setConfirmRemove(null)}
+          confirmLabel="Quitar"
+          isPending={removeResp.isPending}
         />
       )}
     </div>
