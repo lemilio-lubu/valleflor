@@ -23,6 +23,7 @@ export class Variedad {
 
   @ManyToOne(() => Producto, (producto) => producto.variedades, {
     nullable: false,
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'producto_id' })
   producto: Producto;

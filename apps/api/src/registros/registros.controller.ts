@@ -26,6 +26,12 @@ export class RegistrosController {
     return this.registrosService.findBySemana(semanaId);
   }
 
+  /** POST /registros/recalcular-todos → recalcula tallos de todos los registros */
+  @Post('recalcular-todos')
+  recalcularTodos() {
+    return this.registrosService.recalcularTodos();
+  }
+
   /**
    * POST /registros/bulk-update → actualizar múltiples registros a la vez.
    * Debe ir ANTES de :id para que NestJS no lo confunda con un UUID param.

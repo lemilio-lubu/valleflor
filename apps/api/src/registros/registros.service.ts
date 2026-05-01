@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RegistroDiario } from './registro-diario.entity';
 import { BaseSemanalService } from '../base-semanal/base-semanal.service';
+import { ConfiguracionService } from '../configuracion/configuracion.service';
 import { UpdateRegistroDto } from './dto/update-registro.dto';
 import { UpdateDivisorDto } from './dto/update-divisor.dto';
 import { BulkUpdateItemDto } from './dto/bulk-update.dto';
@@ -19,6 +20,7 @@ export class RegistrosService {
     @InjectRepository(RegistroDiario)
     private readonly registroRepo: Repository<RegistroDiario>,
     private readonly baseSemanalService: BaseSemanalService,
+    private readonly configuracionService: ConfiguracionService,
   ) {}
 
   // ── helpers ─────────────────────────────────────────────────────────────────
@@ -28,7 +30,7 @@ export class RegistrosService {
   }
 
   private calcTallos(cajas: number, divisorTallos: number): number {
-    return this.round2((cajas / divisorTallos) * 100);
+    return this.round2(cajas * divisorTallos);
   }
 
   private async getOrFail(id: string): Promise<RegistroDiario> {
@@ -72,7 +74,7 @@ export class RegistrosService {
     });
   }
 
-  /** PATCH /registros/:id — actualiza cajas (y opcionalmente divisor_tallos) */
+  /** PATCH /registros/:id — actualiza cajas */
   async updateCajas(
     id: string,
     dto: UpdateRegistroDto,
@@ -81,7 +83,7 @@ export class RegistrosService {
 
     // 1. Redondear cajas a máximo 2 decimales
     const cajas = this.round2(dto.cajas);
-    const divisorTallos = dto.divisorTallos ?? registro.divisorTallos;
+    const tallosPorCaja = await this.configuracionService.getTallosPorCaja();
 
     // 2. Detección de tipeo (warning, no error)
     let warning: string | undefined;
@@ -90,12 +92,12 @@ export class RegistrosService {
       warning = 'Valor inusualmente alto, verifique';
     }
 
-    // 3. Calcular tallos
-    const tallos = this.calcTallos(cajas, divisorTallos);
+    // 3. Calcular tallos con constante global
+    const tallos = this.calcTallos(cajas, tallosPorCaja);
 
     // 4. Guardar
     registro.cajas = cajas;
-    registro.divisorTallos = divisorTallos;
+    registro.divisorTallos = tallosPorCaja;
     registro.tallos = tallos;
     const saved = await this.registroRepo.save(registro);
 
@@ -129,6 +131,16 @@ export class RegistrosService {
     );
 
     return saved;
+  }
+
+  /** POST /registros/recalcular-todos — recalcula tallos de todos los registros con la fórmula actual */
+  async recalcularTodos(): Promise<{ actualizados: number }> {
+    const registros = await this.registroRepo.find({ relations: ['semana'] });
+    for (const r of registros) {
+      r.tallos = this.calcTallos(Number(r.cajas), r.divisorTallos);
+      await this.registroRepo.save(r);
+    }
+    return { actualizados: registros.length };
   }
 
   /** POST /registros/bulk-update — actualiza múltiples registros */

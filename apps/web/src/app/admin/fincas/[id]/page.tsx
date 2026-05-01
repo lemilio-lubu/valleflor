@@ -8,8 +8,9 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, Search, X, UserPlus, Check, UserMinus, Settings2 } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
-import { CatalogoProductos } from './components/CatalogoProductos';
+import { CatalogoProductos } from '@/app/components/catalogo/CatalogoProductos';
 
+interface Producto { id: string; nombre: string; }
 interface Responsable { id: string; userId: string; user?: { email: string; nombre?: string }; }
 interface Finca { id: string; nombre: string; ubicacion?: string; responsables?: Responsable[]; }
 interface Usuario { id: string; email: string; role: string; nombre?: string; }
@@ -17,9 +18,7 @@ interface Usuario { id: string; email: string; role: string; nombre?: string; }
 type Tab = 'responsables' | 'productos';
 
 function AsignarModal({ onClose, onConfirm, isPending }: {
-  onClose: () => void;
-  onConfirm: (userId: string) => void;
-  isPending: boolean;
+  onClose: () => void; onConfirm: (userId: string) => void; isPending: boolean;
 }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Usuario | null>(null);
@@ -42,15 +41,12 @@ function AsignarModal({ onClose, onConfirm, isPending }: {
       <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-md mx-4 shadow-lg animate-slide-up">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
           <h3 className="modal-title">Asignar responsable</h3>
-          <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+          <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-carbon-400" />
-            <input type="text" placeholder="Buscar por nombre o email..."
-              className="input-field pl-9" value={search}
+            <input type="text" placeholder="Buscar por nombre o email..." className="input-field pl-9" value={search}
               onChange={(e) => { setSearch(e.target.value); setSelected(null); }} autoFocus />
           </div>
           <div className="max-h-60 overflow-y-auto rounded-lg border border-surface-border divide-y divide-surface-border/50">
@@ -83,12 +79,10 @@ function AsignarModal({ onClose, onConfirm, isPending }: {
 }
 
 function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onClose }: {
-  fincaId: string;
-  responsableId: string;
-  responsableNombre: string;
-  onClose: () => void;
+  fincaId: string; responsableId: string; responsableNombre: string; onClose: () => void;
 }) {
   const qc = useQueryClient();
+  const [selected, setSelected] = useState<Set<string> | null>(null);
 
   const { data: productosDisponibles = [], isLoading: loadingProductos } = useQuery<Producto[]>({
     queryKey: ['productos', fincaId],
@@ -100,25 +94,12 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
     queryFn: () => api.get(`/fincas/${fincaId}/responsables/${responsableId}/productos`).then((r) => r.data),
   });
 
-  const [selected, setSelected] = useState<Set<string> | null>(null);
-
   const currentSelected = selected ?? new Set(productosAsignados.map((p) => p.id));
-
-  const toggle = (id: string) => {
-    const next = new Set(currentSelected);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    setSelected(next);
-  };
+  const toggle = (id: string) => { const next = new Set(currentSelected); next.has(id) ? next.delete(id) : next.add(id); setSelected(next); };
 
   const save = useMutation({
-    mutationFn: () => api.post(`/fincas/${fincaId}/responsables/${responsableId}/productos`, {
-      productoIds: [...currentSelected],
-    }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['responsable-productos', fincaId, responsableId] });
-      toast.success('Productos asignados');
-      onClose();
-    },
+    mutationFn: () => api.post(`/fincas/${fincaId}/responsables/${responsableId}/productos`, { productoIds: [...currentSelected] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['responsable-productos', fincaId, responsableId] }); toast.success('Productos asignados'); onClose(); },
     onError: () => toast.error('Error al asignar productos'),
   });
 
@@ -132,14 +113,12 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
             <h3 className="modal-title">Productos asignados</h3>
             <p className="text-xs text-carbon-400 mt-0.5">{responsableNombre}</p>
           </div>
-          <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+          <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6">
           {isLoading && <div className="py-8 text-center text-carbon-400 text-sm">Cargando...</div>}
           {!isLoading && productosDisponibles.length === 0 && (
-            <div className="empty-state py-8">Sin productos registrados en esta finca</div>
+            <div className="empty-state py-8">Sin productos en esta finca. Agrégalos desde el tab Productos.</div>
           )}
           {!isLoading && productosDisponibles.length > 0 && (
             <div className="space-y-1 mb-6 max-h-72 overflow-y-auto">
@@ -220,9 +199,7 @@ export default function FincaDetallePage() {
         {(['responsables', 'productos'] as Tab[]).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-5 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
-              tab === t
-                ? 'border-verde-600 text-verde-600'
-                : 'border-transparent text-carbon-400 hover:text-carbon-50'
+              tab === t ? 'border-verde-600 text-verde-600' : 'border-transparent text-carbon-400 hover:text-carbon-50'
             }`}>
             {t === 'responsables' ? 'Responsables' : 'Productos'}
           </button>
@@ -235,8 +212,7 @@ export default function FincaDetallePage() {
           <div className="flex items-center justify-between mb-5">
             <h2 className="card-section-title">Responsables asignados</h2>
             <button onClick={() => setShowModal(true)} className="btn-ghost text-xs py-1.5">
-              <UserPlus className="w-3.5 h-3.5" />
-              Asignar responsable
+              <UserPlus className="w-3.5 h-3.5" /> Asignar responsable
             </button>
           </div>
           <table className="w-full text-sm">
@@ -257,19 +233,17 @@ export default function FincaDetallePage() {
                   <tr key={r.id} className="table-row-hover border-b border-surface-border/30">
                     <td className="py-3 px-3 font-medium text-carbon-50">{nombre}</td>
                     <td className="py-3 px-3 text-carbon-400 font-mono text-xs">{r.user?.email ?? '—'}</td>
-                    <td className="py-3 px-3 text-right flex items-center justify-end gap-3">
-                      <button
-                        onClick={() => setAsignarProductos({ responsableId: r.id, nombre })}
-                        className="text-carbon-400 hover:text-verde-600 transition-colors flex items-center gap-1 text-xs"
-                        title="Asignar productos"
-                      >
-                        <Settings2 className="w-3.5 h-3.5" />
-                        Productos
-                      </button>
-                      <button onClick={() => setConfirmRemove({ responsableId: r.id, nombre })}
-                        className="text-carbon-400 hover:text-red-600 transition-colors" title="Quitar responsable">
-                        <UserMinus className="w-4 h-4" />
-                      </button>
+                    <td className="py-3 px-3 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        <button onClick={() => setAsignarProductos({ responsableId: r.id, nombre })}
+                          className="text-carbon-400 hover:text-verde-600 transition-colors flex items-center gap-1 text-xs">
+                          <Settings2 className="w-3.5 h-3.5" /> Productos
+                        </button>
+                        <button onClick={() => setConfirmRemove({ responsableId: r.id, nombre })}
+                          className="text-carbon-400 hover:text-red-600 transition-colors" title="Quitar responsable">
+                          <UserMinus className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -286,21 +260,15 @@ export default function FincaDetallePage() {
         </div>
       )}
 
-      {showModal && (
-        <AsignarModal onClose={() => setShowModal(false)} onConfirm={(userId) => assign.mutate(userId)} isPending={assign.isPending} />
-      )}
+      {showModal && <AsignarModal onClose={() => setShowModal(false)} onConfirm={(userId) => assign.mutate(userId)} isPending={assign.isPending} />}
       {confirmRemove && (
         <ConfirmModal message={`¿Quitar a "${confirmRemove.nombre}" de esta finca?`}
           onConfirm={() => removeResp.mutate(confirmRemove)} onCancel={() => setConfirmRemove(null)}
           confirmLabel="Quitar" isPending={removeResp.isPending} />
       )}
       {asignarProductos && id && (
-        <AsignarProductosModal
-          fincaId={id}
-          responsableId={asignarProductos.responsableId}
-          responsableNombre={asignarProductos.nombre}
-          onClose={() => setAsignarProductos(null)}
-        />
+        <AsignarProductosModal fincaId={id} responsableId={asignarProductos.responsableId}
+          responsableNombre={asignarProductos.nombre} onClose={() => setAsignarProductos(null)} />
       )}
     </div>
   );

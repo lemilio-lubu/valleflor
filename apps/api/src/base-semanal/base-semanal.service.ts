@@ -97,7 +97,7 @@ export class BaseSemanalService {
     divisor: number,
   ): Promise<BaseSemanal> {
     let base = await this.baseSemanalRepo.findOne({ where: { colorId, numeroSemana, anio } });
-    const tallosEstimados = Math.round((cajasEstimadas / divisor) * 100) / 100;
+    const tallosEstimados = Math.round(cajasEstimadas * divisor * 100) / 100;
     
     if (base) {
       base.cajasEstimadas = cajasEstimadas;

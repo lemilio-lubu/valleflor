@@ -41,13 +41,14 @@ export function BaseSemanal({ fincaId, semanas = 10 }: Props) {
 
   const updateEstimacion = useMutation({
     mutationFn: ({ colorId, numeroSemana, anio, cajasEstimadas }: any) =>
-      api.patch('/base-semanal/estimar', null, { 
+      api.patch('/base-semanal/estimar', {}, {
         params: { colorId, numeroSemana, anio, cajasEstimadas, divisor: 400 }
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['base-semanal', fincaId, semanas] });
+      toast.success('Estimación guardada');
     },
-    onError: () => toast.error('Error al guardar estimación'),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al guardar estimación'),
   });
 
   const handleChange = (key: string, value: string) => {
@@ -111,7 +112,7 @@ export function BaseSemanal({ fincaId, semanas = 10 }: Props) {
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-surface-border">
-        <table className="w-full text-xs">
+        <table className="min-w-max w-full text-xs">
         <thead>
           <tr className="bg-surface-overlay border-b border-surface-border">
             <th className="table-th">Producto</th>

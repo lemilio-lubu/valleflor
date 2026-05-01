@@ -10,6 +10,7 @@ import { RegistroDiario, DiaSemana } from '../registros/registro-diario.entity';
 import { Color } from '../colores/color.entity';
 import { Responsable } from '../responsables/responsable.entity';
 import { ResponsableProducto } from '../responsables/responsable-producto.entity';
+import { ConfiguracionService } from '../configuracion/configuracion.service';
 import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateSemanaDto } from './dto/create-semana.dto';
 
@@ -64,6 +65,7 @@ export class SemanasService {
     private readonly responsableRepo: Repository<Responsable>,
     @InjectRepository(ResponsableProducto)
     private readonly respProductoRepo: Repository<ResponsableProducto>,
+    private readonly configuracionService: ConfiguracionService,
   ) {}
 
   private async getResponsable(userId: string): Promise<Responsable> {
@@ -104,6 +106,7 @@ export class SemanasService {
     );
 
     // 3. Generar 7 registros por color (uno por día de la semana)
+    const tallosPorCaja = await this.configuracionService.getTallosPorCaja();
     const fechaBase = new Date(dto.fechaInicio + 'T00:00:00Z');
     const registros: RegistroDiario[] = [];
 
@@ -121,7 +124,7 @@ export class SemanasService {
             dia,
             fecha,
             cajas: 0,
-            divisorTallos: 400,
+            divisorTallos: tallosPorCaja,
             tallos: 0,
           }),
         );

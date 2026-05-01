@@ -24,6 +24,7 @@ export class Color {
 
   @ManyToOne(() => Variedad, (variedad) => variedad.colores, {
     nullable: false,
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'variedad_id' })
   variedad: Variedad;

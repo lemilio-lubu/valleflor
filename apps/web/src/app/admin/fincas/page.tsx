@@ -102,7 +102,7 @@ export default function FincasPage() {
                   <td className="px-6 py-3.5 text-carbon-400 text-xs">{f.ubicacion ?? '—'}</td>
                   <td className="px-6 py-3.5">
                     <div className="flex items-center justify-end gap-2">
-                      <Link href={`/admin/fincas/${f.id}`} className="btn-ghost text-xs py-1 px-3">Ver detalle</Link>
+                      <Link href={`/admin/fincas/${f.id}`} className="btn-ghost text-xs py-1 px-3">Gestionar</Link>
                       <button onClick={() => openEdit(f)} className="btn-ghost text-xs py-1 px-3">Editar</button>
                       <button onClick={() => setConfirmDelete(f)} className="btn-danger text-xs py-1 px-3">Eliminar</button>
                     </div>

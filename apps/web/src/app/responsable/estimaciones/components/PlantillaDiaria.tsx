@@ -4,7 +4,6 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Pencil } from 'lucide-react';
 
 interface PlantillaRow {
   registroId: string;
@@ -27,50 +26,10 @@ const DIA_SHORT: Record<string, string> = {
 
 interface Props { semanaId: string; }
 
-function DivisorModal({ row, onClose }: { row: PlantillaRow; onClose: () => void }) {
-  const qc = useQueryClient();
-  const [val, setVal] = useState(String(row.divisorTallos));
-
-  const update = useMutation({
-    mutationFn: (divisorTallos: number) =>
-      api.patch(`/registros/${row.registroId}/divisor`, { divisorTallos }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['plantilla', row.registroId.slice(0, 8)] });
-      toast.success('Divisor actualizado');
-      onClose();
-    },
-    onError: () => toast.error('Error al actualizar'),
-  });
-
-  return (
-    <div className="modal-overlay">
-      <div className="bg-surface-raised border border-surface-border rounded-xl w-80 p-6 shadow-lg animate-slide-up">
-        <h3 className="modal-title mb-1">Editar divisor</h3>
-        <p className="text-carbon-400 text-xs mb-4">{row.color} · {row.dia}</p>
-        <input
-          type="number"
-          min="1"
-          className="input-field mb-4"
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
-        />
-        <div className="flex gap-2">
-          <button onClick={onClose} className="btn-ghost flex-1 justify-center text-sm">Cancelar</button>
-          <button
-            onClick={() => update.mutate(Number(val))}
-            disabled={update.isPending}
-            className="btn-primary flex-1 justify-center text-sm"
-          >{update.isPending ? '...' : 'Guardar'}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function PlantillaDiaria({ semanaId }: Props) {
   const qc = useQueryClient();
   const [localCajas, setLocalCajas] = useState<Record<string, string>>({});
-  const [divisorModal, setDivisorModal] = useState<PlantillaRow | null>(null);
 
   const { data: rows = [], isLoading } = useQuery<PlantillaRow[]>({
     queryKey: ['plantilla', semanaId],
@@ -81,10 +40,12 @@ export function PlantillaDiaria({ semanaId }: Props) {
   const updateCajas = useMutation({
     mutationFn: ({ id, cajas, divisorTallos }: { id: string; cajas: number; divisorTallos?: number }) =>
       api.patch(`/registros/${id}`, { cajas, divisorTallos }),
-    onSuccess: (res, vars) => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['plantilla', semanaId] });
       if (res.data?.warning) {
         toast(`${res.data.warning}`, { style: { background: 'var(--warning-bg)', color: 'var(--text-primary)', border: '1px solid var(--warning)' } });
+      } else {
+        toast.success('Cajas guardadas');
       }
     },
     onError: () => toast.error('Error al guardar cajas'),
@@ -113,12 +74,6 @@ export function PlantillaDiaria({ semanaId }: Props) {
     }
   }, [localCajas, updateCajas]);
 
-  // Calcular tallos en tiempo real en el frontend
-  const getTallos = (row: PlantillaRow) => {
-    const cajasStr = localCajas[row.registroId];
-    const cajas = cajasStr !== undefined ? (parseFloat(cajasStr) || 0) : row.cajas;
-    return Math.round((cajas / row.divisorTallos) * 100) / 100;
-  };
 
   const [filtroDia, setFiltroDia] = useState<string>('');
   const [filtroProducto, setFiltroProducto] = useState<string>('');
@@ -180,7 +135,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-surface-overlay border-b border-surface-border">
-              {['DIA', 'FECHA', 'PRODUCTO', 'VARIEDAD', 'COLOR', 'CAJAS', 'TALLOS', '÷'].map((h) => (
+              {['DIA', 'FECHA', 'PRODUCTO', 'VARIEDAD', 'COLOR', 'CAJAS', 'TALLOS'].map((h) => (
                 <th key={h} className="table-th">{h}</th>
               ))}
             </tr>
@@ -215,17 +170,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
                     />
                   </td>
                   <td className="px-3 py-2.5 font-mono text-agro-500 tabular-nums">
-                    {getTallos(row).toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <button
-                      id={`divisor-${row.registroId}`}
-                      onClick={() => setDivisorModal(row)}
-                      title={`Divisor: ${row.divisorTallos}`}
-                      className="text-carbon-400 hover:text-dorado-500 transition-colors"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
+                    {Number(row.tallos).toFixed(2)}
                   </td>
                 </tr>
               ))
@@ -234,12 +179,6 @@ export function PlantillaDiaria({ semanaId }: Props) {
         </table>
       </div>
 
-      {divisorModal && (
-        <DivisorModal
-          row={divisorModal}
-          onClose={() => { setDivisorModal(null); qc.invalidateQueries({ queryKey: ['plantilla', semanaId] }); }}
-        />
-      )}
     </>
   );
 }

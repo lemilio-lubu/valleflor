@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LogOut, MapPin, Users, UserCircle, type LucideIcon } from 'lucide-react';
+import { LogOut, MapPin, Users, UserCircle, Settings, type LucideIcon } from 'lucide-react';
 
 function Spinner() {
   return (
@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (status === 'loading') return;
     if (!session) { router.push('/auth/login'); return; }
-    if ((session.user as any)?.role !== 'admin') router.push('/responsable/datos');
+    if ((session.user as any)?.role !== 'admin') router.push('/responsable/estimaciones');
   }, [session, status, router]);
 
   if (status === 'loading' || !session) return <Spinner />;
@@ -32,6 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems: { href: string; label: string; Icon: LucideIcon }[] = [
     { href: '/admin/fincas', label: 'Fincas', Icon: MapPin },
     { href: '/admin/usuarios', label: 'Usuarios', Icon: Users },
+    { href: '/admin/configuracion', label: 'Configuración', Icon: Settings },
   ];
 
   return (
