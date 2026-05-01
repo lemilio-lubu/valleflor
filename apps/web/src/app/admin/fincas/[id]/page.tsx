@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useState, useMemo } from 'react';
@@ -9,23 +9,21 @@ import Link from 'next/link';
 import { ChevronLeft, Search, X, UserPlus, Check, UserMinus } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 
-interface Responsable { id: string; nombre: string; userId: string; user?: { email: string }; }
+interface Responsable { id: string; userId: string; user?: { email: string; nombre?: string }; }
 interface Finca { id: string; nombre: string; ubicacion?: string; responsables?: Responsable[]; }
-interface Usuario { id: string; email: string; role: string; responsable?: { nombre: string }; }
+interface Usuario { id: string; email: string; role: string; nombre?: string; }
 
-/* ── Modal: solo selecciona usuario y nombre, llama onConfirm ── */
 function AsignarModal({
   onClose,
   onConfirm,
   isPending,
 }: {
   onClose: () => void;
-  onConfirm: (userId: string, nombre: string) => void;
+  onConfirm: (userId: string) => void;
   isPending: boolean;
 }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Usuario | null>(null);
-  const [nombre, setNombre] = useState('');
 
   const { data: usuarios = [], isLoading } = useQuery<Usuario[]>({
     queryKey: ['usuarios'],
@@ -36,14 +34,9 @@ function AsignarModal({
     const q = search.toLowerCase().trim();
     return usuarios.filter((u) =>
       u.role === 'responsable' &&
-      (!q || u.email.toLowerCase().includes(q) || u.responsable?.nombre.toLowerCase().includes(q))
+      (!q || u.email.toLowerCase().includes(q) || (u.nombre ?? '').toLowerCase().includes(q))
     );
   }, [usuarios, search]);
-
-  function handleSelect(u: Usuario) {
-    setSelected(u);
-    setNombre(u.responsable?.nombre ?? u.email.split('@')[0].toUpperCase().replace(/\./g, ' '));
-  }
 
   return (
     <div className="modal-overlay">
@@ -68,21 +61,21 @@ function AsignarModal({
             />
           </div>
 
-          <div className="max-h-52 overflow-y-auto rounded-lg border border-surface-border divide-y divide-surface-border/50">
+          <div className="max-h-60 overflow-y-auto rounded-lg border border-surface-border divide-y divide-surface-border/50">
             {isLoading && <div className="py-8 text-center text-carbon-400 text-sm">Cargando...</div>}
             {!isLoading && filtered.length === 0 && <div className="py-8 text-center text-carbon-400 text-sm">Sin resultados</div>}
             {filtered.map((u) => (
               <button
                 key={u.id}
                 type="button"
-                onClick={() => handleSelect(u)}
+                onClick={() => setSelected(u)}
                 className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${
                   selected?.id === u.id ? 'bg-verde-50' : 'hover:bg-surface-overlay'
                 }`}
               >
                 <div>
                   <p className={`text-sm font-medium ${selected?.id === u.id ? 'text-verde-600' : 'text-carbon-50'}`}>
-                    {u.responsable?.nombre ?? u.email.split('@')[0].toUpperCase().replace(/\./g, ' ')}
+                    {u.nombre ?? u.email.split('@')[0].toUpperCase().replace(/\./g, ' ')}
                   </p>
                   <p className={`text-xs font-mono ${selected?.id === u.id ? 'text-verde-500' : 'text-carbon-400'}`}>
                     {u.email}
@@ -93,26 +86,14 @@ function AsignarModal({
             ))}
           </div>
 
-          {selected && (
-            <div className="animate-fade-in">
-              <label className="form-label">Nombre del responsable <span className="text-red-500 ml-0.5">*</span></label>
-              <input
-                className="input-field"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value.toUpperCase())}
-                placeholder="Ej: ANDRES PEREZ"
-              />
-            </div>
-          )}
-
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center">
               Cancelar
             </button>
             <button
               type="button"
-              disabled={!selected || !nombre.trim() || isPending}
-              onClick={() => onConfirm(selected!.id, nombre.trim())}
+              disabled={!selected || isPending}
+              onClick={() => onConfirm(selected!.id)}
               className="btn-primary flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPending ? 'Asignando...' : 'Asignar'}
@@ -124,10 +105,8 @@ function AsignarModal({
   );
 }
 
-/* ── Página principal ── */
 export default function FincaDetallePage() {
   const { id } = useParams<{ id: string }>();
-  const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<{ responsableId: string; nombre: string } | null>(null);
 
@@ -139,12 +118,12 @@ export default function FincaDetallePage() {
   });
 
   const assign = useMutation({
-    mutationFn: ({ userId, nombre }: { userId: string; nombre: string }) =>
-      api.post(`/fincas/${id}/responsables`, { userId, nombre }),
-    onSuccess: async (_, { nombre }) => {
+    mutationFn: (userId: string) =>
+      api.post(`/fincas/${id}/responsables`, { userId }),
+    onSuccess: async () => {
       setShowModal(false);
       await refetch();
-      toast.success(`Responsable "${nombre}" asignado`);
+      toast.success('Responsable asignado');
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al asignar responsable'),
   });
@@ -199,21 +178,24 @@ export default function FincaDetallePage() {
             {(!finca?.responsables || finca.responsables.length === 0) && (
               <tr><td colSpan={3} className="empty-state">Sin responsables asignados</td></tr>
             )}
-            {finca?.responsables?.map((r) => (
-              <tr key={r.id} className="table-row-hover border-b border-surface-border/30">
-                <td className="py-3 px-3 font-medium text-carbon-50">{r.nombre}</td>
-                <td className="py-3 px-3 text-carbon-400 font-mono text-xs">{r.user?.email ?? '—'}</td>
-                <td className="py-3 px-3 text-right">
-                  <button
-                    onClick={() => setConfirmRemove({ responsableId: r.id, nombre: r.nombre })}
-                    className="text-carbon-400 hover:text-red-600 transition-colors"
-                    title="Quitar responsable"
-                  >
-                    <UserMinus className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {finca?.responsables?.map((r) => {
+              const nombre = r.user?.nombre ?? '—';
+              return (
+                <tr key={r.id} className="table-row-hover border-b border-surface-border/30">
+                  <td className="py-3 px-3 font-medium text-carbon-50">{nombre}</td>
+                  <td className="py-3 px-3 text-carbon-400 font-mono text-xs">{r.user?.email ?? '—'}</td>
+                  <td className="py-3 px-3 text-right">
+                    <button
+                      onClick={() => setConfirmRemove({ responsableId: r.id, nombre })}
+                      className="text-carbon-400 hover:text-red-600 transition-colors"
+                      title="Quitar responsable"
+                    >
+                      <UserMinus className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -221,7 +203,7 @@ export default function FincaDetallePage() {
       {showModal && (
         <AsignarModal
           onClose={() => setShowModal(false)}
-          onConfirm={(userId, nombre) => assign.mutate({ userId, nombre })}
+          onConfirm={(userId) => assign.mutate(userId)}
           isPending={assign.isPending}
         />
       )}

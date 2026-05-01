@@ -111,10 +111,7 @@ export class FincasService {
       if (existing.fincaId === fincaId) {
         throw new ConflictException('El usuario ya está asignado a esta finca');
       }
-      await this.responsableRepo.update(existing.id, {
-        fincaId,
-        nombre: dto.nombre.toUpperCase().trim(),
-      });
+      await this.responsableRepo.update(existing.id, { fincaId });
       return this.responsableRepo.findOne({
         where: { id: existing.id },
         relations: ['user'],
@@ -124,7 +121,6 @@ export class FincasService {
     const responsable = this.responsableRepo.create({
       userId: dto.userId,
       fincaId,
-      nombre: dto.nombre.toUpperCase().trim(),
     });
     return this.responsableRepo.save(responsable);
   }

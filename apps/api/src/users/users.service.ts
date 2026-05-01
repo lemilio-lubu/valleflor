@@ -56,15 +56,16 @@ export class UsersService {
       email: dto.email,
       passwordHash,
       role: dto.role ?? UserRole.RESPONSABLE,
+      nombre: dto.nombre ? dto.nombre.toUpperCase().trim() : null,
     });
-    
+
     const savedUser = await this.userRepo.save(user);
 
     if (savedUser.role === UserRole.RESPONSABLE && dto.fincaId && dto.nombre) {
       const resp = this.respRepo.create({
         userId: savedUser.id,
         fincaId: dto.fincaId,
-        nombre: dto.nombre,
+        nombre: savedUser.nombre,
       });
       await this.respRepo.save(resp);
     }
@@ -120,7 +121,6 @@ export class UsersService {
     }
     if (dto.nombre) {
       user.nombre = dto.nombre.toUpperCase().trim();
-      await this.respRepo.update({ userId }, { nombre: user.nombre });
     }
     const saved = await this.userRepo.save(user);
     const { passwordHash: _, ...safe } = saved;

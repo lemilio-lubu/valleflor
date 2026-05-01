@@ -14,7 +14,7 @@ import { RegisterDto } from './dto/register.dto';
 
 export interface AuthPayload {
   accessToken: string;
-  user: { id: string; email: string; role: UserRole; nombre?: string | null; fincaId?: string; fincaNombre?: string; responsableNombre?: string };
+  user: { id: string; email: string; role: UserRole; nombre?: string | null; fincaId?: string; fincaNombre?: string };
 }
 
 @Injectable()
@@ -40,10 +40,9 @@ export class AuthService {
         id: user.id,
         email: user.email,
         role: user.role,
-        nombre: user.nombre ?? user.responsable?.nombre ?? null,
+        nombre: user.nombre ?? null,
         ...(user.responsable?.fincaId && { fincaId: user.responsable.fincaId }),
         ...(user.responsable?.finca?.nombre && { fincaNombre: user.responsable.finca.nombre }),
-        ...(user.responsable?.nombre && { responsableNombre: user.responsable.nombre }),
       },
     };
   }

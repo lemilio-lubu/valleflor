@@ -7,10 +7,10 @@ import toast from 'react-hot-toast';
 import { Plus, Trash2, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 
-const PAGE_SIZE = 11;
+const PAGE_SIZE = 10;
 
 interface Finca { id: string; nombre: string; }
-interface Usuario { id: string; email: string; role: string; createdAt: string; responsable?: { nombre: string; }; }
+interface Usuario { id: string; email: string; role: string; createdAt: string; nombre?: string; responsable?: { nombre: string; }; }
 
 function CreateModal({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
@@ -112,7 +112,7 @@ export default function UsuariosPage() {
     const q = search.toLowerCase().trim();
     return usuarios.filter((u) => {
       const matchRole = roleFilter === 'all' || u.role === roleFilter;
-      const matchSearch = !q || u.email.toLowerCase().includes(q) || (u.responsable?.nombre ?? '').toLowerCase().includes(q);
+      const matchSearch = !q || u.email.toLowerCase().includes(q) || (u.nombre ?? u.responsable?.nombre ?? '').toLowerCase().includes(q);
       return matchRole && matchSearch;
     });
   }, [usuarios, search, roleFilter]);
@@ -200,7 +200,7 @@ export default function UsuariosPage() {
             {paginated.map((u) => (
               <tr key={u.id} className="table-row-hover border-b border-surface-border/30">
                 <td className="px-3 py-3 font-medium text-carbon-50">
-                  {u.responsable?.nombre ?? <span className="text-carbon-400">—</span>}
+                  {u.nombre ?? u.responsable?.nombre ?? <span className="text-carbon-400">—</span>}
                 </td>
                 <td className="px-3 py-3 text-carbon-400 font-mono text-xs">{u.email}</td>
                 <td className="px-3 py-3">
@@ -217,7 +217,7 @@ export default function UsuariosPage() {
                 </td>
                 <td className="px-3 py-3 text-right">
                   <button
-                    onClick={() => setConfirmDelete({ id: u.id, label: u.responsable?.nombre ?? u.email })}
+                    onClick={() => setConfirmDelete({ id: u.id, label: u.nombre ?? u.responsable?.nombre ?? u.email })}
                     className="text-carbon-400 hover:text-red-600 transition-colors"
                     title="Eliminar"
                   >

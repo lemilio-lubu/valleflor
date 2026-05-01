@@ -8,8 +8,6 @@ import {
   OneToOne,
   OneToMany,
   JoinColumn,
-  BeforeInsert,
-  BeforeUpdate,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Finca } from '../fincas/finca.entity';
@@ -34,17 +32,8 @@ export class Responsable {
   @JoinColumn({ name: 'finca_id' })
   finca: Finca;
 
-  @Column({ type: 'varchar', nullable: false })
-  nombre: string;
-
   @OneToMany(() => Semana, (semana) => semana.responsable)
   semanas: Semana[];
-
-  @BeforeInsert()
-  @BeforeUpdate()
-  normalizeNombre() {
-    if (this.nombre) this.nombre = this.nombre.toUpperCase();
-  }
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
