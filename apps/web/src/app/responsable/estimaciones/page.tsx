@@ -9,26 +9,24 @@ import { SemanaSelector } from './components/SemanaSelector';
 import { PlantillaDiaria } from './components/PlantillaDiaria';
 import { BaseSemanal } from './components/BaseSemanal';
 import { Plus, X, MapPin } from 'lucide-react';
+import { WeekPickerInput, type WeekValue } from './components/WeekPickerInput';
 
 type Tab = 'plantilla' | 'base';
 
 function CreateSemanaModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({
-    numero_semana: '',
-    anio: String(new Date().getFullYear()),
-    fecha_inicio: '',
-    fecha_fin: '',
-  });
+  const [weekValue, setWeekValue] = useState<WeekValue | null>(null);
 
   const create = useMutation({
-    mutationFn: (data: typeof form) =>
-      api.post('/semanas', {
-        numeroSemana: Number(data.numero_semana),
-        anio: Number(data.anio),
-        fechaInicio: data.fecha_inicio,
-        fechaFin: data.fecha_fin,
-      }),
+    mutationFn: () => {
+      if (!weekValue) throw new Error('Selecciona una semana');
+      return api.post('/semanas', {
+        numeroSemana: weekValue.numero_semana,
+        anio: weekValue.anio,
+        fechaInicio: weekValue.fecha_inicio,
+        fechaFin: weekValue.fecha_fin,
+      });
+    },
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['semanas'] });
       toast.success('Semana creada con todos los registros');
@@ -48,34 +46,28 @@ function CreateSemanaModal({ onClose, onCreated }: { onClose: () => void; onCrea
           </button>
         </div>
         <form
-          onSubmit={(e) => { e.preventDefault(); create.mutate(form); }}
+          onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
           className="p-6 space-y-4"
         >
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="form-label"># Semana</label>
-              <input type="number" min="1" max="53" required className="input-field"
-                value={form.numero_semana} onChange={(e) => setForm(p => ({ ...p, numero_semana: e.target.value }))} />
-            </div>
-            <div>
-              <label className="form-label">Año</label>
-              <input type="number" min="2000" required className="input-field"
-                value={form.anio} onChange={(e) => setForm(p => ({ ...p, anio: e.target.value }))} />
-            </div>
-          </div>
           <div>
-            <label className="form-label">Fecha inicio</label>
-            <input type="date" required className="input-field"
-              value={form.fecha_inicio} onChange={(e) => setForm(p => ({ ...p, fecha_inicio: e.target.value }))} />
+            <label className="form-label">Semana</label>
+            <WeekPickerInput value={weekValue} onChange={setWeekValue} />
           </div>
-          <div>
-            <label className="form-label">Fecha fin</label>
-            <input type="date" required className="input-field"
-              value={form.fecha_fin} onChange={(e) => setForm(p => ({ ...p, fecha_fin: e.target.value }))} />
-          </div>
+          {weekValue && (
+            <div className="grid grid-cols-2 gap-2 text-xs text-carbon-400 bg-surface-overlay rounded-lg px-3 py-2">
+              <div>
+                <span className="text-carbon-500">Semana</span>
+                <p className="text-carbon-200 font-medium">{weekValue.numero_semana} / {weekValue.anio}</p>
+              </div>
+              <div>
+                <span className="text-carbon-500">Rango</span>
+                <p className="text-carbon-200 font-medium">{weekValue.fecha_inicio} – {weekValue.fecha_fin}</p>
+              </div>
+            </div>
+          )}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center">Cancelar</button>
-            <button type="submit" disabled={create.isPending} className="btn-primary flex-1 justify-center">
+            <button type="submit" disabled={create.isPending || !weekValue} className="btn-primary flex-1 justify-center">
               {create.isPending ? 'Creando...' : 'Crear'}
             </button>
           </div>

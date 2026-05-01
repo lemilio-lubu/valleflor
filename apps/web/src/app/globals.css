@@ -143,3 +143,19 @@ body {
     @apply text-center py-phi-5 text-carbon-400 text-sm;
   }
 }
+
+/* react-day-picker overrides — dark theme */
+.week-picker-popover .rdp {
+  --rdp-cell-size: 32px;
+  --rdp-accent-color: transparent;
+  --rdp-background-color: transparent;
+  margin: 0;
+}
+.week-picker-popover .rdp-day:focus-visible {
+  outline: none;
+}
+.week-picker-popover .rdp-day_selected,
+.week-picker-popover .rdp-day_selected:hover {
+  background-color: transparent;
+  color: inherit;
+}
