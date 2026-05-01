@@ -3,11 +3,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BaseSemanal } from './base-semanal.entity';
 import { RegistroDiario } from '../registros/registro-diario.entity';
 import { Semana } from '../semanas/semana.entity';
+import { Responsable } from '../responsables/responsable.entity';
+import { ResponsableProducto } from '../responsables/responsable-producto.entity';
 import { BaseSemanalService } from './base-semanal.service';
 import { BaseSemanalController } from './base-semanal.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([BaseSemanal, RegistroDiario, Semana])],
+  imports: [TypeOrmModule.forFeature([BaseSemanal, RegistroDiario, Semana, Responsable, ResponsableProducto])],
   providers: [BaseSemanalService],
   controllers: [BaseSemanalController],
   exports: [BaseSemanalService],

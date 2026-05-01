@@ -127,7 +127,11 @@ export default function EstimacionesPage() {
       {/* Selector de semanas */}
       <div className="mb-6">
         <p className="text-xs font-medium text-carbon-400 mb-3">Seleccionar semana</p>
-        <SemanaSelector selectedId={selectedSemana} onSelect={setSelectedSemana} />
+        <SemanaSelector
+          selectedId={selectedSemana}
+          onSelect={setSelectedSemana}
+          onDeleted={(id) => { if (selectedSemana === id) setSelectedSemana(null); }}
+        />
       </div>
 
       {/* Tabs */}

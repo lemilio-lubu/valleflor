@@ -61,11 +61,10 @@ export class UsersService {
 
     const savedUser = await this.userRepo.save(user);
 
-    if (savedUser.role === UserRole.RESPONSABLE && dto.fincaId && dto.nombre) {
+    if (savedUser.role === UserRole.RESPONSABLE && dto.fincaId) {
       const resp = this.respRepo.create({
         userId: savedUser.id,
         fincaId: dto.fincaId,
-        nombre: savedUser.nombre,
       });
       await this.respRepo.save(resp);
     }

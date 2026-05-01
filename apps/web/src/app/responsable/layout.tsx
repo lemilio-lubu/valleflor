@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LogOut, ClipboardList, BarChart2, UserCircle, type LucideIcon } from 'lucide-react';
+import { LogOut, BarChart2, UserCircle, type LucideIcon } from 'lucide-react';
 
 function Spinner() {
   return (
@@ -30,7 +30,6 @@ export default function ResponsableLayout({ children }: { children: React.ReactN
   if (status === 'loading' || !session) return <Spinner />;
 
   const navItems: { href: string; label: string; Icon: LucideIcon }[] = [
-    { href: '/responsable/datos', label: 'Datos', Icon: ClipboardList },
     { href: '/responsable/estimaciones', label: 'Estimaciones', Icon: BarChart2 },
   ];
 

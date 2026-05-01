@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { BaseSemanal } from './base-semanal.entity';
 import { RegistroDiario } from '../registros/registro-diario.entity';
 import { Semana } from '../semanas/semana.entity';
+import { Responsable } from '../responsables/responsable.entity';
+import { ResponsableProducto } from '../responsables/responsable-producto.entity';
 
 export interface SemanaData {
   cajas: number;
@@ -55,6 +57,10 @@ export class BaseSemanalService {
     private readonly registroRepo: Repository<RegistroDiario>,
     @InjectRepository(Semana)
     private readonly semanaRepo: Repository<Semana>,
+    @InjectRepository(Responsable)
+    private readonly responsableRepo: Repository<Responsable>,
+    @InjectRepository(ResponsableProducto)
+    private readonly respProductoRepo: Repository<ResponsableProducto>,
   ) {}
 
   async recalcular(
@@ -154,51 +160,57 @@ export class BaseSemanalService {
     });
   }
 
-  async findMatriz(fincaId: string, cantSemanas: number): Promise<{ semanas: { anio: number; numeroSemana: number }[]; rows: MatrizRow[] }> {
+  private async getProductoIdsAsignados(userId: string): Promise<string[] | null> {
+    const responsable = await this.responsableRepo.findOne({ where: { userId } });
+    if (!responsable) return null;
+    const asignaciones = await this.respProductoRepo.find({ where: { responsableId: responsable.id } });
+    return asignaciones.map((a) => a.productoId);
+  }
+
+  async findMatriz(fincaId: string, cantSemanas: number, userId: string): Promise<{ semanas: { anio: number; numeroSemana: number }[]; rows: MatrizRow[] }> {
     const { numeroSemana, anio } = getCurrentISOWeek();
-    const targetWeeks = getNextWeeks(numeroSemana, anio, cantSemanas + 1); // Current week + next 10 = 11 weeks total
-    
-    const semanaKeysArr = targetWeeks.map((s) => `${s.anio}-${s.numeroSemana}`);
-    const semanaKeys = new Set(semanaKeysArr);
-    
-    // Obtenemos los registros que ya existen para estas semanas
-    const rows = await this.baseSemanalRepo
+    const targetWeeks = getNextWeeks(numeroSemana, anio, cantSemanas + 1);
+    const semanaKeys = new Set(targetWeeks.map((s) => `${s.anio}-${s.numeroSemana}`));
+
+    const productoIds = await this.getProductoIdsAsignados(userId);
+
+    let qb = this.baseSemanalRepo
       .createQueryBuilder('bs')
       .innerJoinAndSelect('bs.color', 'color')
       .innerJoinAndSelect('color.variedad', 'variedad')
       .innerJoinAndSelect('variedad.producto', 'producto')
       .innerJoinAndSelect('producto.finca', 'finca')
-      .where('producto.fincaId = :fincaId', { fincaId })
-      .getMany();
-      
-    // Construir la matriz inicial con los registros existentes
+      .where('producto.fincaId = :fincaId', { fincaId });
+
+    if (productoIds !== null && productoIds.length > 0) {
+      qb = qb.andWhere('variedad.productoId IN (:...productoIds)', { productoIds });
+    } else if (productoIds !== null && productoIds.length === 0) {
+      return { semanas: targetWeeks, rows: [] };
+    }
+
+    const rows = await qb.getMany();
     const matrizRows = this.buildMatriz(rows, semanaKeys);
-    
-    // AHORA: Necesitamos asegurar que TODOS los colores de la finca aparezcan, incluso si no tienen registros en BaseSemanal
+
+    // Asegurar que todos los colores asignados aparezcan aunque no tengan registros aún
     const queryRunner = this.baseSemanalRepo.manager.connection.createQueryRunner();
-    const todosLosColores = await queryRunner.query(
-      `SELECT c.id as "colorId", c.nombre as color, v.nombre as variedad, p.nombre as producto, f.nombre as finca
+    let colorQuery = `SELECT c.id as "colorId", c.nombre as color, v.nombre as variedad, p.nombre as producto, f.nombre as finca
        FROM colores c
        JOIN variedades v ON c.variedad_id = v.id
        JOIN productos p ON v.producto_id = p.id
        JOIN fincas f ON p.finca_id = f.id
-       WHERE f.id = $1`,
-      [fincaId]
-    );
+       WHERE f.id = $1`;
+    const params: any[] = [fincaId];
+    if (productoIds !== null && productoIds.length > 0) {
+      colorQuery += ` AND p.id = ANY($2)`;
+      params.push(productoIds);
+    }
+    const todosLosColores = await queryRunner.query(colorQuery, params);
     await queryRunner.release();
 
     const matrizMap = new Map(matrizRows.map((r) => [r.colorId, r]));
-
     for (const c of todosLosColores) {
       if (!matrizMap.has(c.colorId)) {
-        matrizMap.set(c.colorId, {
-          finca: c.finca,
-          producto: c.producto,
-          variedad: c.variedad,
-          color: c.color,
-          colorId: c.colorId,
-          semanas: {},
-        });
+        matrizMap.set(c.colorId, { finca: c.finca, producto: c.producto, variedad: c.variedad, color: c.color, colorId: c.colorId, semanas: {} });
       }
     }
 
@@ -210,15 +222,14 @@ export class BaseSemanalService {
       return a.color.localeCompare(b.color);
     });
 
-    return {
-      semanas: targetWeeks,
-      rows: finalRows,
-    };
+    return { semanas: targetWeeks, rows: finalRows };
   }
 
-  async findSemanaActual(fincaId: string): Promise<MatrizRow[]> {
+  async findSemanaActual(fincaId: string, userId: string): Promise<MatrizRow[]> {
     const { numeroSemana, anio } = getCurrentISOWeek();
-    const rows = await this.baseSemanalRepo
+    const productoIds = await this.getProductoIdsAsignados(userId);
+
+    let qb = this.baseSemanalRepo
       .createQueryBuilder('bs')
       .innerJoinAndSelect('bs.color', 'color')
       .innerJoinAndSelect('color.variedad', 'variedad')
@@ -226,8 +237,15 @@ export class BaseSemanalService {
       .innerJoinAndSelect('producto.finca', 'finca')
       .where('producto.fincaId = :fincaId', { fincaId })
       .andWhere('bs.numeroSemana = :numeroSemana', { numeroSemana })
-      .andWhere('bs.anio = :anio', { anio })
-      .getMany();
+      .andWhere('bs.anio = :anio', { anio });
+
+    if (productoIds !== null && productoIds.length > 0) {
+      qb = qb.andWhere('variedad.productoId IN (:...productoIds)', { productoIds });
+    } else if (productoIds !== null && productoIds.length === 0) {
+      return [];
+    }
+
+    const rows = await qb.getMany();
     return this.buildMatriz(rows);
   }
 }

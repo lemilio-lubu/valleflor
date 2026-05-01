@@ -33,7 +33,7 @@ export default function LoginPage() {
       const session = await getSession();
       const role = (session?.user as any)?.role;
       if (role === 'admin') router.push('/admin/fincas');
-      else router.push('/responsable/datos');
+      else router.push('/responsable/estimaciones');
     } catch {
       toast.error('Error de conexión');
     } finally {

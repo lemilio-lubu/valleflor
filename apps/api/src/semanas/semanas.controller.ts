@@ -2,7 +2,10 @@ import {
   Body,
   Controller,
   DefaultValuePipe,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
@@ -47,5 +50,12 @@ export class SemanasController {
   @Get(':id/plantilla')
   findPlantilla(@Param('id', ParseUUIDPipe) id: string) {
     return this.semanasService.findPlantilla(id);
+  }
+
+  /** DELETE /semanas/:id */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtUser) {
+    return this.semanasService.remove(id, user);
   }
 }

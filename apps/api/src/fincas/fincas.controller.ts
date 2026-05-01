@@ -47,10 +47,7 @@ export class FincasController {
   @Patch(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateFincaDto,
-  ) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateFincaDto) {
     return this.fincasService.update(id, dto);
   }
 
@@ -69,10 +66,7 @@ export class FincasController {
   @Post(':id/responsables')
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)
-  assignResponsable(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: AssignResponsableDto,
-  ) {
+  assignResponsable(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AssignResponsableDto) {
     return this.fincasService.assignResponsable(id, dto);
   }
 
@@ -85,5 +79,24 @@ export class FincasController {
     @Param('responsableId', ParseUUIDPipe) responsableId: string,
   ) {
     return this.fincasService.removeResponsable(id, responsableId);
+  }
+
+  @Get(':fincaId/responsables/:responsableId/productos')
+  getProductosResponsable(
+    @Param('fincaId', ParseUUIDPipe) fincaId: string,
+    @Param('responsableId', ParseUUIDPipe) responsableId: string,
+  ) {
+    return this.fincasService.getProductosResponsable(fincaId, responsableId);
+  }
+
+  @Post(':fincaId/responsables/:responsableId/productos')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  setProductosResponsable(
+    @Param('fincaId', ParseUUIDPipe) fincaId: string,
+    @Param('responsableId', ParseUUIDPipe) responsableId: string,
+    @Body() body: { productoIds: string[] },
+  ) {
+    return this.fincasService.setProductosResponsable(fincaId, responsableId, body.productoIds);
   }
 }

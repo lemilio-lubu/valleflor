@@ -125,7 +125,6 @@ async function runSeed() {
         let responsable = await responsableRepo.findOne({ where: { userId: user.id, fincaId: finca.id } });
         if (!responsable) {
           responsable = responsableRepo.create({
-            nombre: respNombre,
             userId: user.id,
             fincaId: finca.id,
           });

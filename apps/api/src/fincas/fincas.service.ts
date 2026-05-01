@@ -6,9 +6,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Finca } from './finca.entity';
 import { Responsable } from '../responsables/responsable.entity';
+import { ResponsableProducto } from '../responsables/responsable-producto.entity';
+import { Producto } from '../productos/producto.entity';
 import { User, UserRole } from '../users/user.entity';
 import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateFincaDto } from './dto/create-finca.dto';
@@ -22,6 +24,10 @@ export class FincasService {
     private readonly fincaRepo: Repository<Finca>,
     @InjectRepository(Responsable)
     private readonly responsableRepo: Repository<Responsable>,
+    @InjectRepository(ResponsableProducto)
+    private readonly respProductoRepo: Repository<ResponsableProducto>,
+    @InjectRepository(Producto)
+    private readonly productoRepo: Repository<Producto>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
   ) {}
@@ -123,5 +129,27 @@ export class FincasService {
       fincaId,
     });
     return this.responsableRepo.save(responsable);
+  }
+
+  async getProductosResponsable(fincaId: string, responsableId: string): Promise<Producto[]> {
+    const responsable = await this.responsableRepo.findOne({ where: { id: responsableId, fincaId } });
+    if (!responsable) throw new NotFoundException('Responsable no encontrado en esta finca');
+    const assignments = await this.respProductoRepo.find({
+      where: { responsableId },
+      relations: ['producto'],
+    });
+    return assignments.map((a) => a.producto);
+  }
+
+  async setProductosResponsable(fincaId: string, responsableId: string, productoIds: string[]): Promise<Producto[]> {
+    const responsable = await this.responsableRepo.findOne({ where: { id: responsableId, fincaId } });
+    if (!responsable) throw new NotFoundException('Responsable no encontrado en esta finca');
+    await this.respProductoRepo.delete({ responsableId });
+    if (productoIds.length > 0) {
+      const records = productoIds.map((productoId) => this.respProductoRepo.create({ responsableId, productoId }));
+      await this.respProductoRepo.save(records);
+    }
+    const assignments = await this.respProductoRepo.find({ where: { responsableId }, relations: ['producto'] });
+    return assignments.map((a) => a.producto);
   }
 }

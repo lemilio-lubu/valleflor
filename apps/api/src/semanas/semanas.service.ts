@@ -9,6 +9,7 @@ import { Semana } from './semana.entity';
 import { RegistroDiario, DiaSemana } from '../registros/registro-diario.entity';
 import { Color } from '../colores/color.entity';
 import { Responsable } from '../responsables/responsable.entity';
+import { ResponsableProducto } from '../responsables/responsable-producto.entity';
 import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateSemanaDto } from './dto/create-semana.dto';
 
@@ -61,6 +62,8 @@ export class SemanasService {
     private readonly colorRepo: Repository<Color>,
     @InjectRepository(Responsable)
     private readonly responsableRepo: Repository<Responsable>,
+    @InjectRepository(ResponsableProducto)
+    private readonly respProductoRepo: Repository<ResponsableProducto>,
   ) {}
 
   private async getResponsable(userId: string): Promise<Responsable> {
@@ -77,13 +80,17 @@ export class SemanasService {
   async create(dto: CreateSemanaDto, user: JwtUser): Promise<Semana> {
     const responsable = await this.getResponsable(user.id);
 
-    // 1. Obtener todos los colores activos de la finca del responsable
-    const colores = await this.colorRepo
-      .createQueryBuilder('color')
-      .innerJoin('color.variedad', 'variedad')
-      .innerJoin('variedad.producto', 'producto')
-      .where('producto.fincaId = :fincaId', { fincaId: responsable.fincaId })
-      .getMany();
+    // 1. Obtener colores de los productos asignados al responsable
+    const asignaciones = await this.respProductoRepo.find({ where: { responsableId: responsable.id } });
+    const productoIds = asignaciones.map((a) => a.productoId);
+
+    const colores = productoIds.length > 0
+      ? await this.colorRepo
+          .createQueryBuilder('color')
+          .innerJoin('color.variedad', 'variedad')
+          .where('variedad.productoId IN (:...productoIds)', { productoIds })
+          .getMany()
+      : [];
 
     // 2. Crear la semana
     const semana = await this.semanaRepo.save(
@@ -173,6 +180,7 @@ export class SemanasService {
       relations: [
         'responsable',
         'responsable.finca',
+        'responsable.user',
         'registros',
         'registros.color',
         'registros.color.variedad',
@@ -187,7 +195,7 @@ export class SemanasService {
       dia: registro.dia,
       fecha: registro.fecha,
       finca: semana.responsable.finca.nombre,
-      responsable: semana.responsable.nombre,
+      responsable: semana.responsable.user?.nombre ?? semana.responsable.user?.email ?? '',
       producto: registro.color.variedad.producto.nombre,
       variedad: registro.color.variedad.nombre,
       color: registro.color.nombre,
@@ -207,5 +215,16 @@ export class SemanasService {
       if (varOrd !== 0) return varOrd;
       return a.color.localeCompare(b.color);
     });
+  }
+
+  async remove(id: string, user: JwtUser): Promise<void> {
+    const semana = await this.semanaRepo.findOne({ where: { id } });
+    if (!semana) throw new NotFoundException(`Semana ${id} no encontrada`);
+    const responsable = await this.getResponsable(user.id);
+    if (semana.responsableId !== responsable.id) {
+      throw new ForbiddenException('No puedes eliminar una semana que no es tuya');
+    }
+    await this.registroRepo.delete({ semanaId: id });
+    await this.semanaRepo.remove(semana);
   }
 }

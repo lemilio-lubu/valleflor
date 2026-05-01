@@ -9,6 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtUser } from '../auth/types/jwt-user.type';
 import { BaseSemanalService } from './base-semanal.service';
 
 @UseGuards(JwtAuthGuard)
@@ -21,8 +23,11 @@ export class BaseSemanalController {
    * Debe ir ANTES de la ruta raíz para que NestJS no la confunda con un param.
    */
   @Get('semana-actual')
-  findSemanaActual(@Query('fincaId', ParseUUIDPipe) fincaId: string) {
-    return this.baseSemanalService.findSemanaActual(fincaId);
+  findSemanaActual(
+    @Query('fincaId', ParseUUIDPipe) fincaId: string,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.baseSemanalService.findSemanaActual(fincaId, user.id);
   }
 
   /**
@@ -32,8 +37,9 @@ export class BaseSemanalController {
   findMatriz(
     @Query('fincaId', ParseUUIDPipe) fincaId: string,
     @Query('semanas', new DefaultValuePipe(10), ParseIntPipe) semanas: number,
+    @CurrentUser() user: JwtUser,
   ) {
-    return this.baseSemanalService.findMatriz(fincaId, semanas);
+    return this.baseSemanalService.findMatriz(fincaId, semanas, user.id);
   }
 
   @Patch('estimar')
