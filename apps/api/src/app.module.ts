@@ -14,6 +14,7 @@ import { RegistrosModule } from './registros/registros.module';
 import { BaseSemanalModule } from './base-semanal/base-semanal.module';
 import { VentasModule } from './ventas/ventas.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ConfiguracionModule } from './configuracion/configuracion.module';
     BaseSemanalModule,
     VentasModule,
     ConfiguracionModule,
+    AdminModule,
   ],
   providers: [DatabaseBootstrapService],
 })

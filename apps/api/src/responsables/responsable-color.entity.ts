@@ -8,11 +8,11 @@ import {
   Unique,
 } from 'typeorm';
 import { Responsable } from './responsable.entity';
-import { Producto } from '../productos/producto.entity';
+import { Color } from '../colores/color.entity';
 
-@Entity('responsable_productos')
-@Unique(['responsableId', 'productoId'])
-export class ResponsableProducto {
+@Entity('responsable_colores')
+@Unique(['responsableId', 'colorId'])
+export class ResponsableColor {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -23,12 +23,12 @@ export class ResponsableProducto {
   @JoinColumn({ name: 'responsable_id' })
   responsable: Responsable;
 
-  @Column({ name: 'producto_id' })
-  productoId: string;
+  @Column({ name: 'color_id' })
+  colorId: string;
 
-  @ManyToOne(() => Producto, { nullable: false, onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'producto_id' })
-  producto: Producto;
+  @ManyToOne(() => Color, { nullable: false, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'color_id' })
+  color: Color;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

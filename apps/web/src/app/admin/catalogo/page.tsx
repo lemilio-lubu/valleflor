@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { CatalogoProductos } from '@/app/components/catalogo/CatalogoProductos';
+import { BulkUploadCatalog } from './BulkUploadCatalog';
 import { ChevronDown } from 'lucide-react';
 
 interface Finca { id: string; nombre: string; ubicacion?: string; }
@@ -26,6 +27,9 @@ export default function CatalogoPage() {
           <p className="text-carbon-400 text-sm mt-1">Gestiona productos, variedades y colores por finca</p>
         </div>
       </div>
+
+      {/* Carga Masiva */}
+      <BulkUploadCatalog />
 
       {/* Selector de finca */}
       <div className="mb-6">

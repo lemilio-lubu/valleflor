@@ -12,6 +12,7 @@ import {
 import { User } from '../users/user.entity';
 import { Finca } from '../fincas/finca.entity';
 import { Semana } from '../semanas/semana.entity';
+import { ResponsableColor } from './responsable-color.entity';
 
 @Entity('responsables')
 export class Responsable {
@@ -34,6 +35,9 @@ export class Responsable {
 
   @OneToMany(() => Semana, (semana) => semana.responsable)
   semanas: Semana[];
+
+  @OneToMany(() => ResponsableColor, (rc) => rc.responsable)
+  coloresAsignados: ResponsableColor[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

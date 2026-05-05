@@ -4,46 +4,62 @@ import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Edit, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 
 const PAGE_SIZE = 10;
 
 interface Finca { id: string; nombre: string; }
-interface Usuario { id: string; email: string; role: string; createdAt: string; nombre?: string; responsable?: { nombre: string; }; }
+interface Usuario { id: string; email: string; role: string; createdAt: string; nombre?: string; responsable?: { nombre: string; finca?: { nombre: string } }; }
 
-function CreateModal({ onClose }: { onClose: () => void }) {
+function UserModal({ onClose, userToEdit }: { onClose: () => void, userToEdit?: Usuario | null }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({ email: '', password: '', role: '', nombre: '', fincaId: '' });
+  const [form, setForm] = useState({ 
+    email: userToEdit?.email || '', 
+    password: '', 
+    role: userToEdit?.role || '', 
+    nombre: userToEdit?.nombre || userToEdit?.responsable?.nombre || '', 
+    fincaId: userToEdit?.responsable?.finca?.id || '' 
+  });
 
   const { data: fincas = [] } = useQuery<Finca[]>({
     queryKey: ['fincas'],
     queryFn: () => api.get('/fincas').then((r) => r.data),
   });
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: (data: typeof form) => {
-      const payload: Record<string, string> = { email: data.email, password: data.password, role: data.role };
+      const payload: Record<string, string> = { email: data.email, role: data.role };
+      if (data.password) payload.password = data.password;
       if (data.nombre) payload.nombre = data.nombre;
       if (data.role === 'responsable' && data.fincaId) payload.fincaId = data.fincaId;
-      return api.post('/users', payload);
+      
+      if (userToEdit) {
+        return api.patch(`/users/${userToEdit.id}`, payload);
+      } else {
+        if (!data.password) throw new Error('La contraseña es obligatoria para nuevos usuarios');
+        return api.post('/users', payload);
+      }
     },
     onSuccess: (_, data) => {
       qc.invalidateQueries({ queryKey: ['usuarios'] });
-      toast.success(`Usuario "${data.nombre || data.email}" creado`);
+      toast.success(`Usuario "${data.nombre || data.email}" ${userToEdit ? 'actualizado' : 'creado'}`);
       onClose();
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message?.[0] ?? err?.response?.data?.message ?? 'Error al crear usuario'),
+    onError: (err: any) => {
+      const msg = err instanceof Error ? err.message : (err?.response?.data?.message?.[0] ?? err?.response?.data?.message ?? 'Error al guardar usuario');
+      toast.error(msg);
+    }
   });
 
   return (
     <div className="modal-overlay">
       <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-md mx-4 shadow-lg animate-slide-up">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
-          <h3 className="modal-title">Nuevo usuario</h3>
+          <h3 className="modal-title">{userToEdit ? 'Editar usuario' : 'Nuevo usuario'}</h3>
           <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors"><X className="w-5 h-5" /></button>
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); create.mutate(form); }} className="p-6 space-y-4">
+        <form onSubmit={(e) => { e.preventDefault(); save.mutate(form); }} className="p-6 space-y-4">
           <div>
             <label className="form-label">Nombre <span className="text-red-500 ml-0.5">*</span></label>
             <input type="text" required className="input-field" value={form.nombre}
@@ -58,11 +74,11 @@ function CreateModal({ onClose }: { onClose: () => void }) {
               placeholder="usuario@valleflor.com" />
           </div>
           <div>
-            <label className="form-label">Contraseña <span className="text-red-500 ml-0.5">*</span></label>
-            <input type="password" required minLength={8} className="input-field" value={form.password}
+            <label className="form-label">Contraseña {!userToEdit && <span className="text-red-500 ml-0.5">*</span>}</label>
+            <input type="password" required={!userToEdit} minLength={8} className="input-field" value={form.password}
               autoComplete="new-password"
               onChange={(e) => setForm(p => ({ ...p, password: e.target.value }))}
-              placeholder="Mínimo 8 caracteres" />
+              placeholder={userToEdit ? "Dejar en blanco para mantener" : "Mínimo 8 caracteres"} />
           </div>
           <div>
             <label className="form-label">Rol <span className="text-red-500 ml-0.5">*</span></label>
@@ -85,8 +101,8 @@ function CreateModal({ onClose }: { onClose: () => void }) {
           )}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center">Cancelar</button>
-            <button type="submit" disabled={create.isPending} className="btn-primary flex-1 justify-center">
-              {create.isPending ? 'Creando...' : 'Crear'}
+            <button type="submit" disabled={save.isPending} className="btn-primary flex-1 justify-center">
+              {save.isPending ? 'Guardando...' : 'Guardar'}
             </button>
           </div>
         </form>
@@ -98,6 +114,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
 export default function UsuariosPage() {
   const qc = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<Usuario | null>(null);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'responsable'>('all');
   const [page, setPage] = useState(1);
@@ -182,6 +199,7 @@ export default function UsuariosPage() {
               <th className="table-th">Nombre</th>
               <th className="table-th">Email</th>
               <th className="table-th">Rol</th>
+              <th className="table-th">Finca</th>
               <th className="table-th">Creado</th>
               <th className="table-th text-right">Acciones</th>
             </tr>
@@ -190,12 +208,12 @@ export default function UsuariosPage() {
             {isLoading && (
               [...Array(4)].map((_, i) => (
                 <tr key={i} className="border-b border-surface-border/30">
-                  <td colSpan={5} className="px-3 py-3"><div className="h-4 bg-surface-overlay rounded animate-pulse" /></td>
+                  <td colSpan={6} className="px-3 py-3"><div className="h-4 bg-surface-overlay rounded animate-pulse" /></td>
                 </tr>
               ))
             )}
             {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan={5} className="empty-state">{search || roleFilter !== 'all' ? 'Sin resultados' : 'Sin usuarios registrados'}</td></tr>
+              <tr><td colSpan={6} className="empty-state">{search || roleFilter !== 'all' ? 'Sin resultados' : 'Sin usuarios registrados'}</td></tr>
             )}
             {paginated.map((u) => (
               <tr key={u.id} className="table-row-hover border-b border-surface-border/30">
@@ -212,10 +230,20 @@ export default function UsuariosPage() {
                     {u.role === 'admin' ? 'Admin' : 'Responsable'}
                   </span>
                 </td>
+                <td className="px-3 py-3 text-carbon-500 font-medium text-xs">
+                  {u.responsable?.finca?.nombre ?? <span className="text-carbon-300 font-normal">—</span>}
+                </td>
                 <td className="px-3 py-3 text-carbon-400 font-mono text-xs">
                   {new Date(u.createdAt).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </td>
                 <td className="px-3 py-3 text-right">
+                  <button
+                    onClick={() => setUserToEdit(u)}
+                    className="text-carbon-400 hover:text-blue-600 transition-colors mr-3"
+                    title="Editar"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => setConfirmDelete({ id: u.id, label: u.nombre ?? u.responsable?.nombre ?? u.email })}
                     className="text-carbon-400 hover:text-red-600 transition-colors"
@@ -265,7 +293,8 @@ export default function UsuariosPage() {
         </div>
       )}
 
-      {showCreate && <CreateModal onClose={() => setShowCreate(false)} />}
+      {showCreate && <UserModal onClose={() => setShowCreate(false)} />}
+      {userToEdit && <UserModal userToEdit={userToEdit} onClose={() => setUserToEdit(null)} />}
 
       {confirmDelete && (
         <ConfirmModal

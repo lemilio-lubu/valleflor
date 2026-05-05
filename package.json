@@ -2,7 +2,7 @@
   "name": "floricultura-estimaciones",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "npm@10.0.0",
+  "packageManager": "npm@10.8.2",
   "workspaces": [
     "apps/*",
     "packages/*"

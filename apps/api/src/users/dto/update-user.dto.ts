@@ -20,4 +20,12 @@ export class UpdateUserDto {
   @IsEnum(UserRole, { message: 'Rol inválido' })
   @IsOptional()
   role?: UserRole;
+
+  @IsString()
+  @IsOptional()
+  nombre?: string;
+
+  @IsString()
+  @IsOptional()
+  fincaId?: string;
 }

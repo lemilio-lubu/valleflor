@@ -23,7 +23,7 @@ export class UsersService {
   ) {}
 
   async findAll(): Promise<Omit<User, 'passwordHash'>[]> {
-    const users = await this.userRepo.find({ relations: ['responsable'] });
+    const users = await this.userRepo.find({ relations: ['responsable', 'responsable.finca'] });
     return users.map(({ passwordHash: _, ...u }) => u as Omit<User, 'passwordHash'>);
   }
 
@@ -91,7 +91,27 @@ export class UsersService {
       user.role = dto.role;
     }
 
+    if (dto.nombre) {
+      user.nombre = dto.nombre.toUpperCase().trim();
+    }
+
     const saved = await this.userRepo.save(user);
+
+    // Update responsable association if applicable
+    if (saved.role === UserRole.RESPONSABLE && dto.fincaId) {
+      let resp = await this.respRepo.findOne({ where: { userId: saved.id } });
+      if (resp) {
+        resp.fincaId = dto.fincaId;
+        await this.respRepo.save(resp);
+      } else {
+        resp = this.respRepo.create({ userId: saved.id, fincaId: dto.fincaId });
+        await this.respRepo.save(resp);
+      }
+    } else if (saved.role !== UserRole.RESPONSABLE) {
+      // If role changed to something else, we could delete the responsable association
+      await this.respRepo.delete({ userId: saved.id });
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash: _, ...safe } = saved;
     return safe as Omit<User, 'passwordHash'>;

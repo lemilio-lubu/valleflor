@@ -9,7 +9,7 @@ import { Semana } from './semana.entity';
 import { RegistroDiario, DiaSemana } from '../registros/registro-diario.entity';
 import { Color } from '../colores/color.entity';
 import { Responsable } from '../responsables/responsable.entity';
-import { ResponsableProducto } from '../responsables/responsable-producto.entity';
+import { ResponsableColor } from '../responsables/responsable-color.entity';
 import { ConfiguracionService } from '../configuracion/configuracion.service';
 import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateSemanaDto } from './dto/create-semana.dto';
@@ -63,8 +63,8 @@ export class SemanasService {
     private readonly colorRepo: Repository<Color>,
     @InjectRepository(Responsable)
     private readonly responsableRepo: Repository<Responsable>,
-    @InjectRepository(ResponsableProducto)
-    private readonly respProductoRepo: Repository<ResponsableProducto>,
+    @InjectRepository(ResponsableColor)
+    private readonly respColorRepo: Repository<ResponsableColor>,
     private readonly configuracionService: ConfiguracionService,
   ) {}
 
@@ -82,17 +82,12 @@ export class SemanasService {
   async create(dto: CreateSemanaDto, user: JwtUser): Promise<Semana> {
     const responsable = await this.getResponsable(user.id);
 
-    // 1. Obtener colores de los productos asignados al responsable
-    const asignaciones = await this.respProductoRepo.find({ where: { responsableId: responsable.id } });
-    const productoIds = asignaciones.map((a) => a.productoId);
-
-    const colores = productoIds.length > 0
-      ? await this.colorRepo
-          .createQueryBuilder('color')
-          .innerJoin('color.variedad', 'variedad')
-          .where('variedad.productoId IN (:...productoIds)', { productoIds })
-          .getMany()
-      : [];
+    // 1. Obtener colores asignados al responsable
+    const asignaciones = await this.respColorRepo.find({
+      where: { responsableId: responsable.id },
+      relations: ['color'],
+    });
+    const colores = asignaciones.map((a) => a.color);
 
     // 2. Crear la semana
     const semana = await this.semanaRepo.save(

@@ -13,6 +13,7 @@ import {
 import { Variedad } from '../variedades/variedad.entity';
 import { RegistroDiario } from '../registros/registro-diario.entity';
 import { BaseSemanal } from '../base-semanal/base-semanal.entity';
+import { ResponsableColor } from '../responsables/responsable-color.entity';
 
 @Entity('colores')
 export class Color {
@@ -37,6 +38,9 @@ export class Color {
 
   @OneToMany(() => BaseSemanal, (base) => base.color)
   baseSemanal: BaseSemanal[];
+
+  @OneToMany(() => ResponsableColor, (rc) => rc.color)
+  responsablesAsignados: ResponsableColor[];
 
   @BeforeInsert()
   @BeforeUpdate()

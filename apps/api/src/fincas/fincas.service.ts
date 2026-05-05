@@ -9,8 +9,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Finca } from './finca.entity';
 import { Responsable } from '../responsables/responsable.entity';
-import { ResponsableProducto } from '../responsables/responsable-producto.entity';
+import { ResponsableColor } from '../responsables/responsable-color.entity';
 import { Producto } from '../productos/producto.entity';
+import { Color } from '../colores/color.entity';
 import { User, UserRole } from '../users/user.entity';
 import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateFincaDto } from './dto/create-finca.dto';
@@ -24,10 +25,12 @@ export class FincasService {
     private readonly fincaRepo: Repository<Finca>,
     @InjectRepository(Responsable)
     private readonly responsableRepo: Repository<Responsable>,
-    @InjectRepository(ResponsableProducto)
-    private readonly respProductoRepo: Repository<ResponsableProducto>,
+    @InjectRepository(ResponsableColor)
+    private readonly respColorRepo: Repository<ResponsableColor>,
     @InjectRepository(Producto)
     private readonly productoRepo: Repository<Producto>,
+    @InjectRepository(Color)
+    private readonly colorRepo: Repository<Color>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
   ) {}
@@ -134,22 +137,31 @@ export class FincasService {
   async getProductosResponsable(fincaId: string, responsableId: string): Promise<Producto[]> {
     const responsable = await this.responsableRepo.findOne({ where: { id: responsableId, fincaId } });
     if (!responsable) throw new NotFoundException('Responsable no encontrado en esta finca');
-    const assignments = await this.respProductoRepo.find({
+    const assignments = await this.respColorRepo.find({
       where: { responsableId },
-      relations: ['producto'],
+      relations: ['color', 'color.variedad', 'color.variedad.producto'],
     });
-    return assignments.map((a) => a.producto);
+    const productosMap = new Map<string, Producto>();
+    for (const a of assignments) {
+      if (a.color && a.color.variedad && a.color.variedad.producto) {
+        productosMap.set(a.color.variedad.producto.id, a.color.variedad.producto);
+      }
+    }
+    return Array.from(productosMap.values());
   }
 
   async setProductosResponsable(fincaId: string, responsableId: string, productoIds: string[]): Promise<Producto[]> {
     const responsable = await this.responsableRepo.findOne({ where: { id: responsableId, fincaId } });
     if (!responsable) throw new NotFoundException('Responsable no encontrado en esta finca');
-    await this.respProductoRepo.delete({ responsableId });
+    await this.respColorRepo.delete({ responsableId });
     if (productoIds.length > 0) {
-      const records = productoIds.map((productoId) => this.respProductoRepo.create({ responsableId, productoId }));
-      await this.respProductoRepo.save(records);
+      const colores = await this.colorRepo.createQueryBuilder('color')
+          .innerJoin('color.variedad', 'variedad')
+          .where('variedad.productoId IN (:...productoIds)', { productoIds })
+          .getMany();
+      const records = colores.map((c) => this.respColorRepo.create({ responsableId, colorId: c.id }));
+      await this.respColorRepo.save(records);
     }
-    const assignments = await this.respProductoRepo.find({ where: { responsableId }, relations: ['producto'] });
-    return assignments.map((a) => a.producto);
+    return this.getProductosResponsable(fincaId, responsableId);
   }
 }

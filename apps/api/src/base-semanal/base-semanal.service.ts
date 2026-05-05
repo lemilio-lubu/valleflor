@@ -5,7 +5,7 @@ import { BaseSemanal } from './base-semanal.entity';
 import { RegistroDiario } from '../registros/registro-diario.entity';
 import { Semana } from '../semanas/semana.entity';
 import { Responsable } from '../responsables/responsable.entity';
-import { ResponsableProducto } from '../responsables/responsable-producto.entity';
+import { ResponsableColor } from '../responsables/responsable-color.entity';
 
 export interface SemanaData {
   cajas: number;
@@ -59,8 +59,8 @@ export class BaseSemanalService {
     private readonly semanaRepo: Repository<Semana>,
     @InjectRepository(Responsable)
     private readonly responsableRepo: Repository<Responsable>,
-    @InjectRepository(ResponsableProducto)
-    private readonly respProductoRepo: Repository<ResponsableProducto>,
+    @InjectRepository(ResponsableColor)
+    private readonly respColorRepo: Repository<ResponsableColor>,
   ) {}
 
   async recalcular(
@@ -163,8 +163,18 @@ export class BaseSemanalService {
   private async getProductoIdsAsignados(userId: string): Promise<string[] | null> {
     const responsable = await this.responsableRepo.findOne({ where: { userId } });
     if (!responsable) return null;
-    const asignaciones = await this.respProductoRepo.find({ where: { responsableId: responsable.id } });
-    return asignaciones.map((a) => a.productoId);
+    const asignaciones = await this.respColorRepo.find({ 
+      where: { responsableId: responsable.id },
+      relations: ['color', 'color.variedad'] 
+    });
+    // Obtener los productos únicos a partir de los colores asignados
+    const productoIds = new Set<string>();
+    for (const a of asignaciones) {
+      if (a.color && a.color.variedad && a.color.variedad.productoId) {
+        productoIds.add(a.color.variedad.productoId);
+      }
+    }
+    return Array.from(productoIds);
   }
 
   async findMatriz(fincaId: string, cantSemanas: number, userId: string): Promise<{ semanas: { anio: number; numeroSemana: number }[]; rows: MatrizRow[] }> {
