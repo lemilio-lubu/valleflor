@@ -21,7 +21,10 @@
       "Bash(echo \"API PID: $!\")",
       "Bash(echo \"Web PID: $!\")",
       "Bash(npx ts-node *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\lemil\\\\Downloads\\\\villaflor\" -Recurse -Directory)",
+      "Bash(Select-Object -First 50 FullName)",
+      "Bash(Sort-Object)"
     ]
   }
 }
