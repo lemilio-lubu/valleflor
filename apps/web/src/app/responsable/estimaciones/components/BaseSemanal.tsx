@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { Download } from 'lucide-react';
+import { FiltrosTabla } from './FiltrosTabla';
 
 interface SemanaData {
   cajas: number;
@@ -98,9 +99,6 @@ export function BaseSemanal({ fincaId, semanas = 10 }: Props) {
   );
 
   const { semanas: targetWeeks, rows } = data;
-  const productosUnicos = Array.from(new Set(rows.map((r) => r.producto))).sort();
-  const variedadesUnicas = Array.from(new Set(rows.map((r) => r.variedad))).sort();
-  const coloresUnicos = Array.from(new Set(rows.map((r) => r.color))).sort();
 
   const filteredRows = rows.filter(r => {
     const matchProducto = filtroProducto ? r.producto === filtroProducto : true;
@@ -144,53 +142,22 @@ export function BaseSemanal({ fincaId, semanas = 10 }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border w-fit">
-        <button
-          onClick={() => setViewMode('cajas')}
-          className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'cajas' ? 'bg-surface-raised text-carbon-50 shadow-sm' : 'text-carbon-400 hover:text-carbon-200'}`}
-        >
-          Cajas
-        </button>
-        <button
-          onClick={() => setViewMode('tallos')}
-          className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'tallos' ? 'bg-surface-raised text-carbon-50 shadow-sm' : 'text-carbon-400 hover:text-carbon-200'}`}
-        >
-          Tallos
-        </button>
-      </div>
-
-      <div className="flex gap-3 flex-wrap justify-between items-center">
-        <div className="flex gap-3 flex-wrap">
-        <select
-          className="input-field text-xs max-w-[200px]"
-          value={filtroProducto}
-          onChange={(e) => setFiltroProducto(e.target.value)}
-        >
-          <option value="">— Todos los productos —</option>
-          {productosUnicos.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        <select
-          className="input-field text-xs max-w-[200px]"
-          value={filtroVariedad}
-          onChange={(e) => setFiltroVariedad(e.target.value)}
-        >
-          <option value="">— Todas las variedades —</option>
-          {variedadesUnicas.map((v) => (
-            <option key={v} value={v}>{v}</option>
-          ))}
-        </select>
-        <select
-          className="input-field text-xs max-w-[200px]"
-          value={filtroColor}
-          onChange={(e) => setFiltroColor(e.target.value)}
-        >
-          <option value="">— Todos los colores —</option>
-          {coloresUnicos.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-carbon-400">Mostrar en:</span>
+          <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border">
+            {(['cajas', 'tallos'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`px-4 py-1 text-xs font-medium rounded-sm transition-colors ${
+                  viewMode === mode ? 'bg-surface-raised text-carbon-50 shadow-sm' : 'text-carbon-400 hover:text-carbon-200'
+                }`}
+              >
+                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
         <button
           onClick={handleDownloadExcel}
@@ -201,6 +168,16 @@ export function BaseSemanal({ fincaId, semanas = 10 }: Props) {
           <span>Excel</span>
         </button>
       </div>
+
+      <FiltrosTabla
+        items={rows}
+        filtroProducto={filtroProducto}
+        filtroVariedad={filtroVariedad}
+        filtroColor={filtroColor}
+        onProducto={setFiltroProducto}
+        onVariedad={setFiltroVariedad}
+        onColor={setFiltroColor}
+      />
 
       <div className="overflow-x-auto rounded-lg border border-surface-border">
         <table className="min-w-max w-full text-xs">
