@@ -23,7 +23,8 @@
       "Bash(npx ts-node *)",
       "Bash(npx tsc *)",
       "Bash(docker compose ps *)",
-      "Bash(kill 59932 59936)"
+      "Bash(kill 59932 59936)",
+      "Bash(npm ls *)"
     ]
   }
 }

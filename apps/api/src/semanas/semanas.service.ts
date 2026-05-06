@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -11,6 +12,7 @@ import { Color } from '../colores/color.entity';
 import { Responsable } from '../responsables/responsable.entity';
 import { ResponsableColor } from '../responsables/responsable-color.entity';
 import { ConfiguracionService } from '../configuracion/configuracion.service';
+import { BaseSemanalService } from '../base-semanal/base-semanal.service';
 import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateSemanaDto } from './dto/create-semana.dto';
 
@@ -66,6 +68,7 @@ export class SemanasService {
     @InjectRepository(ResponsableColor)
     private readonly respColorRepo: Repository<ResponsableColor>,
     private readonly configuracionService: ConfiguracionService,
+    private readonly baseSemanalService: BaseSemanalService,
   ) {}
 
   private async getResponsable(userId: string): Promise<Responsable> {
@@ -81,6 +84,13 @@ export class SemanasService {
 
   async create(dto: CreateSemanaDto, user: JwtUser): Promise<Semana> {
     const responsable = await this.getResponsable(user.id);
+
+    const existe = await this.semanaRepo.findOne({
+      where: { responsableId: responsable.id, numeroSemana: dto.numeroSemana, anio: dto.anio },
+    });
+    if (existe) {
+      throw new ConflictException(`La semana ${dto.numeroSemana} del año ${dto.anio} ya existe`);
+    }
 
     // 1. Obtener colores asignados al responsable
     const asignaciones = await this.respColorRepo.find({
@@ -222,6 +232,12 @@ export class SemanasService {
     if (semana.responsableId !== responsable.id) {
       throw new ForbiddenException('No puedes eliminar una semana que no es tuya');
     }
+
+    // Obtener los colorIds del responsable para resetear base semanal
+    const asignaciones = await this.respColorRepo.find({ where: { responsableId: responsable.id } });
+    const colorIds = asignaciones.map((a) => a.colorId);
+    await this.baseSemanalService.resetSemana(colorIds, semana.numeroSemana, semana.anio);
+
     await this.registroRepo.delete({ semanaId: id });
     await this.semanaRepo.remove(semana);
   }

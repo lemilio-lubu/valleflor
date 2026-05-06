@@ -11,7 +11,7 @@ interface Semana { id: string; numeroSemana: number; anio: number; fechaInicio: 
 
 interface Props {
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, semana: Semana) => void;
   onDeleted?: (id: string) => void;
 }
 
@@ -59,7 +59,7 @@ export function SemanaSelector({ selectedId, onSelect, onDeleted }: Props) {
                 ? 'border-verde-600 bg-verde-50 text-verde-600 shadow-verde-sm'
                 : 'border-surface-border bg-surface-overlay text-carbon-400 hover:border-verde-100 hover:text-carbon-50'
             }`}
-            onClick={() => onSelect(s.id)}
+            onClick={() => onSelect(s.id, s)}
           >
             <span className="text-lg font-mono font-medium leading-none">{s.numeroSemana}</span>
             <span className="text-[10px] mt-1 opacity-60">{s.anio}</span>

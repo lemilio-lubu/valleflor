@@ -1,6 +1,7 @@
 import {
   Controller,
   DefaultValuePipe,
+  Delete,
   Get,
   Patch,
   ParseIntPipe,
@@ -31,15 +32,26 @@ export class BaseSemanalController {
   }
 
   /**
-   * GET /base-semanal?fincaId=uuid&semanas=10
+   * GET /base-semanal?fincaId=uuid&semanas=10&startWeek=19&startYear=2026
    */
   @Get()
   findMatriz(
     @Query('fincaId', ParseUUIDPipe) fincaId: string,
     @Query('semanas', new DefaultValuePipe(10), ParseIntPipe) semanas: number,
+    @Query('startWeek', new DefaultValuePipe(null), new ParseIntPipe({ optional: true })) startWeek: number | null,
+    @Query('startYear', new DefaultValuePipe(null), new ParseIntPipe({ optional: true })) startYear: number | null,
     @CurrentUser() user: JwtUser,
   ) {
-    return this.baseSemanalService.findMatriz(fincaId, semanas, user.id);
+    return this.baseSemanalService.findMatriz(fincaId, semanas, user.id, startWeek ?? undefined, startYear ?? undefined);
+  }
+
+  @Delete('estimar-semana')
+  limpiarEstimacionesSemana(
+    @Query('fincaId', ParseUUIDPipe) fincaId: string,
+    @Query('numeroSemana', ParseIntPipe) numeroSemana: number,
+    @Query('anio', ParseIntPipe) anio: number,
+  ) {
+    return this.baseSemanalService.limpiarEstimacionesSemana(fincaId, numeroSemana, anio);
   }
 
   @Patch('estimar')

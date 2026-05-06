@@ -8,11 +8,13 @@ import { ResponsableColor } from '../responsables/responsable-color.entity';
 import { SemanasService } from './semanas.service';
 import { SemanasController } from './semanas.controller';
 import { ConfiguracionModule } from '../configuracion/configuracion.module';
+import { BaseSemanalModule } from '../base-semanal/base-semanal.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Semana, RegistroDiario, Color, Responsable, ResponsableColor]),
     ConfiguracionModule,
+    BaseSemanalModule,
   ],
   providers: [SemanasService],
   controllers: [SemanasController],
