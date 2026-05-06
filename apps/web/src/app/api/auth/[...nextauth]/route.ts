@@ -23,7 +23,7 @@ const authOptions: NextAuthOptions = {
               }),
             },
           );
-          if (!res.ok) return null;
+          if (!res.ok) throw new Error('INVALID_CREDENTIALS');
           const data = await res.json();
           // API returns { accessToken, user: { id, email, role, fincaId, fincaNombre } }
           return {
@@ -36,8 +36,9 @@ const authOptions: NextAuthOptions = {
             responsableNombre: data.user.responsableNombre,
             accessToken: data.accessToken,
           };
-        } catch {
-          return null;
+        } catch (err: any) {
+          if (err.message === 'INVALID_CREDENTIALS') throw new Error('INVALID_CREDENTIALS');
+          throw new Error('CONNECTION_ERROR');
         }
       },
     }),

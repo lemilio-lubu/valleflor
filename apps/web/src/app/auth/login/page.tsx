@@ -25,7 +25,11 @@ export default function LoginPage() {
         redirect: false,
       });
       if (result?.error) {
-        toast.error('Credenciales inválidas');
+        if (result.error === 'CONNECTION_ERROR') {
+          toast.error('No se puede conectar al servidor. Intenta más tarde.');
+        } else {
+          toast.error('Credenciales inválidas');
+        }
         return;
       }
       // Fetch session to know the role
