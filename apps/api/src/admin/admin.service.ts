@@ -73,6 +73,8 @@ export class AdminService {
       const rProducto = String(normalizedRow['PRODUCTO'] || '').trim().toUpperCase();
       const rVariedad = String(normalizedRow['VARIEDAD'] || '').trim().toUpperCase();
       const rColor = String(normalizedRow['COLOR'] || '').trim().toUpperCase();
+      const rawTallos = String(normalizedRow['TALLOS'] || '').trim();
+      const rTallos = rawTallos ? parseInt(rawTallos, 10) : undefined;
 
       if (!rFinca || !rResponsable || !rProducto || !rVariedad || !rColor) {
         summary.errores.push(`Fila ${rowIndex}: Faltan datos requeridos (FINCA, RESPONSABLE, PRODUCTO, VARIEDAD, COLOR).`);
@@ -153,15 +155,28 @@ export class AdminService {
       if (!color) {
         color = await this.colorRepo.findOne({ where: { nombre: rColor, variedadId: variedad.id } });
         if (!color) {
-          color = this.colorRepo.create({ nombre: rColor, variedadId: variedad.id });
+          color = this.colorRepo.create({ nombre: rColor, variedadId: variedad.id, tallosPorCaja: rTallos ?? 400 });
           if (isPreview) {
             color.id = crypto.randomUUID();
           } else {
             await this.colorRepo.save(color);
           }
           summary.insertados++;
+        } else if (rTallos !== undefined && color.tallosPorCaja !== rTallos) {
+          color.tallosPorCaja = rTallos;
+          if (!isPreview) {
+            await this.colorRepo.save(color);
+          }
+          summary.actualizados++;
         }
         coloresMap.set(colorKey, color);
+      } else if (rTallos !== undefined && color.tallosPorCaja !== rTallos) {
+        // Update memory map and DB if it changed
+        color.tallosPorCaja = rTallos;
+        if (!isPreview) {
+          await this.colorRepo.save(color);
+        }
+        summary.actualizados++;
       }
 
       // 6. Manage ResponsableColor duplicate checks

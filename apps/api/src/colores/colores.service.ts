@@ -19,8 +19,23 @@ export class ColoresService {
     private readonly variedadRepo: Repository<Variedad>,
   ) {}
 
-  async findAll(variedadId: string): Promise<Color[]> {
-    return this.colorRepo.find({ where: { variedadId } });
+  async findAll(variedadId?: string): Promise<Color[]> {
+    if (variedadId) {
+      return this.colorRepo.find({ where: { variedadId } });
+    }
+    return this.colorRepo.find({
+      relations: ['variedad', 'variedad.producto', 'variedad.producto.finca'],
+      order: {
+        variedad: {
+          producto: {
+            finca: { nombre: 'ASC' },
+            nombre: 'ASC'
+          },
+          nombre: 'ASC'
+        },
+        nombre: 'ASC'
+      }
+    });
   }
 
   async create(dto: CreateColorDto): Promise<Color> {
@@ -42,7 +57,7 @@ export class ColoresService {
       );
     }
 
-    const color = this.colorRepo.create({ nombre, variedadId: dto.variedadId });
+    const color = this.colorRepo.create({ nombre, variedadId: dto.variedadId, tallosPorCaja: dto.tallosPorCaja ?? 400 });
     return this.colorRepo.save(color);
   }
 

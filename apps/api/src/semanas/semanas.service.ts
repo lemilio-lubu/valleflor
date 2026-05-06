@@ -101,7 +101,7 @@ export class SemanasService {
     );
 
     // 3. Generar 7 registros por color (uno por día de la semana)
-    const tallosPorCaja = await this.configuracionService.getTallosPorCaja();
+    const tallosPorCajaGlobal = await this.configuracionService.getTallosPorCaja();
     const fechaBase = new Date(dto.fechaInicio + 'T00:00:00Z');
     const registros: RegistroDiario[] = [];
 
@@ -119,7 +119,7 @@ export class SemanasService {
             dia,
             fecha,
             cajas: 0,
-            divisorTallos: tallosPorCaja,
+            divisorTallos: color.tallosPorCaja ?? tallosPorCajaGlobal,
             tallos: 0,
           }),
         );

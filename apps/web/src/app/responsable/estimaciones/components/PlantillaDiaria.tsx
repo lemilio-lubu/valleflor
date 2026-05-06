@@ -4,6 +4,8 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
+import { Download } from 'lucide-react';
 
 interface PlantillaRow {
   registroId: string;
@@ -19,10 +21,14 @@ interface PlantillaRow {
 }
 
 const DIA_ORDER = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
-const DIA_SHORT: Record<string, string> = {
-  DOMINGO: 'DOM', LUNES: 'LUN', MARTES: 'MAR', MIERCOLES: 'MIÉ',
-  JUEVES: 'JUE', VIERNES: 'VIE', SABADO: 'SÁB',
-};
+
+interface PivotRow {
+  producto: string;
+  variedad: string;
+  color: string;
+  colorId: string;
+  registros: Record<string, PlantillaRow>;
+}
 
 interface Props { semanaId: string; }
 
@@ -30,6 +36,7 @@ interface Props { semanaId: string; }
 export function PlantillaDiaria({ semanaId }: Props) {
   const qc = useQueryClient();
   const [localCajas, setLocalCajas] = useState<Record<string, string>>({});
+  const [viewMode, setViewMode] = useState<'cajas' | 'tallos'>('cajas');
 
   const { data: rows = [], isLoading } = useQuery<PlantillaRow[]>({
     queryKey: ['plantilla', semanaId],
@@ -42,6 +49,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
       api.patch(`/registros/${id}`, { cajas, divisorTallos }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['plantilla', semanaId] });
+      qc.invalidateQueries({ queryKey: ['base-semanal'] });
       if (res.data?.warning) {
         toast(`${res.data.warning}`, { style: { background: 'var(--warning-bg)', color: 'var(--text-primary)', border: '1px solid var(--warning)' } });
       } else {
@@ -75,8 +83,9 @@ export function PlantillaDiaria({ semanaId }: Props) {
   }, [localCajas, updateCajas]);
 
 
-  const [filtroDia, setFiltroDia] = useState<string>('');
   const [filtroProducto, setFiltroProducto] = useState<string>('');
+  const [filtroVariedad, setFiltroVariedad] = useState<string>('');
+  const [filtroColor, setFiltroColor] = useState<string>('');
 
   if (isLoading) return (
     <div className="space-y-2 mt-4">
@@ -89,36 +98,92 @@ export function PlantillaDiaria({ semanaId }: Props) {
   );
 
   // Extraer valores únicos para filtros
-  const diasUnicos = Array.from(new Set(rows.map((r) => r.dia)));
   const productosUnicos = Array.from(new Set(rows.map((r) => r.producto))).sort();
+  const variedadesUnicas = Array.from(new Set(rows.map((r) => r.variedad))).sort();
+  const coloresUnicos = Array.from(new Set(rows.map((r) => r.color))).sort();
 
   // Aplicar filtros
   const filteredRows = rows.filter((r) => {
-    const matchDia = filtroDia ? r.dia === filtroDia : true;
     const matchProducto = filtroProducto ? r.producto === filtroProducto : true;
-    return matchDia && matchProducto;
+    const matchVariedad = filtroVariedad ? r.variedad === filtroVariedad : true;
+    const matchColor = filtroColor ? r.color === filtroColor : true;
+    return matchProducto && matchVariedad && matchColor;
   });
 
-  // Agrupar por día
-  const byDia = DIA_ORDER.reduce<Record<string, PlantillaRow[]>>((acc, dia) => {
-    const rowsForDia = filteredRows.filter((r) => r.dia === dia);
-    if (rowsForDia.length > 0) acc[dia] = rowsForDia;
+  // Agrupar por colorId para la vista pivote
+  const fechasPorDia: Record<string, string> = {};
+  rows.forEach(r => {
+    fechasPorDia[r.dia] = r.fecha;
+  });
+
+  const groupedRows = Object.values(filteredRows.reduce<Record<string, PivotRow>>((acc, r) => {
+    if (!acc[r.colorId]) {
+      acc[r.colorId] = {
+        producto: r.producto,
+        variedad: r.variedad,
+        color: r.color,
+        colorId: r.colorId,
+        registros: {}
+      };
+    }
+    acc[r.colorId].registros[r.dia] = r;
     return acc;
-  }, {});
+  }, {})).sort((a, b) => {
+    if (a.producto !== b.producto) return a.producto.localeCompare(b.producto);
+    if (a.variedad !== b.variedad) return a.variedad.localeCompare(b.variedad);
+    return a.color.localeCompare(b.color);
+  });
+
+  const handleDownloadExcel = () => {
+    const dataToExport = groupedRows.map(group => {
+      const rowData: any = {
+        'Producto': group.producto,
+        'Variedad': group.variedad,
+        'Color': group.color,
+      };
+
+      let total = 0;
+      DIA_ORDER.forEach(dia => {
+        const headerKey = fechasPorDia[dia] ? `${dia} (${fechasPorDia[dia]})` : dia;
+        const r = group.registros[dia];
+        if (r) {
+          const valCajas = parseFloat(localCajas[r.registroId] ?? r.cajas) || 0;
+          const val = viewMode === 'cajas' ? valCajas : valCajas * (r.divisorTallos || 400);
+          rowData[headerKey] = val;
+          total += val;
+        } else {
+          rowData[headerKey] = 0;
+        }
+      });
+      rowData['Total general'] = total;
+      return rowData;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Plantilla Diaria");
+    XLSX.writeFile(wb, `plantilla_diaria.xlsx`);
+  };
 
   return (
     <>
-      <div className="flex gap-3 mb-4">
-        <select
-          className="input-field text-xs max-w-[150px]"
-          value={filtroDia}
-          onChange={(e) => setFiltroDia(e.target.value)}
+      <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border mb-4 w-fit">
+        <button
+          onClick={() => setViewMode('cajas')}
+          className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'cajas' ? 'bg-surface-raised text-carbon-50 shadow-sm' : 'text-carbon-400 hover:text-carbon-200'}`}
         >
-          <option value="">— Todos los días —</option>
-          {DIA_ORDER.filter(d => diasUnicos.includes(d)).map(d => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
+          Cajas
+        </button>
+        <button
+          onClick={() => setViewMode('tallos')}
+          className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'tallos' ? 'bg-surface-raised text-carbon-50 shadow-sm' : 'text-carbon-400 hover:text-carbon-200'}`}
+        >
+          Tallos
+        </button>
+      </div>
+
+      <div className="flex gap-3 mb-4 flex-wrap justify-between items-center">
+        <div className="flex gap-3 flex-wrap">
         <select
           className="input-field text-xs max-w-[200px]"
           value={filtroProducto}
@@ -129,53 +194,131 @@ export function PlantillaDiaria({ semanaId }: Props) {
             <option key={p} value={p}>{p}</option>
           ))}
         </select>
+        <select
+          className="input-field text-xs max-w-[200px]"
+          value={filtroVariedad}
+          onChange={(e) => setFiltroVariedad(e.target.value)}
+        >
+          <option value="">— Todas las variedades —</option>
+          {variedadesUnicas.map(v => (
+            <option key={v} value={v}>{v}</option>
+          ))}
+        </select>
+        <select
+          className="input-field text-xs max-w-[200px]"
+          value={filtroColor}
+          onChange={(e) => setFiltroColor(e.target.value)}
+        >
+          <option value="">— Todos los colores —</option>
+          {coloresUnicos.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        </div>
+        <button
+          onClick={handleDownloadExcel}
+          className="btn-ghost text-xs py-1.5 px-3 flex items-center gap-2"
+          title="Descargar Excel"
+        >
+          <Download className="w-4 h-4" />
+          <span>Excel</span>
+        </button>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-surface-border">
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-surface-overlay border-b border-surface-border">
-              {['DIA', 'FECHA', 'PRODUCTO', 'VARIEDAD', 'COLOR', 'CAJAS', 'TALLOS'].map((h) => (
-                <th key={h} className="table-th">{h}</th>
+              <th className="table-th text-left sticky left-0 z-10 bg-surface-overlay">Producto</th>
+              <th className="table-th text-left sticky left-0 z-10 bg-surface-overlay">Variedad</th>
+              <th className="table-th text-left sticky left-0 z-10 bg-surface-overlay">Color</th>
+              {DIA_ORDER.map(d => (
+                <th key={d} className="table-th text-center">
+                  <div>{d}</div>
+                  <div className="text-[10px] text-carbon-400 font-normal mt-0.5">{fechasPorDia[d] || ''}</div>
+                </th>
               ))}
+              <th className="table-th text-right">Total general</th>
             </tr>
           </thead>
           <tbody>
-            {DIA_ORDER.map((dia) =>
-              byDia[dia]?.map((row, idx) => (
-                <tr
-                  key={row.registroId}
-                  className={`table-row-hover border-b border-surface-border/30 ${idx === 0 ? 'border-t border-surface-border/60' : ''}`}
-                >
-                  {idx === 0 ? (
-                    <td className="px-3 py-2.5 font-mono font-semibold text-verde-600 whitespace-nowrap" rowSpan={byDia[dia].length}>
-                      {DIA_SHORT[dia]}
-                    </td>
-                  ) : null}
-                  <td className="px-3 py-2.5 text-carbon-400 font-mono whitespace-nowrap">{row.fecha}</td>
-                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap">{row.producto}</td>
-                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap">{row.variedad}</td>
-                  <td className="px-3 py-2.5 text-carbon-50 font-semibold whitespace-nowrap">{row.color}</td>
-                  <td className="px-3 py-2">
-                    <input
-                      id={`cajas-${row.registroId}`}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0.00"
-                      className="w-24 bg-surface-overlay border border-surface-border rounded px-2 py-1 text-carbon-50 font-mono text-xs focus:border-verde-600 focus:ring-1 focus:ring-verde-600 outline-none transition-colors text-right placeholder:text-carbon-400"
-                      value={localCajas[row.registroId] ?? (row.cajas === 0 ? '' : Number(row.cajas).toFixed(2))}
-                      onChange={(e) => handleChange(row.registroId, e.target.value)}
-                      onBlur={() => handleBlur(row)}
-                    />
-                  </td>
-                  <td className="px-3 py-2.5 font-mono text-agro-500 tabular-nums">
-                    {Number(row.tallos).toFixed(2)}
+            {groupedRows.map((group) => {
+              let totalFila = 0;
+              return (
+                <tr key={group.colorId} className={`table-row-hover border-b border-surface-border/30`}>
+                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-0 z-10 bg-surface-base">{group.producto}</td>
+                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-0 z-10 bg-surface-base">{group.variedad}</td>
+                  <td className="px-3 py-2.5 text-carbon-50 font-semibold whitespace-nowrap sticky left-0 z-10 bg-surface-base">{group.color}</td>
+                  {DIA_ORDER.map(dia => {
+                    const r = group.registros[dia];
+                    if (!r) {
+                       return <td key={dia} className="px-3 py-2"></td>;
+                    }
+                    const valCajas = parseFloat(localCajas[r.registroId] ?? r.cajas) || 0;
+                    const val = viewMode === 'cajas' ? valCajas : valCajas * (r.divisorTallos || 400);
+                    totalFila += val;
+                    return (
+                      <td key={dia} className="px-2 py-2">
+                        {viewMode === 'cajas' ? (
+                          <input
+                            id={`cajas-${r.registroId}`}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            className="w-full min-w-[70px] bg-surface-overlay border border-surface-border rounded px-2 py-1 text-carbon-50 font-mono text-xs focus:border-verde-600 focus:ring-1 focus:ring-verde-600 outline-none transition-colors text-right placeholder:text-carbon-400"
+                            value={localCajas[r.registroId] ?? (r.cajas === 0 ? '' : Number(r.cajas).toFixed(2))}
+                            onChange={(e) => handleChange(r.registroId, e.target.value)}
+                            onBlur={() => handleBlur(r)}
+                          />
+                        ) : (
+                          <div className="w-full text-right px-2 py-1 text-carbon-50 font-mono text-xs">
+                            {val.toFixed(2)}
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="px-3 py-2.5 font-mono font-bold text-verde-600 tabular-nums text-right bg-verde-500/10">
+                    {totalFila.toFixed(2)}
                   </td>
                 </tr>
-              ))
-            )}
+              );
+            })}
           </tbody>
+          <tfoot>
+            <tr className="bg-surface-overlay border-t-2 border-surface-border">
+              <td colSpan={3} className="px-3 py-2.5 text-right font-bold text-carbon-50 sticky left-0 z-10 bg-surface-overlay">Total general</td>
+              {DIA_ORDER.map(dia => {
+                let totalColumna = 0;
+                groupedRows.forEach(g => {
+                  const r = g.registros[dia];
+                  if (r) {
+                    const valCajas = parseFloat(localCajas[r.registroId] ?? r.cajas) || 0;
+                    totalColumna += viewMode === 'cajas' ? valCajas : valCajas * (r.divisorTallos || 400);
+                  }
+                });
+                return (
+                  <td key={dia} className="px-3 py-2.5 font-mono font-bold text-carbon-50 tabular-nums text-right">
+                    {totalColumna.toFixed(2)}
+                  </td>
+                );
+              })}
+              <td className="px-3 py-2.5 font-mono font-bold text-verde-600 tabular-nums text-right bg-verde-500/10">
+                {groupedRows.reduce((acc, g) => {
+                  let t = 0;
+                  DIA_ORDER.forEach(d => {
+                    const r = g.registros[d];
+                    if (r) {
+                      const valCajas = parseFloat(localCajas[r.registroId] ?? r.cajas) || 0;
+                      t += viewMode === 'cajas' ? valCajas : valCajas * (r.divisorTallos || 400);
+                    }
+                  });
+                  return acc + t;
+                }, 0).toFixed(2)}
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
 

@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
 export class CreateColorDto {
   @Transform(({ value }) => value?.toUpperCase()?.trim())
@@ -10,4 +10,9 @@ export class CreateColorDto {
 
   @IsUUID()
   variedadId: string;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  tallosPorCaja?: number;
 }

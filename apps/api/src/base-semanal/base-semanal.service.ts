@@ -75,8 +75,7 @@ export class BaseSemanalService {
     const tallosTotal = Math.round(registros.reduce((s, r) => s + Number(r.tallos), 0) * 100) / 100;
 
     const semana = await this.semanaRepo.findOne({ where: { id: semanaId } });
-    const hoy = new Date().toISOString().split('T')[0];
-    const esReal = semana ? semana.fechaFin < hoy : false;
+    const esReal = !!semana; // Si la semana existe (plantilla generada), es real.
 
     let base = await this.baseSemanalRepo.findOne({ where: { colorId, numeroSemana, anio } });
     if (base) {
@@ -128,7 +127,7 @@ export class BaseSemanalService {
       .getMany();
   }
 
-  private buildMatriz(rows: BaseSemanal[], semanaKeys?: Set<string>): MatrizRow[] {
+  private buildMatriz(rows: BaseSemanal[], semanaKeys?: Set<string>, semanasCreadasKeys?: Set<string>): MatrizRow[] {
     const map = new Map<string, MatrizRow>();
     for (const bs of rows) {
       const key = `${bs.anio}-${bs.numeroSemana}`;
@@ -148,7 +147,7 @@ export class BaseSemanalService {
         tallos: Number(bs.tallosTotal),
         cajasEstimadas: Number(bs.cajasEstimadas || 0),
         tallosEstimados: Number(bs.tallosEstimados || 0),
-        esReal: bs.esReal,
+        esReal: (semanasCreadasKeys && semanasCreadasKeys.has(key)) || bs.esReal,
       };
     }
     return Array.from(map.values()).sort((a, b) => {
@@ -184,6 +183,10 @@ export class BaseSemanalService {
 
     const productoIds = await this.getProductoIdsAsignados(userId);
 
+    const responsable = await this.responsableRepo.findOne({ where: { userId } });
+    const semanasCreadas = responsable ? await this.semanaRepo.find({ where: { responsableId: responsable.id } }) : [];
+    const semanasCreadasKeys = new Set(semanasCreadas.map(s => `${s.anio}-${s.numeroSemana}`));
+
     let qb = this.baseSemanalRepo
       .createQueryBuilder('bs')
       .innerJoinAndSelect('bs.color', 'color')
@@ -199,7 +202,7 @@ export class BaseSemanalService {
     }
 
     const rows = await qb.getMany();
-    const matrizRows = this.buildMatriz(rows, semanaKeys);
+    const matrizRows = this.buildMatriz(rows, semanaKeys, semanasCreadasKeys);
 
     // Asegurar que todos los colores asignados aparezcan aunque no tengan registros aún
     const queryRunner = this.baseSemanalRepo.manager.connection.createQueryRunner();
@@ -239,6 +242,10 @@ export class BaseSemanalService {
     const { numeroSemana, anio } = getCurrentISOWeek();
     const productoIds = await this.getProductoIdsAsignados(userId);
 
+    const responsable = await this.responsableRepo.findOne({ where: { userId } });
+    const semanasCreadas = responsable ? await this.semanaRepo.find({ where: { responsableId: responsable.id } }) : [];
+    const semanasCreadasKeys = new Set(semanasCreadas.map(s => `${s.anio}-${s.numeroSemana}`));
+
     let qb = this.baseSemanalRepo
       .createQueryBuilder('bs')
       .innerJoinAndSelect('bs.color', 'color')
@@ -256,6 +263,6 @@ export class BaseSemanalService {
     }
 
     const rows = await qb.getMany();
-    return this.buildMatriz(rows);
+    return this.buildMatriz(rows, undefined, semanasCreadasKeys);
   }
 }

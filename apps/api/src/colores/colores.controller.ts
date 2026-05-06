@@ -23,7 +23,7 @@ export class ColoresController {
   constructor(private readonly coloresService: ColoresService) {}
 
   @Get()
-  findAll(@Query('variedadId', ParseUUIDPipe) variedadId: string) {
+  findAll(@Query('variedadId', new ParseUUIDPipe({ optional: true })) variedadId?: string) {
     return this.coloresService.findAll(variedadId);
   }
 

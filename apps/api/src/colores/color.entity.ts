@@ -33,6 +33,9 @@ export class Color {
   @Column({ type: 'varchar', nullable: false })
   nombre: string;
 
+  @Column({ type: 'int', default: 400, name: 'tallos_por_caja' })
+  tallosPorCaja: number;
+
   @OneToMany(() => RegistroDiario, (registro) => registro.color)
   registros: RegistroDiario[];
 

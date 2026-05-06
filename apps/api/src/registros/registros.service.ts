@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RegistroDiario } from './registro-diario.entity';
 import { BaseSemanalService } from '../base-semanal/base-semanal.service';
-import { ConfiguracionService } from '../configuracion/configuracion.service';
 import { UpdateRegistroDto } from './dto/update-registro.dto';
 import { UpdateDivisorDto } from './dto/update-divisor.dto';
 import { BulkUpdateItemDto } from './dto/bulk-update.dto';
@@ -20,7 +19,6 @@ export class RegistrosService {
     @InjectRepository(RegistroDiario)
     private readonly registroRepo: Repository<RegistroDiario>,
     private readonly baseSemanalService: BaseSemanalService,
-    private readonly configuracionService: ConfiguracionService,
   ) {}
 
   // ── helpers ─────────────────────────────────────────────────────────────────
@@ -36,7 +34,7 @@ export class RegistrosService {
   private async getOrFail(id: string): Promise<RegistroDiario> {
     const registro = await this.registroRepo.findOne({
       where: { id },
-      relations: ['semana'],
+      relations: ['semana', 'color'],
     });
     if (!registro) {
       throw new NotFoundException(`Registro ${id} no encontrado`);
@@ -83,7 +81,7 @@ export class RegistrosService {
 
     // 1. Redondear cajas a máximo 2 decimales
     const cajas = this.round2(dto.cajas);
-    const tallosPorCaja = await this.configuracionService.getTallosPorCaja();
+    const tallosPorCaja = registro.color.tallosPorCaja;
 
     // 2. Detección de tipeo (warning, no error)
     let warning: string | undefined;
@@ -92,7 +90,7 @@ export class RegistrosService {
       warning = 'Valor inusualmente alto, verifique';
     }
 
-    // 3. Calcular tallos con constante global
+    // 3. Calcular tallos usando el valor específico del Color
     const tallos = this.calcTallos(cajas, tallosPorCaja);
 
     // 4. Guardar

@@ -27,7 +27,7 @@ interface Props {
   onChange: (val: WeekValue) => void;
 }
 
-const WEEK_OPTIONS = { weekStartsOn: 1 as const, locale: es };
+const WEEK_OPTIONS = { weekStartsOn: 0 as const, locale: es };
 
 function weekDays(date: Date): Date[] {
   const start = startOfWeek(date, WEEK_OPTIONS);
@@ -76,7 +76,7 @@ export function WeekPickerInput({ value, onChange }: Props) {
           <div className="absolute z-30 top-full left-0 mt-2 bg-surface-raised border border-surface-border rounded-xl shadow-lg p-3 week-picker-popover">
             <DayPicker
               locale={es}
-              weekStartsOn={1}
+              weekStartsOn={0}
               showWeekNumber
               defaultMonth={selectedAnchor ?? new Date()}
               modifiers={{
