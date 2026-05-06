@@ -11,6 +11,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -51,11 +52,18 @@ export class FincasController {
     return this.fincasService.update(id, dto);
   }
 
-  @Delete(':id')
+  @Patch(':id/baja')
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.fincasService.remove(id);
+  darDeBaja(@Param('id', ParseUUIDPipe) id: string, @Body('motivoBaja') motivoBaja: string) {
+    return this.fincasService.darDeBaja(id, motivoBaja);
+  }
+
+  @Patch(':id/alta')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  darDeAlta(@Param('id', ParseUUIDPipe) id: string) {
+    return this.fincasService.darDeAlta(id);
   }
 
   @Get(':id/responsables')
