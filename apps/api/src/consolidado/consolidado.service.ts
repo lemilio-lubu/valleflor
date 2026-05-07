@@ -13,17 +13,17 @@ export interface ConsolidadoDiarioRow {
   producto: string;
   variedad: string;
   color: string;
-  finca: string;
   dias: Partial<Record<DiaSemana, DiaData>>;
   totalCajas: number;
   totalTallos: number;
 }
 
+/** Una fila plana por (producto, variedad, color, semana) para que el frontend construya la matriz */
 export interface ConsolidadoSemanalRow {
   producto: string;
   variedad: string;
   color: string;
-  finca: string;
+  numeroSemana: number;
   cajasEstimadas: number;
   tallosEstimados: number;
   cajasReales: number;
@@ -39,9 +39,12 @@ export class ConsolidadoService {
     private readonly baseSemanalRepo: Repository<BaseSemanal>,
   ) {}
 
+  /**
+   * Consolidado Diario — suma total de estimados de la plantilla diaria
+   * para una semana específica (todas las fincas, todos los responsables).
+   * Agrupa por producto / variedad / color únicamente.
+   */
   async getDiario(
-    fincaId?: string,
-    responsableId?: string,
     semana?: number,
     anio?: number,
   ): Promise<ConsolidadoDiarioRow[]> {
@@ -49,7 +52,6 @@ export class ConsolidadoService {
       producto: string;
       variedad: string;
       color: string;
-      finca: string;
       dia: string;
       cajas: string;
       tallos: string;
@@ -61,7 +63,6 @@ export class ConsolidadoService {
         p.nombre AS producto,
         v.nombre AS variedad,
         c.nombre  AS color,
-        f.nombre  AS finca,
         rd.dia    AS dia,
         SUM(rd.cajas)  AS cajas,
         SUM(rd.tallos) AS tallos
@@ -69,28 +70,23 @@ export class ConsolidadoService {
       JOIN colores      c ON c.id = rd.color_id
       JOIN variedades   v ON v.id = c.variedad_id
       JOIN productos    p ON p.id = v.producto_id
-      JOIN fincas       f ON f.id = p.finca_id
       JOIN semanas      s ON s.id = rd.semana_id
-      JOIN responsables r ON r.id = s.responsable_id
-      WHERE ($1::uuid IS NULL OR f.id = $1::uuid)
-        AND ($2::uuid IS NULL OR r.id = $2::uuid)
-        AND ($3::int  IS NULL OR s.numero_semana = $3::int)
-        AND ($4::int  IS NULL OR s.anio = $4::int)
-      GROUP BY p.nombre, v.nombre, c.nombre, f.nombre, rd.dia
+      WHERE ($1::int IS NULL OR s.numero_semana = $1::int)
+        AND ($2::int IS NULL OR s.anio = $2::int)
+      GROUP BY p.nombre, v.nombre, c.nombre, rd.dia
       ORDER BY p.nombre, v.nombre, c.nombre
       `,
-      [fincaId || null, responsableId || null, semana ?? null, anio ?? null],
+      [semana ?? null, anio ?? null],
     );
 
     const map = new Map<string, ConsolidadoDiarioRow>();
     for (const row of rawRows) {
-      const key = `${row.finca}||${row.producto}||${row.variedad}||${row.color}`;
+      const key = `${row.producto}||${row.variedad}||${row.color}`;
       if (!map.has(key)) {
         map.set(key, {
           producto: row.producto,
           variedad: row.variedad,
           color: row.color,
-          finca: row.finca,
           dias: {},
           totalCajas: 0,
           totalTallos: 0,
@@ -107,17 +103,21 @@ export class ConsolidadoService {
     return Array.from(map.values());
   }
 
+  /**
+   * Consolidado Semanal — devuelve una fila por (producto, variedad, color, semana)
+   * para que el frontend construya la tabla en formato matriz (columnas = semanas).
+   * Todas las fincas y responsables se suman juntos.
+   */
   async getSemanal(
-    fincaId?: string,
-    responsableId?: string,
-    semana?: number,
+    semanaInicio?: number,
+    semanaFin?: number,
     anio?: number,
   ): Promise<ConsolidadoSemanalRow[]> {
     type RawRow = {
       producto: string;
       variedad: string;
       color: string;
-      finca: string;
+      numero_semana: string;
       cajas_estimadas: string;
       tallos_estimados: string;
       cajas_reales: string;
@@ -130,7 +130,7 @@ export class ConsolidadoService {
         p.nombre AS producto,
         v.nombre AS variedad,
         c.nombre AS color,
-        f.nombre AS finca,
+        bs.numero_semana,
         SUM(bs.cajas_estimadas) AS cajas_estimadas,
         SUM(bs.tallos_estimados) AS tallos_estimados,
         SUM(bs.cajas_total)     AS cajas_reales,
@@ -139,25 +139,20 @@ export class ConsolidadoService {
       JOIN colores    c ON c.id = bs.color_id
       JOIN variedades v ON v.id = c.variedad_id
       JOIN productos  p ON p.id = v.producto_id
-      JOIN fincas     f ON f.id = p.finca_id
-      WHERE ($1::uuid IS NULL OR f.id = $1::uuid)
-        AND ($2::uuid IS NULL OR EXISTS (
-          SELECT 1 FROM responsable_colores rc
-          WHERE rc.color_id = c.id AND rc.responsable_id = $2::uuid
-        ))
-        AND ($3::int IS NULL OR bs.numero_semana = $3::int)
-        AND ($4::int IS NULL OR bs.anio = $4::int)
-      GROUP BY p.nombre, v.nombre, c.nombre, f.nombre
-      ORDER BY p.nombre, v.nombre, c.nombre
+      WHERE ($1::int IS NULL OR bs.numero_semana >= $1::int)
+        AND ($2::int IS NULL OR bs.numero_semana <= $2::int)
+        AND ($3::int IS NULL OR bs.anio = $3::int)
+      GROUP BY p.nombre, v.nombre, c.nombre, bs.numero_semana
+      ORDER BY p.nombre, v.nombre, c.nombre, bs.numero_semana
       `,
-      [fincaId || null, responsableId || null, semana ?? null, anio ?? null],
+      [semanaInicio ?? null, semanaFin ?? null, anio ?? null],
     );
 
     return rawRows.map((row) => ({
       producto: row.producto,
       variedad: row.variedad,
       color: row.color,
-      finca: row.finca,
+      numeroSemana: Number(row.numero_semana),
       cajasEstimadas: Math.round(Number(row.cajas_estimadas) * 100) / 100,
       tallosEstimados: Math.round(Number(row.tallos_estimados) * 100) / 100,
       cajasReales: Math.round(Number(row.cajas_reales) * 100) / 100,
@@ -165,3 +160,4 @@ export class ConsolidadoService {
     }));
   }
 }
+

@@ -29,27 +29,24 @@ interface ConsolidadoDiarioRow {
   producto: string;
   variedad: string;
   color: string;
-  finca: string;
   dias: Partial<Record<DiaKey, DiaData>>;
   totalCajas: number;
   totalTallos: number;
 }
 
 interface Props {
-  fincaId?: string;
-  responsableId?: string;
   semana?: number;
   anio?: number;
 }
 
-export function ConsolidadoDiario({ fincaId, responsableId, semana, anio }: Props) {
+export function ConsolidadoDiario({ semana, anio }: Props) {
   const [viewMode, setViewMode] = useState<'cajas' | 'tallos'>('cajas');
 
   const { data: rows = [], isLoading } = useQuery<ConsolidadoDiarioRow[]>({
-    queryKey: ['consolidado-diario', fincaId, responsableId, semana, anio],
+    queryKey: ['consolidado-diario', semana, anio],
     queryFn: () =>
       api
-        .get('/consolidado/diario', { params: { fincaId, responsableId, semana, anio } })
+        .get('/consolidado/diario', { params: { semana, anio } })
         .then((r) => r.data),
   });
 
@@ -64,7 +61,6 @@ export function ConsolidadoDiario({ fincaId, responsableId, semana, anio }: Prop
   const handleDownloadExcel = () => {
     const isCajas = viewMode === 'cajas';
     const headers = [
-      'Finca',
       'Producto',
       'Variedad',
       'Color',
@@ -72,7 +68,6 @@ export function ConsolidadoDiario({ fincaId, responsableId, semana, anio }: Prop
       isCajas ? 'Total Cajas' : 'Total Tallos',
     ];
     const data = rows.map((r) => [
-      r.finca,
       r.producto,
       r.variedad,
       r.color,
@@ -103,12 +98,17 @@ export function ConsolidadoDiario({ fincaId, responsableId, semana, anio }: Prop
   }
 
   if (rows.length === 0) {
-    return <div className="empty-state">Sin registros diarios para los filtros seleccionados</div>;
+    return (
+      <div className="empty-state">
+        Sin registros diarios para la semana seleccionada
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
+        {/* Toggle cajas / tallos */}
         <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border w-fit">
           <button
             onClick={() => setViewMode('cajas')}
@@ -145,7 +145,6 @@ export function ConsolidadoDiario({ fincaId, responsableId, semana, anio }: Prop
         <table className="min-w-max w-full text-xs">
           <thead>
             <tr className="bg-surface-overlay border-b border-surface-border">
-              <th className="table-th">Finca</th>
               <th className="table-th">Producto</th>
               <th className="table-th">Variedad</th>
               <th className="table-th">Color</th>
@@ -162,12 +161,11 @@ export function ConsolidadoDiario({ fincaId, responsableId, semana, anio }: Prop
               const total = viewMode === 'cajas' ? row.totalCajas : row.totalTallos;
               return (
                 <tr
-                  key={`${row.finca}-${row.producto}-${row.variedad}-${row.color}`}
+                  key={`${row.producto}-${row.variedad}-${row.color}`}
                   className={`table-row-hover border-b border-surface-border/30 ${
                     i % 2 === 0 ? '' : 'bg-surface-overlay/15'
                   }`}
                 >
-                  <td className="px-3 py-2.5 text-carbon-300 whitespace-nowrap">{row.finca}</td>
                   <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap">{row.producto}</td>
                   <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap">{row.variedad}</td>
                   <td className="px-3 py-2.5 font-medium text-carbon-50 whitespace-nowrap">
@@ -196,7 +194,7 @@ export function ConsolidadoDiario({ fincaId, responsableId, semana, anio }: Prop
           <tfoot>
             <tr className="border-t-2 border-surface-border bg-surface-overlay">
               <td
-                colSpan={4}
+                colSpan={3}
                 className="px-3 py-2.5 text-xs font-semibold text-carbon-200 uppercase tracking-wide"
               >
                 Total general

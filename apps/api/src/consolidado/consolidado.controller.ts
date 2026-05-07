@@ -11,32 +11,34 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
 import { ConsolidadoService } from './consolidado.service';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 @Controller('consolidado')
 export class ConsolidadoController {
   constructor(private readonly consolidadoService: ConsolidadoService) {}
 
+  /**
+   * GET /consolidado/diario?semana=19&anio=2026
+   * Retorna el total consolidado de la plantilla diaria para la semana indicada.
+   */
   @Get('diario')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(RolesGuard)
   getDiario(
-    @Query('fincaId') fincaId?: string,
-    @Query('responsableId') responsableId?: string,
     @Query('semana', new ParseIntPipe({ optional: true })) semana?: number,
     @Query('anio', new ParseIntPipe({ optional: true })) anio?: number,
   ) {
-    return this.consolidadoService.getDiario(fincaId, responsableId, semana, anio);
+    return this.consolidadoService.getDiario(semana, anio);
   }
 
+  /**
+   * GET /consolidado/semanal?semanaInicio=19&semanaFin=29&anio=2026
+   * Retorna el total acumulado de la plantilla semanal para el rango indicado.
+   */
   @Get('semanal')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(RolesGuard)
   getSemanal(
-    @Query('fincaId') fincaId?: string,
-    @Query('responsableId') responsableId?: string,
-    @Query('semana', new ParseIntPipe({ optional: true })) semana?: number,
+    @Query('semanaInicio', new ParseIntPipe({ optional: true })) semanaInicio?: number,
+    @Query('semanaFin', new ParseIntPipe({ optional: true })) semanaFin?: number,
     @Query('anio', new ParseIntPipe({ optional: true })) anio?: number,
   ) {
-    return this.consolidadoService.getSemanal(fincaId, responsableId, semana, anio);
+    return this.consolidadoService.getSemanal(semanaInicio, semanaFin, anio);
   }
 }
