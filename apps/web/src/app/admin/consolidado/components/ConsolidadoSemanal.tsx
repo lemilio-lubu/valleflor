@@ -1,8 +1,11 @@
 'use client';
 
+import React from 'react';
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -18,15 +21,18 @@ interface FlatRow {
   tallosReales: number;
 }
 
+interface SemanaData {
+  cajasEstimadas: number;
+  tallosEstimados: number;
+  cajasReales: number;
+  tallosReales: number;
+}
+
 interface PivotRow {
   producto: string;
   variedad: string;
   color: string;
-  /** semana → valores */
-  semanas: Record<
-    number,
-    { cajasEstimadas: number; tallosEstimados: number; cajasReales: number; tallosReales: number }
-  >;
+  semanas: Record<number, SemanaData>;
   totalCajasEstimadas: number;
   totalTallosEstimados: number;
   totalCajasReales: number;
@@ -39,7 +45,7 @@ interface Props {
   anio?: number;
 }
 
-// ── Helper: pivotear filas planas en filas × semanas ─────────────────────────
+// ── Helper pivot ──────────────────────────────────────────────────────────────
 
 function pivotRows(flat: FlatRow[]): PivotRow[] {
   const map = new Map<string, PivotRow>();
@@ -76,6 +82,12 @@ function pivotRows(flat: FlatRow[]): PivotRow[] {
   return Array.from(map.values());
 }
 
+function getVal(s: SemanaData | undefined, mode: 'estimado' | 'real', unit: 'cajas' | 'tallos'): number | null {
+  if (!s) return null;
+  if (mode === 'estimado') return unit === 'cajas' ? s.cajasEstimadas : s.tallosEstimados;
+  return unit === 'cajas' ? s.cajasReales : s.tallosReales;
+}
+
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
@@ -89,24 +101,21 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
         .then((r) => r.data),
   });
 
-  // Columnas de semanas (rango continuo que el usuario seleccionó)
+  // Columnas de semanas
   const weekCols: number[] = [];
   if (semanaInicio != null && semanaFin != null) {
     for (let s = semanaInicio; s <= semanaFin; s++) weekCols.push(s);
   } else {
-    // Si no hay rango definido, derivar de los datos recibidos
-    const semanasSet = new Set(flat.map((r) => r.numeroSemana));
-    semanasSet.forEach((s) => weekCols.push(s));
+    const set = new Set(flat.map((r) => r.numeroSemana));
+    set.forEach((s) => weekCols.push(s));
     weekCols.sort((a, b) => a - b);
   }
 
   const rows = pivotRows(flat);
+  const isEst = viewMode === 'estimado';
 
-  // Totales por columna (semana)
-  const colTotals: Record<
-    number,
-    { cajasEstimadas: number; tallosEstimados: number; cajasReales: number; tallosReales: number }
-  > = {};
+  // Totales por columna
+  const colTotals: Record<number, SemanaData> = {};
   for (const w of weekCols) {
     colTotals[w] = { cajasEstimadas: 0, tallosEstimados: 0, cajasReales: 0, tallosReales: 0 };
     for (const row of rows) {
@@ -121,55 +130,40 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
   }
 
   const grandTotalEst = rows.reduce(
-    (acc, r) => ({
-      cajas: acc.cajas + r.totalCajasEstimadas,
-      tallos: acc.tallos + r.totalTallosEstimados,
-    }),
+    (acc, r) => ({ cajas: acc.cajas + r.totalCajasEstimadas, tallos: acc.tallos + r.totalTallosEstimados }),
     { cajas: 0, tallos: 0 },
   );
   const grandTotalReal = rows.reduce(
-    (acc, r) => ({
-      cajas: acc.cajas + r.totalCajasReales,
-      tallos: acc.tallos + r.totalTallosReales,
-    }),
+    (acc, r) => ({ cajas: acc.cajas + r.totalCajasReales, tallos: acc.tallos + r.totalTallosReales }),
     { cajas: 0, tallos: 0 },
   );
 
-  // ── Excel ──────────────────────────────────────────────────────────────────
+  // ── Excel ─────────────────────────────────────────────────────────────────
 
   const handleDownloadExcel = () => {
-    const isEst = viewMode === 'estimado';
     const headers = [
-      'Producto',
-      'Variedad',
-      'Color',
-      ...weekCols.map((w) => `S${w}`),
-      'Total',
+      'Producto', 'Variedad', 'Color',
+      ...weekCols.flatMap((w) => [`S${w} Cajas`, `S${w} Tallos`]),
+      'Total Cajas', 'Total Tallos',
     ];
     const data = rows.map((r) => [
-      r.producto,
-      r.variedad,
-      r.color,
-      ...weekCols.map((w) => {
+      r.producto, r.variedad, r.color,
+      ...weekCols.flatMap((w) => {
         const s = r.semanas[w];
-        if (!s) return 0;
-        return isEst
-          ? (viewMode === 'estimado' ? s.cajasEstimadas : s.tallosEstimados)
-          : (viewMode === 'estimado' ? s.cajasReales : s.tallosReales);
+        if (!s) return [0, 0];
+        return isEst ? [s.cajasEstimadas, s.tallosEstimados] : [s.cajasReales, s.tallosReales];
       }),
       isEst ? r.totalCajasEstimadas : r.totalCajasReales,
+      isEst ? r.totalTallosEstimados : r.totalTallosReales,
     ]);
     const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Consolidado Semanal');
-    const rango =
-      semanaInicio && semanaFin
-        ? `sem${semanaInicio}-${semanaFin}`
-        : `sem_all`;
+    const rango = semanaInicio && semanaFin ? `sem${semanaInicio}-${semanaFin}` : 'sem_all';
     XLSX.writeFile(wb, `consolidado_semanal_${rango}_${anio ?? ''}.xlsx`);
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -193,40 +187,28 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
     );
   }
 
-  const isEst = viewMode === 'estimado';
-
-  // Valor de una semana para una fila (según viewMode)
-  const getVal = (
-    s: { cajasEstimadas: number; tallosEstimados: number; cajasReales: number; tallosReales: number } | undefined,
-    mode: 'estimado' | 'real',
-    unit: 'cajas' | 'tallos',
-  ): number | null => {
-    if (!s) return null;
-    if (mode === 'estimado') return unit === 'cajas' ? s.cajasEstimadas : s.tallosEstimados;
-    return unit === 'cajas' ? s.cajasReales : s.tallosReales;
-  };
-
   return (
     <div className="space-y-4">
       {/* Controles */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        {/* Toggle estimado / real */}
         <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border w-fit">
           <button
             onClick={() => setViewMode('estimado')}
-            className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'estimado'
+            className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${
+              viewMode === 'estimado'
                 ? 'bg-surface-raised text-carbon-50 shadow-sm'
                 : 'text-carbon-400 hover:text-carbon-200'
-              }`}
+            }`}
           >
             Estimado
           </button>
           <button
             onClick={() => setViewMode('real')}
-            className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'real'
+            className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${
+              viewMode === 'real'
                 ? 'bg-surface-raised text-carbon-50 shadow-sm'
                 : 'text-carbon-400 hover:text-carbon-200'
-              }`}
+            }`}
           >
             Real
           </button>
@@ -241,11 +223,11 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
         </button>
       </div>
 
-      {/* Matriz */}
+      {/* Tabla matriz */}
       <div className="overflow-x-auto rounded-lg border border-surface-border">
         <table className="min-w-max w-full text-xs">
           <thead>
-            {/* Sub-headers: cajas y tallos por semana */}
+            {/* Fila 1: nombres de semana */}
             <tr className="bg-surface-overlay border-b border-surface-border">
               <th className="table-th min-w-[140px]" rowSpan={2}>Producto</th>
               <th className="table-th min-w-[120px]" rowSpan={2}>Variedad</th>
@@ -254,8 +236,9 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
                 <th
                   key={w}
                   colSpan={2}
-                  className={`table-th text-center min-w-[120px] border-l border-surface-border/40 ${isEst ? 'text-dorado-400' : 'text-agro-400'
-                    }`}
+                  className={`table-th text-center min-w-[120px] border-l border-surface-border/40 ${
+                    isEst ? 'text-dorado-400' : 'text-agro-400'
+                  }`}
                 >
                   Sem {w}
                 </th>
@@ -267,22 +250,17 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
                 Total
               </th>
             </tr>
+            {/* Fila 2: Cajas / Tallos por semana */}
             <tr className="bg-surface-overlay border-b border-surface-border">
               {weekCols.map((w) => (
-                <>
-                  <th
-                    key={`${w}-cajas`}
-                    className="table-th text-center text-[10px] font-normal text-carbon-400 border-l border-surface-border/40"
-                  >
+                <React.Fragment key={w}>
+                  <th className="table-th text-center text-[10px] font-normal text-carbon-400 border-l border-surface-border/40">
                     Cajas
                   </th>
-                  <th
-                    key={`${w}-tallos`}
-                    className="table-th text-center text-[10px] font-normal text-carbon-400"
-                  >
+                  <th className="table-th text-center text-[10px] font-normal text-carbon-400">
                     Tallos
                   </th>
-                </>
+                </React.Fragment>
               ))}
               <th className="table-th text-center text-[10px] font-normal text-carbon-400 border-l border-surface-border">
                 Cajas
@@ -297,46 +275,33 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
             {rows.map((row, i) => (
               <tr
                 key={`${row.producto}-${row.variedad}-${row.color}`}
-                className={`table-row-hover border-b border-surface-border/30 ${i % 2 === 0 ? '' : 'bg-surface-overlay/15'
-                  }`}
+                className={`table-row-hover border-b border-surface-border/30 ${
+                  i % 2 === 0 ? '' : 'bg-surface-overlay/15'
+                }`}
               >
                 <td className="px-3 py-2 text-carbon-50 whitespace-nowrap">{row.producto}</td>
                 <td className="px-3 py-2 text-carbon-50 whitespace-nowrap">{row.variedad}</td>
-                <td className="px-3 py-2 font-medium text-carbon-50 whitespace-nowrap">
-                  {row.color}
-                </td>
+                <td className="px-3 py-2 font-medium text-carbon-50 whitespace-nowrap">{row.color}</td>
                 {weekCols.map((w) => {
                   const s = row.semanas[w];
                   const cajas = getVal(s, viewMode, 'cajas');
                   const tallos = getVal(s, viewMode, 'tallos');
                   return (
-                    <>
-                      <td
-                        key={`${w}-cajas`}
-                        className={`px-2 py-2 text-center font-mono tabular-nums border-l border-surface-border/20 ${isEst ? 'text-dorado-500' : 'text-agro-500'
-                          }`}
-                      >
-                        {cajas !== null && cajas > 0 ? (
-                          cajas.toFixed(2)
-                        ) : (
-                          <span className="text-carbon-600">—</span>
-                        )}
+                    <React.Fragment key={w}>
+                      <td className={`px-2 py-2 text-center font-mono tabular-nums border-l border-surface-border/20 ${
+                        isEst ? 'text-dorado-500' : 'text-agro-500'
+                      }`}>
+                        {cajas !== null && cajas > 0 ? cajas.toFixed(2) : <span className="text-carbon-600">—</span>}
                       </td>
-                      <td
-                        key={`${w}-tallos`}
-                        className={`px-2 py-2 text-center font-mono tabular-nums ${isEst ? 'text-dorado-400/70' : 'text-agro-400/70'
-                          }`}
-                      >
-                        {tallos !== null && tallos > 0 ? (
-                          tallos.toFixed(0)
-                        ) : (
-                          <span className="text-carbon-600">—</span>
-                        )}
+                      <td className={`px-2 py-2 text-center font-mono tabular-nums ${
+                        isEst ? 'text-dorado-400/70' : 'text-agro-400/70'
+                      }`}>
+                        {tallos !== null && tallos > 0 ? tallos.toFixed(0) : <span className="text-carbon-600">—</span>}
                       </td>
-                    </>
+                    </React.Fragment>
                   );
                 })}
-                {/* Total de la fila */}
+                {/* Total fila */}
                 <td className="px-2 py-2 text-center font-mono tabular-nums font-semibold text-verde-400 border-l border-surface-border">
                   {(isEst ? row.totalCajasEstimadas : row.totalCajasReales).toFixed(2)}
                 </td>
@@ -360,22 +325,18 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
                 const cajas = isEst ? ct.cajasEstimadas : ct.cajasReales;
                 const tallos = isEst ? ct.tallosEstimados : ct.tallosReales;
                 return (
-                  <>
-                    <td
-                      key={`${w}-cajas-foot`}
-                      className={`px-2 py-2.5 text-center font-mono tabular-nums font-bold border-l border-surface-border/30 ${isEst ? 'text-dorado-400' : 'text-agro-400'
-                        }`}
-                    >
+                  <React.Fragment key={w}>
+                    <td className={`px-2 py-2.5 text-center font-mono tabular-nums font-bold border-l border-surface-border/30 ${
+                      isEst ? 'text-dorado-400' : 'text-agro-400'
+                    }`}>
                       {cajas > 0 ? cajas.toFixed(2) : <span className="text-carbon-600">—</span>}
                     </td>
-                    <td
-                      key={`${w}-tallos-foot`}
-                      className={`px-2 py-2.5 text-center font-mono tabular-nums font-bold ${isEst ? 'text-dorado-300' : 'text-agro-300'
-                        }`}
-                    >
+                    <td className={`px-2 py-2.5 text-center font-mono tabular-nums font-bold ${
+                      isEst ? 'text-dorado-300' : 'text-agro-300'
+                    }`}>
                       {tallos > 0 ? tallos.toFixed(0) : <span className="text-carbon-600">—</span>}
                     </td>
-                  </>
+                  </React.Fragment>
                 );
               })}
               <td className="px-2 py-2.5 text-center font-mono tabular-nums font-bold text-verde-400 border-l border-surface-border">
@@ -388,6 +349,6 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
           </tfoot>
         </table>
       </div>
-      );
-  }
-      );
+    </div>
+  );
+}
