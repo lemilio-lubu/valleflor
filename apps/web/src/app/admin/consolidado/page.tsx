@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { BarChart2, Filter, X } from 'lucide-react';
-import { ConsolidadoDiario } from './components/ConsolidadoDiario';
-import { ConsolidadoSemanal } from './components/ConsolidadoSemanal';
+import { Filter, X, Download } from 'lucide-react';
+import { ConsolidadoDiario, type ConsolidadoDiarioRef } from './components/ConsolidadoDiario';
+import { ConsolidadoSemanal, type ConsolidadoSemanalRef } from './components/ConsolidadoSemanal';
 
 function getCurrentWeekAndYear(): { semana: number; anio: number } {
   const now = new Date();
@@ -32,6 +32,9 @@ type Tab = 'diario' | 'semanal';
 
 export default function ConsolidadoPage() {
   const [tab, setTab] = useState<Tab>('diario');
+  const [viewMode, setViewMode] = useState<'cajas' | 'tallos'>('cajas');
+  const diarioRef = useRef<ConsolidadoDiarioRef>(null);
+  const semanalRef = useRef<ConsolidadoSemanalRef>(null);
   const [fincaId, setFincaId] = useState('');
   const [responsableId, setResponsableId] = useState('');
   const [semana, setSemana] = useState<number | ''>(defaults.semana);
@@ -84,13 +87,13 @@ export default function ConsolidadoPage() {
                 <Filter className="w-3.5 h-3.5" />
                 <span className="text-xs font-medium uppercase tracking-wider">Filtros</span>
                 {activos > 0 && (
-                  <span className="bg-verde-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  <span className="bg-verde-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
                     {activos}
                   </span>
                 )}
               </div>
               {activos > 0 && (
-                <button onClick={handleReset} className="flex items-center gap-1 text-[11px] text-carbon-400 hover:text-carbon-50 transition-colors">
+                <button onClick={handleReset} className="flex items-center gap-1 text-xs text-carbon-400 hover:text-carbon-50 transition-colors">
                   <X className="w-3 h-3" />
                   Limpiar filtros
                 </button>
@@ -98,7 +101,7 @@ export default function ConsolidadoPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-medium text-carbon-400 uppercase tracking-wider">Finca</label>
+                <label className="text-xs font-medium text-carbon-400 uppercase tracking-wider">Finca</label>
                 <div className="relative">
                   <select className="input-field text-xs w-full pr-7" value={fincaId} onChange={(e) => handleFincaChange(e.target.value)}>
                     <option value="">Todas</option>
@@ -112,7 +115,7 @@ export default function ConsolidadoPage() {
                 </div>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-medium text-carbon-400 uppercase tracking-wider">Responsable</label>
+                <label className="text-xs font-medium text-carbon-400 uppercase tracking-wider">Responsable</label>
                 <div className="relative">
                   <select className="input-field text-xs w-full pr-7 disabled:opacity-50 disabled:cursor-not-allowed" value={responsableId} onChange={(e) => setResponsableId(e.target.value)} disabled={!fincaId}>
                     <option value="">Todos</option>
@@ -126,7 +129,7 @@ export default function ConsolidadoPage() {
                 </div>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-medium text-carbon-400 uppercase tracking-wider">Semana</label>
+                <label className="text-xs font-medium text-carbon-400 uppercase tracking-wider">Semana</label>
                 <div className="relative">
                   <input type="number" className="input-field text-xs w-full pr-7" min={1} max={53} value={semana} onChange={(e) => setSemana(e.target.value === '' ? '' : Number(e.target.value))} placeholder="1 – 53" />
                   {semana !== '' && semana !== defaults.semana && (
@@ -137,7 +140,7 @@ export default function ConsolidadoPage() {
                 </div>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-medium text-carbon-400 uppercase tracking-wider">Año</label>
+                <label className="text-xs font-medium text-carbon-400 uppercase tracking-wider">Año</label>
                 <div className="relative">
                   <input type="number" className="input-field text-xs w-full pr-7" min={2020} max={2035} value={anio} onChange={(e) => setAnio(e.target.value === '' ? '' : Number(e.target.value))} placeholder="2026" />
                   {anio !== '' && anio !== defaults.anio && (
@@ -152,35 +155,57 @@ export default function ConsolidadoPage() {
         );
       })()}
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border w-fit mb-6">
-        <button
-          onClick={() => setTab('diario')}
-          className={`px-5 py-1.5 text-sm font-medium rounded-sm transition-colors ${
-            tab === 'diario'
-              ? 'bg-surface-raised text-carbon-50 shadow-sm'
-              : 'text-carbon-400 hover:text-carbon-200'
-          }`}
-        >
-          Consolidado Diario
-        </button>
-        <button
-          onClick={() => setTab('semanal')}
-          className={`px-5 py-1.5 text-sm font-medium rounded-sm transition-colors ${
-            tab === 'semanal'
-              ? 'bg-surface-raised text-carbon-50 shadow-sm'
-              : 'text-carbon-400 hover:text-carbon-200'
-          }`}
-        >
-          Consolidado Semanal
-        </button>
+      {/* Tabs + controles en una sola fila */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex rounded-lg border border-surface-border overflow-hidden text-sm">
+          {(['diario', 'semanal'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-5 py-2 font-medium transition-colors ${
+                tab === t
+                  ? 'bg-verde-600 text-white'
+                  : 'bg-surface-raised text-carbon-400 hover:text-carbon-50 hover:bg-surface-overlay'
+              }`}
+            >
+              {t === 'diario' ? 'Consolidado Diario' : 'Consolidado Semanal'}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-phi-3">
+          {tab === 'diario' && (
+            <div className="flex rounded-lg border border-surface-border overflow-hidden text-xs">
+              {(['cajas', 'tallos'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setViewMode(m)}
+                  className={`px-phi-4 py-phi-2 font-medium transition-colors ${
+                    viewMode === m
+                      ? 'bg-verde-600 text-white'
+                      : 'bg-surface-raised text-carbon-400 hover:text-carbon-50 hover:bg-surface-overlay'
+                  }`}
+                >
+                  {m === 'cajas' ? 'Cajas' : 'Tallos'}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => tab === 'diario' ? diarioRef.current?.download() : semanalRef.current?.download()}
+            className="btn-ghost text-xs py-phi-2 px-phi-3 flex items-center gap-phi-2"
+          >
+            <Download className="w-4 h-4" />
+            Excel
+          </button>
+        </div>
       </div>
 
       {/* Contenido */}
       {tab === 'diario' ? (
-        <ConsolidadoDiario {...filters} />
+        <ConsolidadoDiario ref={diarioRef} {...filters} viewMode={viewMode} />
       ) : (
-        <ConsolidadoSemanal {...filters} />
+        <ConsolidadoSemanal ref={semanalRef} {...filters} />
       )}
     </div>
   );
