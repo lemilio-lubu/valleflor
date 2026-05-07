@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
+import { Table, Thead, Th, Tbody, Tr, Td, TdEmpty, TrSkeleton } from '@/app/components/Table';
 
 const PAGE_SIZE = 10;
 
@@ -192,71 +193,53 @@ export default function UsuariosPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-surface-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-surface-overlay border-b border-surface-border">
-              <th className="table-th">Nombre</th>
-              <th className="table-th">Email</th>
-              <th className="table-th">Rol</th>
-              <th className="table-th">Finca</th>
-              <th className="table-th">Creado</th>
-              <th className="table-th text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              [...Array(4)].map((_, i) => (
-                <tr key={i} className="border-b border-surface-border/30">
-                  <td colSpan={6} className="px-3 py-3"><div className="h-4 bg-surface-overlay rounded animate-pulse" /></td>
-                </tr>
-              ))
-            )}
-            {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan={6} className="empty-state">{search || roleFilter !== 'all' ? 'Sin resultados' : 'Sin usuarios registrados'}</td></tr>
-            )}
-            {paginated.map((u) => (
-              <tr key={u.id} className="table-row-hover border-b border-surface-border/30">
-                <td className="px-3 py-3 font-medium text-carbon-50">
-                  {u.nombre ?? u.responsable?.nombre ?? <span className="text-carbon-400">—</span>}
-                </td>
-                <td className="px-3 py-3 text-carbon-400 font-mono text-xs">{u.email}</td>
-                <td className="px-3 py-3">
-                  <span className={`inline-flex items-center px-phi-1 py-[2px] rounded-sm text-xs font-medium ${
-                    u.role === 'admin'
-                      ? 'bg-verde-50 text-verde-600 border border-verde-100'
-                      : 'bg-surface-overlay text-carbon-400 border border-surface-border'
-                  }`}>
-                    {u.role === 'admin' ? 'Admin' : 'Responsable'}
-                  </span>
-                </td>
-                <td className="px-3 py-3 text-carbon-500 font-medium text-xs">
-                  {u.responsable?.finca?.nombre ?? <span className="text-carbon-300 font-normal">—</span>}
-                </td>
-                <td className="px-3 py-3 text-carbon-400 font-mono text-xs">
-                  {new Date(u.createdAt).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </td>
-                <td className="px-3 py-3 text-right">
-                  <button
-                    onClick={() => setUserToEdit(u)}
-                    className="text-carbon-400 hover:text-blue-600 transition-colors mr-3"
-                    title="Editar"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete({ id: u.id, label: u.nombre ?? u.responsable?.nombre ?? u.email })}
-                    className="text-carbon-400 hover:text-red-600 transition-colors"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <Thead>
+          <Th>Nombre</Th>
+          <Th>Email</Th>
+          <Th>Rol</Th>
+          <Th>Finca</Th>
+          <Th>Creado</Th>
+          <Th className="text-right">Acciones</Th>
+        </Thead>
+        <Tbody>
+          {isLoading && <TrSkeleton cols={6} />}
+          {!isLoading && filtered.length === 0 && (
+            <TdEmpty colSpan={6} message={search || roleFilter !== 'all' ? 'Sin resultados' : 'Sin usuarios registrados'} />
+          )}
+          {paginated.map((u) => (
+            <Tr key={u.id}>
+              <Td className="font-medium text-carbon-50">
+                {u.nombre ?? u.responsable?.nombre ?? <span className="text-carbon-400">—</span>}
+              </Td>
+              <Td className="text-carbon-400 font-mono text-xs">{u.email}</Td>
+              <Td>
+                <span className={`inline-flex items-center px-phi-1 py-[2px] rounded-sm text-xs font-medium ${
+                  u.role === 'admin'
+                    ? 'bg-verde-50 text-verde-600 border border-verde-100'
+                    : 'bg-surface-overlay text-carbon-400 border border-surface-border'
+                }`}>
+                  {u.role === 'admin' ? 'Admin' : 'Responsable'}
+                </span>
+              </Td>
+              <Td className="text-carbon-500 font-medium text-xs">
+                {u.responsable?.finca?.nombre ?? <span className="text-carbon-300 font-normal">—</span>}
+              </Td>
+              <Td className="text-carbon-400 font-mono text-xs">
+                {new Date(u.createdAt).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </Td>
+              <Td className="text-right">
+                <button onClick={() => setUserToEdit(u)} className="text-carbon-400 hover:text-verde-600 transition-colors mr-3" title="Editar">
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button onClick={() => setConfirmDelete({ id: u.id, label: u.nombre ?? u.responsable?.nombre ?? u.email })} className="text-carbon-400 hover:text-red-600 transition-colors" title="Eliminar">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 text-sm text-carbon-400">

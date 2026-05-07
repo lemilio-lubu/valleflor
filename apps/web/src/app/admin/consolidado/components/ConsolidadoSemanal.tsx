@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -215,21 +214,19 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
         <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border w-fit">
           <button
             onClick={() => setViewMode('estimado')}
-            className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${
-              viewMode === 'estimado'
+            className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'estimado'
                 ? 'bg-surface-raised text-carbon-50 shadow-sm'
                 : 'text-carbon-400 hover:text-carbon-200'
-            }`}
+              }`}
           >
             Estimado
           </button>
           <button
             onClick={() => setViewMode('real')}
-            className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${
-              viewMode === 'real'
+            className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'real'
                 ? 'bg-surface-raised text-carbon-50 shadow-sm'
                 : 'text-carbon-400 hover:text-carbon-200'
-            }`}
+              }`}
           >
             Real
           </button>
@@ -257,9 +254,8 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
                 <th
                   key={w}
                   colSpan={2}
-                  className={`table-th text-center min-w-[120px] border-l border-surface-border/40 ${
-                    isEst ? 'text-dorado-400' : 'text-agro-400'
-                  }`}
+                  className={`table-th text-center min-w-[120px] border-l border-surface-border/40 ${isEst ? 'text-dorado-400' : 'text-agro-400'
+                    }`}
                 >
                   Sem {w}
                 </th>
@@ -273,7 +269,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
             </tr>
             <tr className="bg-surface-overlay border-b border-surface-border">
               {weekCols.map((w) => (
-                <> 
+                <>
                   <th
                     key={`${w}-cajas`}
                     className="table-th text-center text-[10px] font-normal text-carbon-400 border-l border-surface-border/40"
@@ -301,9 +297,8 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
             {rows.map((row, i) => (
               <tr
                 key={`${row.producto}-${row.variedad}-${row.color}`}
-                className={`table-row-hover border-b border-surface-border/30 ${
-                  i % 2 === 0 ? '' : 'bg-surface-overlay/15'
-                }`}
+                className={`table-row-hover border-b border-surface-border/30 ${i % 2 === 0 ? '' : 'bg-surface-overlay/15'
+                  }`}
               >
                 <td className="px-3 py-2 text-carbon-50 whitespace-nowrap">{row.producto}</td>
                 <td className="px-3 py-2 text-carbon-50 whitespace-nowrap">{row.variedad}</td>
@@ -318,9 +313,8 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
                     <>
                       <td
                         key={`${w}-cajas`}
-                        className={`px-2 py-2 text-center font-mono tabular-nums border-l border-surface-border/20 ${
-                          isEst ? 'text-dorado-500' : 'text-agro-500'
-                        }`}
+                        className={`px-2 py-2 text-center font-mono tabular-nums border-l border-surface-border/20 ${isEst ? 'text-dorado-500' : 'text-agro-500'
+                          }`}
                       >
                         {cajas !== null && cajas > 0 ? (
                           cajas.toFixed(2)
@@ -330,9 +324,8 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
                       </td>
                       <td
                         key={`${w}-tallos`}
-                        className={`px-2 py-2 text-center font-mono tabular-nums ${
-                          isEst ? 'text-dorado-400/70' : 'text-agro-400/70'
-                        }`}
+                        className={`px-2 py-2 text-center font-mono tabular-nums ${isEst ? 'text-dorado-400/70' : 'text-agro-400/70'
+                          }`}
                       >
                         {tallos !== null && tallos > 0 ? (
                           tallos.toFixed(0)
@@ -370,17 +363,15 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
                   <>
                     <td
                       key={`${w}-cajas-foot`}
-                      className={`px-2 py-2.5 text-center font-mono tabular-nums font-bold border-l border-surface-border/30 ${
-                        isEst ? 'text-dorado-400' : 'text-agro-400'
-                      }`}
+                      className={`px-2 py-2.5 text-center font-mono tabular-nums font-bold border-l border-surface-border/30 ${isEst ? 'text-dorado-400' : 'text-agro-400'
+                        }`}
                     >
                       {cajas > 0 ? cajas.toFixed(2) : <span className="text-carbon-600">—</span>}
                     </td>
                     <td
                       key={`${w}-tallos-foot`}
-                      className={`px-2 py-2.5 text-center font-mono tabular-nums font-bold ${
-                        isEst ? 'text-dorado-300' : 'text-agro-300'
-                      }`}
+                      className={`px-2 py-2.5 text-center font-mono tabular-nums font-bold ${isEst ? 'text-dorado-300' : 'text-agro-300'
+                        }`}
                     >
                       {tallos > 0 ? tallos.toFixed(0) : <span className="text-carbon-600">—</span>}
                     </td>
@@ -397,6 +388,6 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
           </tfoot>
         </table>
       </div>
-    </div>
-  );
-}
+      );
+  }
+      );

@@ -69,21 +69,19 @@ export default function ConsolidadoPage() {
       <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border w-fit mb-6">
         <button
           onClick={() => setTab('diario')}
-          className={`px-5 py-1.5 text-sm font-medium rounded-sm transition-colors ${
-            tab === 'diario'
+          className={`px-5 py-1.5 text-sm font-medium rounded-sm transition-colors ${tab === 'diario'
               ? 'bg-surface-raised text-carbon-50 shadow-sm'
               : 'text-carbon-400 hover:text-carbon-200'
-          }`}
+            }`}
         >
           Consolidado Diario
         </button>
         <button
           onClick={() => setTab('semanal')}
-          className={`px-5 py-1.5 text-sm font-medium rounded-sm transition-colors ${
-            tab === 'semanal'
+          className={`px-5 py-1.5 text-sm font-medium rounded-sm transition-colors ${tab === 'semanal'
               ? 'bg-surface-raised text-carbon-50 shadow-sm'
               : 'text-carbon-400 hover:text-carbon-200'
-          }`}
+            }`}
         >
           Consolidado Semanal
         </button>

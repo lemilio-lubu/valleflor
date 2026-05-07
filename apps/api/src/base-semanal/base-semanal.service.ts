@@ -75,7 +75,13 @@ export class BaseSemanalService {
     const tallosTotal = Math.round(registros.reduce((s, r) => s + Number(r.tallos), 0) * 100) / 100;
 
     const semana = await this.semanaRepo.findOne({ where: { id: semanaId } });
-    const esReal = !!semana; // Si la semana existe (plantilla generada), es real.
+    const { numeroSemana: currentWeekNum, anio: currentYear } = getCurrentISOWeek();
+    const isPastOrCurrent = !!semana && (
+      semana.anio < currentYear ||
+      (semana.anio === currentYear && semana.numeroSemana <= currentWeekNum)
+    );
+    // Real si tiene datos ingresados, o si la semana ya pasó/es la actual
+    const esReal = cajasTotal > 0 || isPastOrCurrent;
 
     let base = await this.baseSemanalRepo.findOne({ where: { colorId, numeroSemana, anio } });
     if (base) {
@@ -88,6 +94,50 @@ export class BaseSemanalService {
     return this.baseSemanalRepo.save(base);
   }
 
+  async resetSemana(
+    colorIds: string[],
+    numeroSemana: number,
+    anio: number,
+  ): Promise<void> {
+    if (colorIds.length === 0) return;
+    const registros = await this.baseSemanalRepo.find({
+      where: colorIds.map(colorId => ({ colorId, numeroSemana, anio })),
+    });
+    for (const r of registros) {
+      // Si no había estimación previa, el valor real pasa a ser la estimación
+      if (Number(r.cajasEstimadas) === 0 && Number(r.cajasTotal) > 0) {
+        r.cajasEstimadas = r.cajasTotal;
+        r.tallosEstimados = r.tallosTotal;
+      }
+      r.cajasTotal = 0;
+      r.tallosTotal = 0;
+      r.esReal = false;
+    }
+    await this.baseSemanalRepo.save(registros);
+  }
+
+  async limpiarEstimacionesSemana(
+    fincaId: string,
+    numeroSemana: number,
+    anio: number,
+  ): Promise<void> {
+    const rows = await this.baseSemanalRepo
+      .createQueryBuilder('bs')
+      .innerJoin('bs.color', 'color')
+      .innerJoin('color.variedad', 'variedad')
+      .innerJoin('variedad.producto', 'producto')
+      .where('producto.fincaId = :fincaId', { fincaId })
+      .andWhere('bs.numeroSemana = :numeroSemana', { numeroSemana })
+      .andWhere('bs.anio = :anio', { anio })
+      .getMany();
+
+    for (const r of rows) {
+      r.cajasEstimadas = 0;
+      r.tallosEstimados = 0;
+    }
+    if (rows.length > 0) await this.baseSemanalRepo.save(rows);
+  }
+
   async upsertEstimacion(
     colorId: string,
     numeroSemana: number,
@@ -95,8 +145,10 @@ export class BaseSemanalService {
     cajasEstimadas: number,
     divisor: number,
   ): Promise<BaseSemanal> {
+    console.log('[upsertEstimacion]', { colorId, numeroSemana, anio, cajasEstimadas, divisor, typeDivisor: typeof divisor, typeCajas: typeof cajasEstimadas });
     let base = await this.baseSemanalRepo.findOne({ where: { colorId, numeroSemana, anio } });
     const tallosEstimados = Math.round(cajasEstimadas * divisor * 100) / 100;
+    console.log('[upsertEstimacion] tallosEstimados calculado:', tallosEstimados);
     
     if (base) {
       base.cajasEstimadas = cajasEstimadas;
@@ -127,7 +179,11 @@ export class BaseSemanalService {
       .getMany();
   }
 
-  private buildMatriz(rows: BaseSemanal[], semanaKeys?: Set<string>, semanasCreadasKeys?: Set<string>): MatrizRow[] {
+  private buildMatriz(
+    rows: BaseSemanal[],
+    semanaKeys?: Set<string>,
+    semanasCreadasKeys?: Set<string>,
+  ): MatrizRow[] {
     const map = new Map<string, MatrizRow>();
     for (const bs of rows) {
       const key = `${bs.anio}-${bs.numeroSemana}`;
@@ -147,7 +203,7 @@ export class BaseSemanalService {
         tallos: Number(bs.tallosTotal),
         cajasEstimadas: Number(bs.cajasEstimadas || 0),
         tallosEstimados: Number(bs.tallosEstimados || 0),
-        esReal: (semanasCreadasKeys && semanasCreadasKeys.has(key)) || bs.esReal,
+        esReal: (semanasCreadasKeys?.has(key) ?? false) || bs.esReal,
       };
     }
     return Array.from(map.values()).sort((a, b) => {
@@ -176,8 +232,10 @@ export class BaseSemanalService {
     return Array.from(productoIds);
   }
 
-  async findMatriz(fincaId: string, cantSemanas: number, userId: string): Promise<{ semanas: { anio: number; numeroSemana: number }[]; rows: MatrizRow[] }> {
-    const { numeroSemana, anio } = getCurrentISOWeek();
+  async findMatriz(fincaId: string, cantSemanas: number, userId: string, startWeek?: number, startYear?: number): Promise<{ semanas: { anio: number; numeroSemana: number }[]; rows: MatrizRow[] }> {
+    const current = getCurrentISOWeek();
+    const numeroSemana = startWeek ?? current.numeroSemana;
+    const anio = startYear ?? current.anio;
     const targetWeeks = getNextWeeks(numeroSemana, anio, cantSemanas + 1);
     const semanaKeys = new Set(targetWeeks.map((s) => `${s.anio}-${s.numeroSemana}`));
 
@@ -185,7 +243,12 @@ export class BaseSemanalService {
 
     const responsable = await this.responsableRepo.findOne({ where: { userId } });
     const semanasCreadas = responsable ? await this.semanaRepo.find({ where: { responsableId: responsable.id } }) : [];
-    const semanasCreadasKeys = new Set(semanasCreadas.map(s => `${s.anio}-${s.numeroSemana}`));
+    // Solo marcar como "real" semanas que ya ocurrieron o son la semana actual del servidor
+    const semanasCreadasKeys = new Set(
+      semanasCreadas
+        .filter(s => s.anio < current.anio || (s.anio === current.anio && s.numeroSemana <= current.numeroSemana))
+        .map(s => `${s.anio}-${s.numeroSemana}`),
+    );
 
     let qb = this.baseSemanalRepo
       .createQueryBuilder('bs')

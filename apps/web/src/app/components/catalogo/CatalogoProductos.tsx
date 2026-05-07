@@ -52,15 +52,15 @@ function Column<T extends { id: string; nombre: string }>({
   isSavingNew: boolean; isSavingEdit: boolean; emptyText: string; hasArrow?: boolean;
 }) {
   return (
-    <div className="flex flex-col h-full border border-surface-border rounded-xl overflow-hidden bg-surface-raised">
+    <div className="flex flex-col h-full border border-surface-border rounded-lg overflow-hidden bg-white">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-surface-border bg-surface-overlay/40 flex-shrink-0">
+      <div className="px-3 py-2.5 border-b border-surface-border bg-surface-overlay flex-shrink-0">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-carbon-50">{title}</h3>
+            <h3 className="text-xs font-semibold text-carbon-50 uppercase tracking-wider">{title}</h3>
             {subtitle && <p className="text-[11px] text-carbon-400 mt-0.5 truncate">{subtitle}</p>}
           </div>
-          <span className="text-[11px] text-carbon-400 bg-surface-overlay rounded-full px-2 py-0.5 flex-shrink-0">
+          <span className="text-[11px] text-carbon-400 tabular-nums flex-shrink-0">
             {items.length}
           </span>
         </div>
@@ -69,9 +69,9 @@ function Column<T extends { id: string; nombre: string }>({
       {/* List */}
       <div className="flex-1 overflow-y-auto min-h-0">
         {isLoading && (
-          <div className="p-3 space-y-1.5">
+          <div className="p-2 space-y-1">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-8 bg-surface-overlay rounded-lg animate-pulse" />
+              <div key={i} className="h-8 bg-surface-overlay rounded animate-pulse" />
             ))}
           </div>
         )}
@@ -85,8 +85,8 @@ function Column<T extends { id: string; nombre: string }>({
           const isEditing = editingId === item.id;
           return (
             <div key={item.id} onClick={() => !isEditing && onSelect(item)}
-              className={`group flex items-center gap-2 px-3 py-2.5 cursor-pointer border-b border-surface-border/30 last:border-0 transition-all border-l-2 ${
-                isSelected ? 'bg-verde-50 border-l-verde-600' : 'hover:bg-surface-overlay/50 border-l-transparent'
+              className={`group flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-surface-border/30 last:border-0 transition-colors ${
+                isSelected ? 'bg-verde-50' : 'hover:bg-surface-overlay'
               }`}>
               {isEditing ? (
                 <div className="flex-1 min-w-0">
@@ -98,7 +98,7 @@ function Column<T extends { id: string; nombre: string }>({
                   <span className={`flex-1 text-sm truncate ${isSelected ? 'text-verde-700 font-medium' : 'text-carbon-50'}`}>
                     {item.nombre}
                   </span>
-                  <div className={`flex items-center gap-0.5 flex-shrink-0 transition-opacity ${isSelected || true ? '' : ''} opacity-0 group-hover:opacity-100`}>
+                  <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={(e) => { e.stopPropagation(); onEdit(item); }}
                       className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-verde-600 hover:bg-verde-50 transition-colors">
                       <Pencil className="w-3 h-3" />
@@ -119,7 +119,7 @@ function Column<T extends { id: string; nombre: string }>({
       </div>
 
       {/* Add area */}
-      <div className="px-3 py-2.5 border-t border-surface-border flex-shrink-0">
+      <div className="px-3 py-2 border-t border-surface-border bg-surface-raised flex-shrink-0">
         {addingNew ? (
           <InlineInput placeholder={addPlaceholder} onSave={onSaveNew}
             onCancel={onCancelNew} isPending={isSavingNew} />
@@ -152,12 +152,10 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
   const showCol2 = !!selectedProducto;
   const showCol3 = !!selectedVariedad;
 
-  // Widths: descontar separadores (24px c/u) del ancho total de columnas
   const col1W = showCol3 ? 'calc(33.33% - 16px)' : showCol2 ? 'calc(50% - 12px)' : '100%';
   const col2W = showCol3 ? 'calc(33.33% - 16px)' : showCol2 ? 'calc(50% - 12px)' : '0%';
   const col3W = showCol3 ? 'calc(33.33% - 16px)' : '0%';
 
-  // Queries
   const { data: productos = [], isLoading: loadingProductos } = useQuery<Producto[]>({
     queryKey: ['productos', fincaId],
     queryFn: () => api.get('/productos', { params: { fincaId } }).then((r) => r.data),
@@ -173,7 +171,6 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     enabled: !!selectedVariedad,
   });
 
-  // Mutations — Productos
   const saveProducto = useMutation({
     mutationFn: (nombre: string) =>
       editingProducto ? api.patch(`/productos/${editingProducto.id}`, { nombre }) : api.post('/productos', { nombre, fincaId }),
@@ -196,7 +193,6 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'No se puede eliminar'),
   });
 
-  // Mutations — Variedades
   const saveVariedad = useMutation({
     mutationFn: (nombre: string) =>
       editingVariedad ? api.patch(`/variedades/${editingVariedad.id}`, { nombre }) : api.post('/variedades', { nombre, productoId: selectedProducto!.id }),
@@ -219,7 +215,6 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'No se puede eliminar'),
   });
 
-  // Mutations — Colores
   const saveColor = useMutation({
     mutationFn: (nombre: string) =>
       editingColor ? api.patch(`/colores/${editingColor.id}`, { nombre }) : api.post('/colores', { nombre, variedadId: selectedVariedad!.id }),
@@ -253,7 +248,7 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
 
         {/* Columna 1 — Productos */}
         <div style={{ width: col1W, transition: 'width 0.25s ease', overflow: 'hidden' }}
-          className="flex-shrink-0 h-full pr-0">
+          className="flex-shrink-0 h-full">
           <div className="h-full" style={{ paddingRight: showCol2 ? '6px' : '0' }}>
             <Column title="Productos" items={productos} isLoading={loadingProductos}
               selectedId={selectedProducto?.id ?? null}
@@ -278,7 +273,7 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
           opacity: showCol2 ? 1 : 0,
           overflow: 'hidden', flexShrink: 0,
         }} className="flex items-center justify-center">
-          <ChevronRight className="w-4 h-4 text-verde-400" />
+          <ChevronRight className="w-4 h-4 text-carbon-400" />
         </div>
 
         {/* Columna 2 — Variedades */}
@@ -312,7 +307,7 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
           opacity: showCol3 ? 1 : 0,
           overflow: 'hidden', flexShrink: 0,
         }} className="flex items-center justify-center">
-          <ChevronRight className="w-4 h-4 text-verde-400" />
+          <ChevronRight className="w-4 h-4 text-carbon-400" />
         </div>
 
         {/* Columna 3 — Colores */}

@@ -75,12 +75,12 @@ export function BulkUploadCatalog() {
 
   return (
     <div className="card mb-8">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-carbon-900 mb-1">Carga Masiva</h2>
+          <h2 className="text-base font-semibold text-carbon-50 mb-0.5">Carga Masiva</h2>
           <p className="text-sm text-carbon-400">Importa productos, variedades, colores y responsables mediante Excel</p>
         </div>
-        <div className="mt-4 md:mt-0 flex gap-3">
+        <div className="flex gap-3 flex-shrink-0">
           <button 
             onClick={handleDownloadTemplate}
             className="btn-secondary flex items-center gap-2"

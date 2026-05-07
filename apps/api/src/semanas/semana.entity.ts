@@ -7,11 +7,13 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  Unique,
 } from 'typeorm';
 import { Responsable } from '../responsables/responsable.entity';
 import { RegistroDiario } from '../registros/registro-diario.entity';
 
 @Entity('semanas')
+@Unique(['responsableId', 'numeroSemana', 'anio'])
 export class Semana {
   @PrimaryGeneratedColumn('uuid')
   id: string;

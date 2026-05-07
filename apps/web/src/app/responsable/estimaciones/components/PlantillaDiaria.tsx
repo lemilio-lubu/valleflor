@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { Download } from 'lucide-react';
 import { FiltrosTabla } from './FiltrosTabla';
 
@@ -68,11 +68,11 @@ export function PlantillaDiaria({ semanaId }: Props) {
   const handleBlur = useCallback((row: PlantillaRow) => {
     const raw = localCajas[row.registroId];
     if (raw === undefined) return;
-    
+
     let cajas = parseFloat(raw);
     if (isNaN(cajas) || cajas === 0) {
       cajas = 0;
-      setLocalCajas((p) => ({ ...p, [row.registroId]: '' })); // Usar placeholder
+      setLocalCajas((p) => ({ ...p, [row.registroId]: '' }));
     } else {
       setLocalCajas((p) => ({ ...p, [row.registroId]: cajas.toFixed(2) }));
     }
@@ -81,6 +81,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
       updateCajas.mutate({ id: row.registroId, cajas });
     }
   }, [localCajas, updateCajas]);
+
 
 
   const [filtroProducto, setFiltroProducto] = useState<string>('');
@@ -130,34 +131,77 @@ export function PlantillaDiaria({ semanaId }: Props) {
   });
 
   const handleDownloadExcel = () => {
-    const dataToExport = groupedRows.map(group => {
-      const rowData: any = {
-        'Producto': group.producto,
-        'Variedad': group.variedad,
-        'Color': group.color,
-      };
+    const firstRow = rows[0];
+    const finca = firstRow?.finca ?? '';
+    const responsable = firstRow?.responsable ?? '';
+    const semanaNumero = firstRow?.semanaNumero ?? '';
+    const anio = firstRow?.anio ?? '';
+    const ahora = new Date();
+    const fechaEmision = ahora.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const horaEmision = ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const tipo = viewMode === 'cajas' ? 'Cajas' : 'Tallos';
 
+    const diaHeaders = DIA_ORDER.map(d => fechasPorDia[d] ? `${d} (${fechasPorDia[d]})` : d);
+    const tableHeader = ['Producto', 'Variedad', 'Color', ...diaHeaders, 'Total general'];
+
+    const dataRows = groupedRows.map((group) => {
       let total = 0;
-      DIA_ORDER.forEach(dia => {
-        const headerKey = fechasPorDia[dia] ? `${dia} (${fechasPorDia[dia]})` : dia;
+      const dias = DIA_ORDER.map((dia) => {
         const r = group.registros[dia];
-        if (r) {
-          const valCajas = parseFloat(localCajas[r.registroId] ?? r.cajas) || 0;
-          const val = viewMode === 'cajas' ? valCajas : valCajas * (r.divisorTallos || 400);
-          rowData[headerKey] = val;
-          total += val;
-        } else {
-          rowData[headerKey] = 0;
-        }
+        if (!r) return 0;
+        const valCajas = parseFloat(localCajas[r.registroId] ?? r.cajas) || 0;
+        const val = viewMode === 'cajas' ? valCajas : valCajas * (r.divisorTallos || 400);
+        total += val;
+        return val;
       });
-      rowData['Total general'] = total;
-      return rowData;
+      return [group.producto, group.variedad, group.color, ...dias, total];
     });
 
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const totalCols = tableHeader.length;
+
+    const aoa = [
+      ['PLANTILLA DIARIA'],
+      [`Finca: ${finca}`],
+      [`Responsable: ${responsable}`],
+      [`Semana: ${semanaNumero} / ${anio}`],
+      [`Vista: ${tipo}     |     Fecha de emisión: ${fechaEmision} ${horaEmision}`],
+      [],
+      tableHeader,
+      ...dataRows,
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    Object.keys(ws).forEach(addr => {
+      if (addr.startsWith('!')) return;
+      const cell = ws[addr];
+      if (cell.t === 'n') cell.z = '0.00';
+    });
+
+    // Mergear filas de cabecera a lo ancho de toda la tabla
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: totalCols - 1 } },
+      { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols - 1 } },
+      { s: { r: 4, c: 0 }, e: { r: 4, c: totalCols - 1 } },
+    ];
+
+    // Anchos de columna
+    ws['!cols'] = [
+      { wch: 18 }, // Producto
+      { wch: 18 }, // Variedad
+      { wch: 14 }, // Color
+      ...Array(7).fill({ wch: 16 }), // días
+      { wch: 14 }, // Total general
+    ];
+
+    // Altura de la fila del título
+    ws['!rows'] = [{ hpt: 22 }, { hpt: 15 }, { hpt: 15 }, { hpt: 15 }, { hpt: 15 }];
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Plantilla Diaria");
-    XLSX.writeFile(wb, `plantilla_diaria.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, 'Plantilla Diaria');
+    XLSX.writeFile(wb, `plantilla_diaria_sem${semanaNumero}_${anio}_${tipo.toLowerCase()}.xlsx`);
   };
 
   return (
@@ -205,9 +249,9 @@ export function PlantillaDiaria({ semanaId }: Props) {
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-surface-overlay border-b border-surface-border">
-              <th className="table-th text-left sticky left-0 z-10 bg-surface-overlay">Producto</th>
-              <th className="table-th text-left sticky left-0 z-10 bg-surface-overlay">Variedad</th>
-              <th className="table-th text-left sticky left-0 z-10 bg-surface-overlay">Color</th>
+              <th className="table-th text-left sticky left-0 z-20 bg-surface-overlay min-w-[110px]">Producto</th>
+              <th className="table-th text-left sticky left-[110px] z-20 bg-surface-overlay min-w-[110px]">Variedad</th>
+              <th className="table-th text-left sticky left-[220px] z-20 bg-surface-overlay min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">Color</th>
               {DIA_ORDER.map(d => (
                 <th key={d} className="table-th text-center">
                   <div>{d}</div>
@@ -222,9 +266,9 @@ export function PlantillaDiaria({ semanaId }: Props) {
               let totalFila = 0;
               return (
                 <tr key={group.colorId} className={`table-row-hover border-b border-surface-border/30`}>
-                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-0 z-10 bg-surface-base">{group.producto}</td>
-                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-0 z-10 bg-surface-base">{group.variedad}</td>
-                  <td className="px-3 py-2.5 text-carbon-50 font-semibold whitespace-nowrap sticky left-0 z-10 bg-surface-base">{group.color}</td>
+                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-0 z-10 bg-white min-w-[110px]">{group.producto}</td>
+                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-[110px] z-10 bg-white min-w-[110px]">{group.variedad}</td>
+                  <td className="px-3 py-2.5 text-carbon-50 font-semibold whitespace-nowrap sticky left-[220px] z-10 bg-white min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">{group.color}</td>
                   {DIA_ORDER.map(dia => {
                     const r = group.registros[dia];
                     if (!r) {
@@ -264,7 +308,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
           </tbody>
           <tfoot>
             <tr className="bg-surface-overlay border-t-2 border-surface-border">
-              <td colSpan={3} className="px-3 py-2.5 text-right font-bold text-carbon-50 sticky left-0 z-10 bg-surface-overlay">Total general</td>
+              <td colSpan={3} className="px-3 py-2.5 text-right font-bold text-carbon-50 sticky left-0 z-10 bg-surface-overlay min-w-[320px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">Total general</td>
               {DIA_ORDER.map(dia => {
                 let totalColumna = 0;
                 groupedRows.forEach(g => {

@@ -13,7 +13,7 @@ import { WeekPickerInput, type WeekValue } from './components/WeekPickerInput';
 
 type Tab = 'plantilla' | 'base';
 
-function CreateSemanaModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
+function CreateSemanaModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string, numeroSemana: number, anio: number) => void }) {
   const qc = useQueryClient();
   const [weekValue, setWeekValue] = useState<WeekValue | null>(null);
 
@@ -30,10 +30,13 @@ function CreateSemanaModal({ onClose, onCreated }: { onClose: () => void; onCrea
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['semanas'] });
       toast.success('Semana creada con todos los registros');
-      onCreated(res.data.id);
+      onCreated(res.data.id, res.data.numeroSemana, res.data.anio);
       onClose();
     },
-    onError: () => toast.error('Error al crear semana'),
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message;
+      toast.error(msg ?? 'Error al crear semana');
+    },
   });
 
   return (
@@ -84,6 +87,7 @@ export default function EstimacionesPage() {
   const responsableNombre = (session?.user as any)?.responsableNombre;
 
   const [selectedSemana, setSelectedSemana] = useState<string | null>(null);
+  const [selectedSemanaWeek, setSelectedSemanaWeek] = useState<{ numeroSemana: number; anio: number } | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('plantilla');
   const [showCreate, setShowCreate] = useState(false);
 
@@ -121,8 +125,16 @@ export default function EstimacionesPage() {
         <p className="text-xs font-medium text-carbon-400 mb-3">Seleccionar semana</p>
         <SemanaSelector
           selectedId={selectedSemana}
-          onSelect={setSelectedSemana}
-          onDeleted={(id) => { if (selectedSemana === id) setSelectedSemana(null); }}
+          onSelect={(id, semana) => {
+            setSelectedSemana(id);
+            setSelectedSemanaWeek({ numeroSemana: semana.numeroSemana, anio: semana.anio });
+          }}
+          onDeleted={(id) => {
+            if (selectedSemana === id) {
+              setSelectedSemana(null);
+              setSelectedSemanaWeek(null);
+            }
+          }}
         />
       </div>
 
@@ -152,15 +164,25 @@ export default function EstimacionesPage() {
       )}
 
       {activeTab === 'base' && (
-        fincaId
-          ? <BaseSemanal fincaId={fincaId} semanas={10} />
-          : <div className="empty-state py-16">No se pudo obtener la finca del responsable</div>
+        !selectedSemana
+          ? <div className="empty-state py-16">← Selecciona una semana para ver la base semanal</div>
+          : !fincaId
+            ? <div className="empty-state py-16">No se pudo obtener la finca del responsable</div>
+            : <BaseSemanal
+                fincaId={fincaId}
+                semanas={10}
+                startWeek={selectedSemanaWeek?.numeroSemana}
+                startYear={selectedSemanaWeek?.anio}
+              />
       )}
 
       {showCreate && (
         <CreateSemanaModal
           onClose={() => setShowCreate(false)}
-          onCreated={(id) => setSelectedSemana(id)}
+          onCreated={(id, numeroSemana, anio) => {
+            setSelectedSemana(id);
+            setSelectedSemanaWeek({ numeroSemana, anio });
+          }}
         />
       )}
     </div>

@@ -36,6 +36,12 @@ export class Finca {
   @OneToMany(() => Producto, (producto) => producto.finca)
   productos: Producto[];
 
+  @Column({ type: 'boolean', default: true })
+  activo: boolean;
+
+  @Column({ name: 'motivo_baja', type: 'text', nullable: true })
+  motivoBaja: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

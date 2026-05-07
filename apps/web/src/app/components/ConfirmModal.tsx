@@ -4,13 +4,15 @@ import { X, AlertTriangle } from 'lucide-react';
 
 interface Props {
   message: string;
+  description?: string;
   onConfirm: () => void;
   onCancel: () => void;
   confirmLabel?: string;
+  pendingLabel?: string;
   isPending?: boolean;
 }
 
-export function ConfirmModal({ message, onConfirm, onCancel, confirmLabel = 'Eliminar', isPending }: Props) {
+export function ConfirmModal({ message, description = 'Esta acción no se puede deshacer.', onConfirm, onCancel, confirmLabel = 'Eliminar', pendingLabel, isPending }: Props) {
   return (
     <div className="modal-overlay">
       <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-sm mx-4 shadow-lg animate-slide-up">
@@ -20,7 +22,7 @@ export function ConfirmModal({ message, onConfirm, onCancel, confirmLabel = 'Eli
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-carbon-50 leading-snug">{message}</p>
-            <p className="text-xs text-carbon-400 mt-1">Esta acción no se puede deshacer.</p>
+            {description && <p className="text-xs text-carbon-400 mt-1">{description}</p>}
           </div>
           <button onClick={onCancel} className="flex-shrink-0 text-carbon-400 hover:text-carbon-50 transition-colors">
             <X className="w-4 h-4" />
@@ -33,7 +35,7 @@ export function ConfirmModal({ message, onConfirm, onCancel, confirmLabel = 'Eli
             disabled={isPending}
             className="flex-1 justify-center inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isPending ? 'Eliminando...' : confirmLabel}
+            {isPending ? (pendingLabel ?? `${confirmLabel}...`) : confirmLabel}
           </button>
         </div>
       </div>
