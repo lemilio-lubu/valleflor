@@ -34,10 +34,12 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.userRepo.findOne({
-      where: { email },
-      relations: ['responsable', 'responsable.finca'],
-    });
+    return this.userRepo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.responsable', 'responsable')
+      .leftJoinAndSelect('responsable.finca', 'finca')
+      .where('user.email = :email', { email })
+      .getOne();
   }
 
   async countByRole(role: UserRole): Promise<number> {

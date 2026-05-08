@@ -6,19 +6,49 @@ import { api } from '@/lib/api';
 import { Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-type DiaKey = 'LUNES' | 'MARTES' | 'MIERCOLES' | 'JUEVES' | 'VIERNES' | 'SABADO' | 'DOMINGO';
+type DiaKey = 'DOMINGO' | 'LUNES' | 'MARTES' | 'MIERCOLES' | 'JUEVES' | 'VIERNES' | 'SABADO';
 
-const DIAS: DiaKey[] = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO'];
+const DIAS: DiaKey[] = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
 
 const DIA_LABELS: Record<DiaKey, string> = {
+  DOMINGO: 'Dom',
   LUNES: 'Lun',
   MARTES: 'Mar',
   MIERCOLES: 'Mié',
   JUEVES: 'Jue',
   VIERNES: 'Vie',
   SABADO: 'Sáb',
-  DOMINGO: 'Dom',
 };
+
+const DIA_OFFSET: Record<DiaKey, number> = {
+  DOMINGO: 0,
+  LUNES: 1,
+  MARTES: 2,
+  MIERCOLES: 3,
+  JUEVES: 4,
+  VIERNES: 5,
+  SABADO: 6,
+};
+
+function getWeekDates(semana: number, anio: number): Record<DiaKey, Date> {
+  const jan1 = new Date(anio, 0, 1);
+  const week1Start = new Date(jan1);
+  week1Start.setDate(jan1.getDate() - jan1.getDay()); // retroceder al domingo de la semana 1
+  const result = {} as Record<DiaKey, Date>;
+  for (const dia of DIAS) {
+    const d = new Date(week1Start);
+    d.setDate(week1Start.getDate() + (semana - 1) * 7 + DIA_OFFSET[dia]);
+    result[dia] = d;
+  }
+  return result;
+}
+
+function formatDate(date: Date): string {
+  const d = date.getDate().toString().padStart(2, '0');
+  const m = (date.getMonth() + 1).toString().padStart(2, '0');
+  const y = date.getFullYear();
+  return `${d}-${m}-${y}`;
+}
 
 interface DiaData {
   cajas: number;
@@ -55,6 +85,7 @@ function groupByProducto(rows: ConsolidadoDiarioRow[]): ProductGroup[] {
 
 export function ConsolidadoDiario({ semana, anio }: Props) {
   const [viewMode, setViewMode] = useState<'cajas' | 'tallos'>('cajas');
+  const weekDates = semana != null && anio != null ? getWeekDates(semana, anio) : null;
 
   const { data: rows = [], isLoading } = useQuery<ConsolidadoDiarioRow[]>({
     queryKey: ['consolidado-diario', semana, anio],
@@ -80,7 +111,11 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
       'Producto',
       'Variedad',
       'Color',
-      ...DIAS.map((d) => (isCajas ? `Cajas ${DIA_LABELS[d]}` : `Tallos ${DIA_LABELS[d]}`)),
+      ...DIAS.map((d) => {
+        const label = DIA_LABELS[d];
+        const date = weekDates ? ` ${formatDate(weekDates[d])}` : '';
+        return isCajas ? `Cajas ${label}${date}` : `Tallos ${label}${date}`;
+      }),
       isCajas ? 'Total Cajas' : 'Total Tallos',
     ];
     const data = rows.map((r) => [
@@ -167,8 +202,15 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
               <th className="table-th min-w-[120px]">Variedad</th>
               <th className="table-th min-w-[110px]">Color</th>
               {DIAS.map((d) => (
-                <th key={d} className="table-th text-center min-w-[64px]">
-                  {DIA_LABELS[d]}
+                <th key={d} className="table-th text-center min-w-[72px]">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span>{DIA_LABELS[d]}</span>
+                    {weekDates && (
+                      <span className="text-[10px] font-normal text-carbon-400 tabular-nums">
+                        {formatDate(weekDates[d])}
+                      </span>
+                    )}
+                  </div>
                 </th>
               ))}
               <th className="table-th text-center min-w-[80px] text-verde-400">Total</th>
