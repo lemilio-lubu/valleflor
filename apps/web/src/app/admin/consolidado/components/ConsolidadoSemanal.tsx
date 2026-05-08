@@ -39,13 +39,18 @@ interface PivotRow {
   totalTallosReales: number;
 }
 
+interface ProductGroup {
+  producto: string;
+  rows: PivotRow[];
+}
+
 interface Props {
   semanaInicio?: number;
   semanaFin?: number;
   anio?: number;
 }
 
-// ── Helper pivot ──────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function pivotRows(flat: FlatRow[]): PivotRow[] {
   const map = new Map<string, PivotRow>();
@@ -63,6 +68,10 @@ function pivotRows(flat: FlatRow[]): PivotRow[] {
         totalTallosReales: 0,
       });
     }
+    // numeroSemana === 0 es el centinela "producto en catálogo sin datos semanales"
+    // Solo registramos en semanas si hay un número de semana real
+    if (row.numeroSemana === 0) continue;
+
     const entry = map.get(key)!;
     entry.semanas[row.numeroSemana] = {
       cajasEstimadas: row.cajasEstimadas,
@@ -80,6 +89,15 @@ function pivotRows(flat: FlatRow[]): PivotRow[] {
       Math.round((entry.totalTallosReales + row.tallosReales) * 100) / 100;
   }
   return Array.from(map.values());
+}
+
+function groupByProducto(rows: PivotRow[]): ProductGroup[] {
+  const map = new Map<string, PivotRow[]>();
+  for (const row of rows) {
+    if (!map.has(row.producto)) map.set(row.producto, []);
+    map.get(row.producto)!.push(row);
+  }
+  return Array.from(map.entries()).map(([producto, rows]) => ({ producto, rows }));
 }
 
 function getVal(s: SemanaData | undefined, mode: 'estimado' | 'real', unit: 'cajas' | 'tallos'): number | null {
@@ -111,14 +129,15 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
     weekCols.sort((a, b) => a - b);
   }
 
-  const rows = pivotRows(flat);
+  const allRows = pivotRows(flat);
+  const groups = groupByProducto(allRows);
   const isEst = viewMode === 'estimado';
 
-  // Totales por columna
+  // Totales por columna (sobre todas las filas)
   const colTotals: Record<number, SemanaData> = {};
   for (const w of weekCols) {
     colTotals[w] = { cajasEstimadas: 0, tallosEstimados: 0, cajasReales: 0, tallosReales: 0 };
-    for (const row of rows) {
+    for (const row of allRows) {
       const s = row.semanas[w];
       if (s) {
         colTotals[w].cajasEstimadas += s.cajasEstimadas;
@@ -129,11 +148,11 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
     }
   }
 
-  const grandTotalEst = rows.reduce(
+  const grandTotalEst = allRows.reduce(
     (acc, r) => ({ cajas: acc.cajas + r.totalCajasEstimadas, tallos: acc.tallos + r.totalTallosEstimados }),
     { cajas: 0, tallos: 0 },
   );
-  const grandTotalReal = rows.reduce(
+  const grandTotalReal = allRows.reduce(
     (acc, r) => ({ cajas: acc.cajas + r.totalCajasReales, tallos: acc.tallos + r.totalTallosReales }),
     { cajas: 0, tallos: 0 },
   );
@@ -146,7 +165,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
       ...weekCols.flatMap((w) => [`S${w} Cajas`, `S${w} Tallos`]),
       'Total Cajas', 'Total Tallos',
     ];
-    const data = rows.map((r) => [
+    const data = allRows.map((r) => [
       r.producto, r.variedad, r.color,
       ...weekCols.flatMap((w) => {
         const s = r.semanas[w];
@@ -179,7 +198,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
     );
   }
 
-  if (rows.length === 0) {
+  if (allRows.length === 0) {
     return (
       <div className="empty-state">
         Sin datos semanales para el rango seleccionado
@@ -195,7 +214,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
           <button
             onClick={() => setViewMode('estimado')}
             className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${
-              viewMode === 'estimado'
+              isEst
                 ? 'bg-surface-raised text-carbon-50 shadow-sm'
                 : 'text-carbon-400 hover:text-carbon-200'
             }`}
@@ -205,7 +224,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
           <button
             onClick={() => setViewMode('real')}
             className={`px-4 py-1.5 text-xs font-medium rounded-sm transition-colors ${
-              viewMode === 'real'
+              !isEst
                 ? 'bg-surface-raised text-carbon-50 shadow-sm'
                 : 'text-carbon-400 hover:text-carbon-200'
             }`}
@@ -229,7 +248,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
           <thead>
             {/* Fila 1: nombres de semana */}
             <tr className="bg-surface-overlay border-b border-surface-border">
-              <th className="table-th min-w-[140px]" rowSpan={2}>Producto</th>
+              <th className="table-th min-w-[130px]" rowSpan={2}>Producto</th>
               <th className="table-th min-w-[120px]" rowSpan={2}>Variedad</th>
               <th className="table-th min-w-[110px]" rowSpan={2}>Color</th>
               {weekCols.map((w) => (
@@ -272,44 +291,89 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
           </thead>
 
           <tbody>
-            {rows.map((row, i) => (
-              <tr
-                key={`${row.producto}-${row.variedad}-${row.color}`}
-                className={`table-row-hover border-b border-surface-border/30 ${
-                  i % 2 === 0 ? '' : 'bg-surface-overlay/15'
-                }`}
-              >
-                <td className="px-3 py-2 text-carbon-50 whitespace-nowrap">{row.producto}</td>
-                <td className="px-3 py-2 text-carbon-50 whitespace-nowrap">{row.variedad}</td>
-                <td className="px-3 py-2 font-medium text-carbon-50 whitespace-nowrap">{row.color}</td>
-                {weekCols.map((w) => {
-                  const s = row.semanas[w];
-                  const cajas = getVal(s, viewMode, 'cajas');
-                  const tallos = getVal(s, viewMode, 'tallos');
-                  return (
-                    <React.Fragment key={w}>
-                      <td className={`px-2 py-2 text-center font-mono tabular-nums border-l border-surface-border/20 ${
-                        isEst ? 'text-dorado-500' : 'text-agro-500'
-                      }`}>
-                        {cajas !== null && cajas > 0 ? cajas.toFixed(2) : <span className="text-carbon-600">—</span>}
-                      </td>
-                      <td className={`px-2 py-2 text-center font-mono tabular-nums ${
-                        isEst ? 'text-dorado-400/70' : 'text-agro-400/70'
-                      }`}>
-                        {tallos !== null && tallos > 0 ? tallos.toFixed(0) : <span className="text-carbon-600">—</span>}
-                      </td>
-                    </React.Fragment>
-                  );
-                })}
-                {/* Total fila */}
-                <td className="px-2 py-2 text-center font-mono tabular-nums font-semibold text-verde-400 border-l border-surface-border">
-                  {(isEst ? row.totalCajasEstimadas : row.totalCajasReales).toFixed(2)}
-                </td>
-                <td className="px-2 py-2 text-center font-mono tabular-nums font-semibold text-verde-300">
-                  {(isEst ? row.totalTallosEstimados : row.totalTallosReales).toFixed(0)}
-                </td>
-              </tr>
-            ))}
+            {groups.map((group) => {
+              // Totales del grupo para el encabezado
+              const groupCajas = group.rows.reduce(
+                (s, r) => s + (isEst ? r.totalCajasEstimadas : r.totalCajasReales),
+                0,
+              );
+              const groupTallos = group.rows.reduce(
+                (s, r) => s + (isEst ? r.totalTallosEstimados : r.totalTallosReales),
+                0,
+              );
+              const hasData = group.rows.some(
+                (r) => Object.keys(r.semanas).length > 0,
+              );
+
+              return (
+                <React.Fragment key={`group-${group.producto}`}>
+                  {/* Encabezado de grupo — Producto */}
+                  <tr className="bg-surface-overlay/60 border-t border-surface-border">
+                    <td
+                      colSpan={3 + weekCols.length * 2 + 2}
+                      className="px-3 py-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-verde-400">
+                          {group.producto}
+                        </span>
+                        <span className={`text-[10px] font-mono tabular-nums font-semibold ${hasData ? 'text-verde-300' : 'text-carbon-600'}`}>
+                          {isEst ? 'Est.' : 'Real'} — Cajas: {groupCajas.toFixed(2)} · Tallos: {groupTallos.toFixed(0)}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Filas de variedad/color */}
+                  {group.rows.map((row, i) => {
+                    const sinDatos = Object.keys(row.semanas).length === 0;
+                    return (
+                      <tr
+                        key={`${row.producto}-${row.variedad}-${row.color}`}
+                        className={`table-row-hover border-b border-surface-border/20 transition-opacity ${
+                          sinDatos ? 'opacity-40' : ''
+                        } ${i % 2 === 0 ? '' : 'bg-surface-overlay/10'}`}
+                      >
+                        {/* Celda Producto vacía — ya aparece en encabezado */}
+                        <td className="px-3 py-2 text-carbon-700 whitespace-nowrap text-[11px]" />
+                        <td className="px-3 py-2 text-carbon-200 whitespace-nowrap">{row.variedad}</td>
+                        <td className="px-3 py-2 font-medium text-carbon-100 whitespace-nowrap">{row.color}</td>
+                        {weekCols.map((w) => {
+                          const s = row.semanas[w];
+                          const cajas = getVal(s, viewMode, 'cajas');
+                          const tallos = getVal(s, viewMode, 'tallos');
+                          return (
+                            <React.Fragment key={w}>
+                              <td className={`px-2 py-2 text-center font-mono tabular-nums border-l border-surface-border/20 ${
+                                isEst ? 'text-dorado-500' : 'text-agro-500'
+                              }`}>
+                                {cajas !== null && cajas > 0 ? cajas.toFixed(2) : <span className="text-carbon-700">—</span>}
+                              </td>
+                              <td className={`px-2 py-2 text-center font-mono tabular-nums ${
+                                isEst ? 'text-dorado-400/70' : 'text-agro-400/70'
+                              }`}>
+                                {tallos !== null && tallos > 0 ? tallos.toFixed(0) : <span className="text-carbon-700">—</span>}
+                              </td>
+                            </React.Fragment>
+                          );
+                        })}
+                        {/* Total fila */}
+                        <td className="px-2 py-2 text-center font-mono tabular-nums font-semibold text-verde-400 border-l border-surface-border">
+                          {(isEst ? row.totalCajasEstimadas : row.totalCajasReales) > 0
+                            ? (isEst ? row.totalCajasEstimadas : row.totalCajasReales).toFixed(2)
+                            : <span className="text-carbon-700">—</span>}
+                        </td>
+                        <td className="px-2 py-2 text-center font-mono tabular-nums font-semibold text-verde-300">
+                          {(isEst ? row.totalTallosEstimados : row.totalTallosReales) > 0
+                            ? (isEst ? row.totalTallosEstimados : row.totalTallosReales).toFixed(0)
+                            : <span className="text-carbon-700">—</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
           </tbody>
 
           <tfoot>

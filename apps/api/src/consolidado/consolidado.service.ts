@@ -40,9 +40,9 @@ export class ConsolidadoService {
   ) {}
 
   /**
-   * Consolidado Diario — suma total de estimados de la plantilla diaria
-   * para una semana específica (todas las fincas, todos los responsables).
-   * Agrupa por producto / variedad / color únicamente.
+   * Consolidado Diario — muestra TODOS los colores del catálogo con la
+   * suma de la plantilla diaria para la semana indicada (0 si no hay registros).
+   * Agrupa por nombre de producto / variedad / color (suma entre todas las fincas).
    */
   async getDiario(
     semana?: number,
@@ -52,7 +52,7 @@ export class ConsolidadoService {
       producto: string;
       variedad: string;
       color: string;
-      dia: string;
+      dia: string | null;
       cajas: string;
       tallos: string;
     };
@@ -64,15 +64,15 @@ export class ConsolidadoService {
         v.nombre AS variedad,
         c.nombre  AS color,
         rd.dia    AS dia,
-        SUM(rd.cajas)  AS cajas,
-        SUM(rd.tallos) AS tallos
-      FROM registros_diarios rd
-      JOIN colores      c ON c.id = rd.color_id
-      JOIN variedades   v ON v.id = c.variedad_id
-      JOIN productos    p ON p.id = v.producto_id
-      JOIN semanas      s ON s.id = rd.semana_id
-      WHERE ($1::int IS NULL OR s.numero_semana = $1::int)
-        AND ($2::int IS NULL OR s.anio = $2::int)
+        COALESCE(SUM(rd.cajas), 0)  AS cajas,
+        COALESCE(SUM(rd.tallos), 0) AS tallos
+      FROM colores c
+      JOIN variedades v ON v.id = c.variedad_id
+      JOIN productos  p ON p.id = v.producto_id
+      LEFT JOIN registros_diarios rd ON rd.color_id = c.id
+      LEFT JOIN semanas s ON s.id = rd.semana_id
+        AND ($1::int IS NULL OR s.numero_semana = $1::int)
+        AND ($2::int IS NULL OR s.anio           = $2::int)
       GROUP BY p.nombre, v.nombre, c.nombre, rd.dia
       ORDER BY p.nombre, v.nombre, c.nombre
       `,
@@ -93,20 +93,24 @@ export class ConsolidadoService {
         });
       }
       const entry = map.get(key)!;
-      const cajas = Math.round(Number(row.cajas) * 100) / 100;
-      const tallos = Math.round(Number(row.tallos) * 100) / 100;
-      entry.dias[row.dia as DiaSemana] = { cajas, tallos };
-      entry.totalCajas = Math.round((entry.totalCajas + cajas) * 100) / 100;
-      entry.totalTallos = Math.round((entry.totalTallos + tallos) * 100) / 100;
+
+      // Si no hay registros el LEFT JOIN devuelve dia=null — ignorar esa fila
+      if (row.dia) {
+        const cajas = Math.round(Number(row.cajas) * 100) / 100;
+        const tallos = Math.round(Number(row.tallos) * 100) / 100;
+        entry.dias[row.dia as DiaSemana] = { cajas, tallos };
+        entry.totalCajas = Math.round((entry.totalCajas + cajas) * 100) / 100;
+        entry.totalTallos = Math.round((entry.totalTallos + tallos) * 100) / 100;
+      }
     }
 
     return Array.from(map.values());
   }
 
   /**
-   * Consolidado Semanal — devuelve una fila por (producto, variedad, color, semana)
-   * para que el frontend construya la tabla en formato matriz (columnas = semanas).
-   * Todas las fincas y responsables se suman juntos.
+   * Consolidado Semanal — muestra TODOS los colores del catálogo con los
+   * totales de base_semanal para el rango de semanas indicado (0 si no hay datos).
+   * Agrupa por nombre de producto / variedad / color (suma entre todas las fincas).
    */
   async getSemanal(
     semanaInicio?: number,
@@ -117,7 +121,7 @@ export class ConsolidadoService {
       producto: string;
       variedad: string;
       color: string;
-      numero_semana: string;
+      numero_semana: string | null;
       cajas_estimadas: string;
       tallos_estimados: string;
       cajas_reales: string;
@@ -131,28 +135,32 @@ export class ConsolidadoService {
         v.nombre AS variedad,
         c.nombre AS color,
         bs.numero_semana,
-        SUM(bs.cajas_estimadas) AS cajas_estimadas,
-        SUM(bs.tallos_estimados) AS tallos_estimados,
-        SUM(bs.cajas_total)     AS cajas_reales,
-        SUM(bs.tallos_total)    AS tallos_reales
-      FROM base_semanal bs
-      JOIN colores    c ON c.id = bs.color_id
+        COALESCE(SUM(bs.cajas_estimadas), 0)  AS cajas_estimadas,
+        COALESCE(SUM(bs.tallos_estimados), 0) AS tallos_estimados,
+        COALESCE(SUM(bs.cajas_total), 0)      AS cajas_reales,
+        COALESCE(SUM(bs.tallos_total), 0)     AS tallos_reales
+      FROM colores c
       JOIN variedades v ON v.id = c.variedad_id
       JOIN productos  p ON p.id = v.producto_id
-      WHERE ($1::int IS NULL OR bs.numero_semana >= $1::int)
+      LEFT JOIN base_semanal bs ON bs.color_id = c.id
+        AND ($1::int IS NULL OR bs.numero_semana >= $1::int)
         AND ($2::int IS NULL OR bs.numero_semana <= $2::int)
-        AND ($3::int IS NULL OR bs.anio = $3::int)
+        AND ($3::int IS NULL OR bs.anio           = $3::int)
       GROUP BY p.nombre, v.nombre, c.nombre, bs.numero_semana
       ORDER BY p.nombre, v.nombre, c.nombre, bs.numero_semana
       `,
       [semanaInicio ?? null, semanaFin ?? null, anio ?? null],
     );
 
+    // Cuando un color no tiene ningún registro en el rango, el LEFT JOIN
+    // devuelve una fila con numero_semana = null.  La mapeamos con
+    // numeroSemana = 0 (centinela) para que el frontend pueda mostrar el
+    // producto en la tabla aunque no tenga datos en ninguna semana.
     return rawRows.map((row) => ({
       producto: row.producto,
       variedad: row.variedad,
       color: row.color,
-      numeroSemana: Number(row.numero_semana),
+      numeroSemana: row.numero_semana !== null ? Number(row.numero_semana) : 0,
       cajasEstimadas: Math.round(Number(row.cajas_estimadas) * 100) / 100,
       tallosEstimados: Math.round(Number(row.tallos_estimados) * 100) / 100,
       cajasReales: Math.round(Number(row.cajas_reales) * 100) / 100,
@@ -160,4 +168,3 @@ export class ConsolidadoService {
     }));
   }
 }
-
