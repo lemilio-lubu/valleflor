@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart2 } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 import { ConsolidadoDiario } from './components/ConsolidadoDiario';
 import { ConsolidadoSemanal } from './components/ConsolidadoSemanal';
 
@@ -41,6 +41,17 @@ export default function ConsolidadoPage() {
     setAnioSemanal(defaults.anio);
   };
 
+  const diarioActivos = [
+    semana !== defaults.semana,
+    anio !== defaults.anio,
+  ].filter(Boolean).length;
+
+  const semanalActivos = [
+    semanaInicio !== defaults.semana,
+    semanaFin !== defaults.semana,
+    anioSemanal !== defaults.anio,
+  ].filter(Boolean).length;
+
   const diarioFilters = {
     semana: semana !== '' && semana >= 1 ? semana : undefined,
     anio: anio !== '' && anio >= 2020 ? anio : undefined,
@@ -55,33 +66,34 @@ export default function ConsolidadoPage() {
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <BarChart2 className="w-6 h-6 text-verde-500" />
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="section-title">Consolidado</h1>
-          <p className="text-carbon-400 text-sm mt-0.5">
+          <p className="text-carbon-400 text-sm mt-1">
             Suma total de estimados por producto — todas las fincas y responsables
           </p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border w-fit mb-6">
+      <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border w-fit mb-4">
         <button
           onClick={() => setTab('diario')}
-          className={`px-5 py-1.5 text-sm font-medium rounded-sm transition-colors ${tab === 'diario'
+          className={`px-5 py-1.5 text-sm font-medium rounded-sm transition-colors ${
+            tab === 'diario'
               ? 'bg-surface-raised text-carbon-50 shadow-sm'
               : 'text-carbon-400 hover:text-carbon-200'
-            }`}
+          }`}
         >
           Consolidado Diario
         </button>
         <button
           onClick={() => setTab('semanal')}
-          className={`px-5 py-1.5 text-sm font-medium rounded-sm transition-colors ${tab === 'semanal'
+          className={`px-5 py-1.5 text-sm font-medium rounded-sm transition-colors ${
+            tab === 'semanal'
               ? 'bg-surface-raised text-carbon-50 shadow-sm'
               : 'text-carbon-400 hover:text-carbon-200'
-            }`}
+          }`}
         >
           Consolidado Semanal
         </button>
@@ -89,16 +101,33 @@ export default function ConsolidadoPage() {
 
       {/* Filtros Diario */}
       {tab === 'diario' && (
-        <div className="card p-5 mb-6">
-          <p className="text-xs font-semibold text-carbon-400 uppercase tracking-wider mb-3">
-            Seleccionar semana
-          </p>
-          <div className="flex flex-wrap gap-3 items-end">
-            <div>
-              <label className="form-label">Semana</label>
+        <div className="bg-surface-overlay border border-surface-border rounded-lg p-3 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-carbon-400">
+              <Filter className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium uppercase tracking-wider">Filtros</span>
+              {diarioActivos > 0 && (
+                <span className="bg-verde-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {diarioActivos}
+                </span>
+              )}
+            </div>
+            {diarioActivos > 0 && (
+              <button
+                onClick={handleResetDiario}
+                className="flex items-center gap-1 text-[11px] text-carbon-400 hover:text-carbon-50 transition-colors"
+              >
+                <X className="w-3 h-3" />
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-medium text-carbon-400 uppercase tracking-wider">Semana</label>
               <input
                 type="number"
-                className="input-field text-sm w-28"
+                className="input-field text-xs w-28"
                 min={1}
                 max={53}
                 value={semana}
@@ -106,11 +135,11 @@ export default function ConsolidadoPage() {
                 placeholder="1 – 53"
               />
             </div>
-            <div>
-              <label className="form-label">Año</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-medium text-carbon-400 uppercase tracking-wider">Año</label>
               <input
                 type="number"
-                className="input-field text-sm w-28"
+                className="input-field text-xs w-28"
                 min={2020}
                 max={2035}
                 value={anio}
@@ -118,65 +147,70 @@ export default function ConsolidadoPage() {
                 placeholder="2026"
               />
             </div>
-            <button onClick={handleResetDiario} className="btn-ghost text-xs py-1.5 px-3">
-              Restablecer
-            </button>
           </div>
         </div>
       )}
 
       {/* Filtros Semanal */}
       {tab === 'semanal' && (
-        <div className="card p-5 mb-6">
-          <p className="text-xs font-semibold text-carbon-400 uppercase tracking-wider mb-3">
-            Rango de semanas
-          </p>
-          <div className="flex flex-wrap gap-3 items-end">
-            <div>
-              <label className="form-label">Semana inicio</label>
+        <div className="bg-surface-overlay border border-surface-border rounded-lg p-3 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-carbon-400">
+              <Filter className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium uppercase tracking-wider">Filtros</span>
+              {semanalActivos > 0 && (
+                <span className="bg-verde-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {semanalActivos}
+                </span>
+              )}
+            </div>
+            {semanalActivos > 0 && (
+              <button
+                onClick={handleResetSemanal}
+                className="flex items-center gap-1 text-[11px] text-carbon-400 hover:text-carbon-50 transition-colors"
+              >
+                <X className="w-3 h-3" />
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-medium text-carbon-400 uppercase tracking-wider">Semana inicio</label>
               <input
                 type="number"
-                className="input-field text-sm w-28"
+                className="input-field text-xs w-28"
                 min={1}
                 max={53}
                 value={semanaInicio}
-                onChange={(e) =>
-                  setSemanaInicio(e.target.value === '' ? '' : Number(e.target.value))
-                }
+                onChange={(e) => setSemanaInicio(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="1 – 53"
               />
             </div>
-            <div>
-              <label className="form-label">Semana fin</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-medium text-carbon-400 uppercase tracking-wider">Semana fin</label>
               <input
                 type="number"
-                className="input-field text-sm w-28"
+                className="input-field text-xs w-28"
                 min={1}
                 max={53}
                 value={semanaFin}
-                onChange={(e) =>
-                  setSemanaFin(e.target.value === '' ? '' : Number(e.target.value))
-                }
+                onChange={(e) => setSemanaFin(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="1 – 53"
               />
             </div>
-            <div>
-              <label className="form-label">Año</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-medium text-carbon-400 uppercase tracking-wider">Año</label>
               <input
                 type="number"
-                className="input-field text-sm w-28"
+                className="input-field text-xs w-28"
                 min={2020}
                 max={2035}
                 value={anioSemanal}
-                onChange={(e) =>
-                  setAnioSemanal(e.target.value === '' ? '' : Number(e.target.value))
-                }
+                onChange={(e) => setAnioSemanal(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="2026"
               />
             </div>
-            <button onClick={handleResetSemanal} className="btn-ghost text-xs py-1.5 px-3">
-              Restablecer
-            </button>
           </div>
         </div>
       )}

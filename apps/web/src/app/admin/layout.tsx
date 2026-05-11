@@ -78,7 +78,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
       {/* Main content */}
-      <main className="flex-1 ml-56 p-8 animate-fade-in">
+      <main className="flex-1 ml-56 p-8 animate-fade-in min-w-0 overflow-x-hidden">
         {children}
       </main>
     </div>
