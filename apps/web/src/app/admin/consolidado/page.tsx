@@ -41,13 +41,16 @@ export default function ConsolidadoPage() {
     setAnioSemanal(defaults.anio);
   };
 
-  const diarioDirty =
-    semana !== defaults.semana || anio !== defaults.anio;
+  const diarioActivos = [
+    semana !== defaults.semana,
+    anio !== defaults.anio,
+  ].filter(Boolean).length;
 
-  const semanalDirty =
-    semanaInicio !== defaults.semana ||
-    semanaFin !== defaults.semana ||
-    anioSemanal !== defaults.anio;
+  const semanalActivos = [
+    semanaInicio !== defaults.semana,
+    semanaFin !== defaults.semana,
+    anioSemanal !== defaults.anio,
+  ].filter(Boolean).length;
 
   const diarioFilters = {
     semana: semana !== '' && semana >= 1 ? semana : undefined,
@@ -103,13 +106,13 @@ export default function ConsolidadoPage() {
             <div className="flex items-center gap-2 text-carbon-400">
               <Filter className="w-3.5 h-3.5" />
               <span className="text-xs font-medium uppercase tracking-wider">Filtros</span>
-              {diarioDirty && (
+              {diarioActivos > 0 && (
                 <span className="bg-verde-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  1
+                  {diarioActivos}
                 </span>
               )}
             </div>
-            {diarioDirty && (
+            {diarioActivos > 0 && (
               <button
                 onClick={handleResetDiario}
                 className="flex items-center gap-1 text-[11px] text-carbon-400 hover:text-carbon-50 transition-colors"
@@ -155,13 +158,13 @@ export default function ConsolidadoPage() {
             <div className="flex items-center gap-2 text-carbon-400">
               <Filter className="w-3.5 h-3.5" />
               <span className="text-xs font-medium uppercase tracking-wider">Filtros</span>
-              {semanalDirty && (
+              {semanalActivos > 0 && (
                 <span className="bg-verde-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  1
+                  {semanalActivos}
                 </span>
               )}
             </div>
-            {semanalDirty && (
+            {semanalActivos > 0 && (
               <button
                 onClick={handleResetSemanal}
                 className="flex items-center gap-1 text-[11px] text-carbon-400 hover:text-carbon-50 transition-colors"
