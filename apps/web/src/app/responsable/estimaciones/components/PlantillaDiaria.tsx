@@ -9,9 +9,13 @@ import { Download } from 'lucide-react';
 import { FiltrosTabla } from './FiltrosTabla';
 
 interface PlantillaRow {
+  semanaNumero: number;
+  anio: number;
   registroId: string;
   dia: string;
   fecha: string;
+  finca: string;
+  responsable: string;
   producto: string;
   variedad: string;
   color: string;
