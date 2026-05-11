@@ -10,8 +10,23 @@ import { Table, Thead, Th, Tbody, Tr, Td, TdEmpty, TrSkeleton } from '@/app/comp
 
 const PAGE_SIZE = 10;
 
-interface Finca { id: string; nombre: string; }
-interface Usuario { id: string; email: string; role: string; createdAt: string; nombre?: string; responsable?: { nombre: string; finca?: { nombre: string } }; }
+type Usuario = {
+  id: string;
+  email: string;
+  role: 'admin' | 'responsable';
+  createdAt: string;
+  nombre: string | null;
+  responsable?: {
+    id: string;
+    userId: string;
+    fincaId: string;
+    nombre?: string;
+    finca?: {
+      id: string;
+      nombre: string;
+    };
+  };
+};
 
 function UserModal({ onClose, userToEdit }: { onClose: () => void, userToEdit?: Usuario | null }) {
   const qc = useQueryClient();
@@ -23,7 +38,7 @@ function UserModal({ onClose, userToEdit }: { onClose: () => void, userToEdit?: 
     fincaId: userToEdit?.responsable?.finca?.id || '' 
   });
 
-  const { data: fincas = [] } = useQuery<Finca[]>({
+  const { data: fincas = [] } = useQuery<Array<{ id: string; nombre: string }>>({
     queryKey: ['fincas'],
     queryFn: () => api.get('/fincas').then((r) => r.data),
   });

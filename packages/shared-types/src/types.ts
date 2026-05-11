@@ -20,6 +20,20 @@ export interface IResponsable {
   nombre: string;
 }
 
+export interface IUserResponsable {
+  id: string;
+  userId: string;
+  fincaId: string;
+  nombre?: string;
+  finca?: Pick<IFinca, 'id' | 'nombre'>;
+}
+
+export interface IUserListItem extends IUser {
+  createdAt: string;
+  nombre: string | null;
+  responsable?: IUserResponsable;
+}
+
 export interface IProducto {
   id: string;
   fincaId: string;
