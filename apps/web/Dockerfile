@@ -37,4 +37,4 @@ COPY --from=build /app/apps/web/public apps/web/public
 COPY --from=build /app/apps/web/next.config.js apps/web/next.config.js
 COPY --from=build /app/apps/web/package.json apps/web/package.json
 EXPOSE 3000
-CMD ["pnpm", "--filter", "@floricultura/web", "start", "--", "-p", "3000"]
+CMD ["sh", "-c", "cd /app/apps/web && npx next start -p ${PORT:-3000}"]
