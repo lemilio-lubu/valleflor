@@ -24,7 +24,14 @@
       "Bash(npx tsc *)",
       "Bash(docker compose ps *)",
       "Bash(kill 59932 59936)",
-      "Bash(npm ls *)"
+      "Bash(npm ls *)",
+      "Bash(pnpm dev *)",
+      "Bash(command -v pnpm)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/miguelmendosa/Library/pnpm/**)",
+      "Read(//Users/miguelmendosa/.local/share/**)",
+      "Bash(/usr/local/lib/node_modules/corepack/shims/pnpm dev *)",
+      "Bash(jobs)"
     ]
   }
 }
