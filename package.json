@@ -2,7 +2,7 @@
   "name": "floricultura-estimaciones",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "npm@10.8.2",
+  "packageManager": "pnpm@9.12.3",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -10,6 +10,10 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "build:api": "pnpm --filter @floricultura/api build",
+    "build:web": "pnpm --filter @floricultura/web build",
+    "start:api": "pnpm --filter @floricultura/api start:prod",
+    "start:web": "pnpm --filter @floricultura/web start",
     "lint": "turbo run lint",
     "clean": "turbo run clean"
   },
@@ -19,7 +23,7 @@
   },
   "engines": {
     "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "pnpm": ">=9.0.0"
   },
   "dependencies": {
     "next": "^14.2.35"

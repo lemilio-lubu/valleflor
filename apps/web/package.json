@@ -10,7 +10,7 @@
     "clean": "rimraf .next"
   },
   "dependencies": {
-    "@floricultura/shared-types": "*",
+    "@floricultura/shared-types": "workspace:*",
     "@hookform/resolvers": "^3.3.4",
     "@tanstack/react-query": "^5.28.0",
     "axios": "^1.6.8",
