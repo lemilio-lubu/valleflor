@@ -20,8 +20,12 @@ COPY apps/web apps/web
 COPY packages/shared-types packages/shared-types
 ARG NEXTAUTH_SECRET=build-placeholder
 ARG NEXTAUTH_URL=http://localhost:3000
+ARG NEXT_PUBLIC_API_URL
+ARG API_INTERNAL_URL
 ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 ENV NEXTAUTH_URL=${NEXTAUTH_URL}
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV API_INTERNAL_URL=${API_INTERNAL_URL}
 RUN pnpm --filter @floricultura/shared-types build && pnpm --filter @floricultura/web build
 
 FROM base AS prod-deps

@@ -3,12 +3,8 @@ import axios from 'axios';
 const isProduction = process.env.NODE_ENV === 'production';
 const publicApiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-if (isProduction && !publicApiUrl) {
-  throw new Error('Missing NEXT_PUBLIC_API_URL in production. Configure the deployed API base URL.');
-}
-
 export const api = axios.create({
-  baseURL: publicApiUrl ?? 'http://localhost:3001/api',
+  baseURL: publicApiUrl ?? (isProduction ? undefined : 'http://localhost:3001/api'),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,6 +12,10 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  if (isProduction && !publicApiUrl) {
+    throw new Error('Missing NEXT_PUBLIC_API_URL in production. Configure the deployed API base URL.');
+  }
+
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('access_token');
     if (token) {
