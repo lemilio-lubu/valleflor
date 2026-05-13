@@ -11,6 +11,8 @@ import { Semana } from '../semanas/semana.entity';
 import { RegistroDiario } from '../registros/registro-diario.entity';
 import { BaseSemanal } from '../base-semanal/base-semanal.entity';
 import { ResponsableColor } from '../responsables/responsable-color.entity';
+import { Configuracion } from '../configuracion/configuracion.entity';
+import { DivisorEstandar } from './divisor-estandar.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -30,6 +32,8 @@ export const AppDataSource = new DataSource({
     RegistroDiario,
     BaseSemanal,
     ResponsableColor,
+    Configuracion,
+    DivisorEstandar,
   ],
   migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
   synchronize: false,

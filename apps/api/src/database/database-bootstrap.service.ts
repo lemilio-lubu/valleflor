@@ -8,7 +8,33 @@ export class DatabaseBootstrapService implements OnApplicationBootstrap {
   constructor(private readonly dataSource: DataSource) {}
 
   async onApplicationBootstrap() {
+    await this.ensureConfiguracionTable();
     await this.migrateResponsableNombre();
+  }
+
+  private async ensureConfiguracionTable() {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    try {
+      const tableExists = await queryRunner.hasTable('configuracion');
+      if (tableExists) return;
+
+      await queryRunner.query(`
+        CREATE TABLE configuracion (
+          id SERIAL PRIMARY KEY,
+          tallos_por_caja INT NOT NULL DEFAULT 400,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      await queryRunner.query(`
+        INSERT INTO configuracion (id, tallos_por_caja) VALUES (1, 400)
+      `);
+      this.logger.log('Tabla configuracion creada con fila inicial');
+    } catch (err) {
+      this.logger.error('Error creando tabla configuracion', err);
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   private async migrateResponsableNombre() {
