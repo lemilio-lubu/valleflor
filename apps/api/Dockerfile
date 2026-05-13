@@ -25,4 +25,4 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /prod/api ./
 EXPOSE 3001
-CMD ["node", "dist/main"]
+CMD ["npm", "run", "start:prod"]

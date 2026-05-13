@@ -18,6 +18,14 @@ COPY packages/shared-types/package.json packages/shared-types/package.json
 RUN pnpm install --offline --frozen-lockfile --filter @floricultura/web...
 COPY apps/web apps/web
 COPY packages/shared-types packages/shared-types
+ARG NEXTAUTH_SECRET=build-placeholder
+ARG NEXTAUTH_URL=http://localhost:3000
+ARG NEXT_PUBLIC_API_URL
+ARG API_INTERNAL_URL
+ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+ENV NEXTAUTH_URL=${NEXTAUTH_URL}
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV API_INTERNAL_URL=${API_INTERNAL_URL}
 RUN pnpm --filter @floricultura/shared-types build && pnpm --filter @floricultura/web build
 
 FROM base AS prod-deps
@@ -37,4 +45,4 @@ COPY --from=build /app/apps/web/public apps/web/public
 COPY --from=build /app/apps/web/next.config.js apps/web/next.config.js
 COPY --from=build /app/apps/web/package.json apps/web/package.json
 EXPOSE 3000
-CMD ["pnpm", "--filter", "@floricultura/web", "start", "--", "-p", "3000"]
+CMD ["sh", "-c", "cd /app/apps/web && npx next start -p ${PORT:-3000}"]

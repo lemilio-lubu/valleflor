@@ -1,6 +1,27 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const runtime = 'nodejs';
+
+function resolveAuthApiBaseUrl() {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const configuredUrl = process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL;
+
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  if (!isProduction) {
+    return 'http://localhost:3001/api/v1';
+  }
+
+  throw new Error(
+    'Missing API URL in production. Set API_INTERNAL_URL (recommended for server-side) or NEXT_PUBLIC_API_URL.',
+  );
+}
+
 const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -12,8 +33,8 @@ const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
         try {
-          const res = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1'}/auth/login`,
+          const apiBase = resolveAuthApiBaseUrl();
+          const res = await fetch(`${apiBase}/auth/login`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
