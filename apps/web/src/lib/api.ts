@@ -3,8 +3,15 @@
 import axios from 'axios';
 import { getSession, signOut } from 'next-auth/react';
 
+const isProduction = process.env.NODE_ENV === 'production';
+const publicApiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+if (isProduction && !publicApiUrl) {
+  throw new Error('Missing NEXT_PUBLIC_API_URL in production. Configure the deployed API base URL.');
+}
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1',
+  baseURL: publicApiUrl ?? 'http://localhost:3001/api/v1',
   headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
 });
 

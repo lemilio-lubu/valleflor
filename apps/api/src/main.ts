@@ -7,8 +7,21 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  const isProduction = process.env.NODE_ENV === 'production';
+  const localhostOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  const configuredOrigins = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (isProduction && configuredOrigins.length === 0) {
+    throw new Error('CORS_ORIGINS must be set in production with allowed frontend origins.');
+  }
+
+  const corsOrigins = isProduction ? configuredOrigins : [...new Set([...localhostOrigins, ...configuredOrigins])];
+
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: corsOrigins,
     credentials: true,
   });
 
@@ -22,7 +35,6 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
 
-  const isProduction = process.env.NODE_ENV === 'production';
   const swaggerEnabled =
     process.env.SWAGGER_ENABLED === 'true' || (!isProduction && process.env.SWAGGER_ENABLED !== 'false');
 
