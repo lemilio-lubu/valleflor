@@ -31,7 +31,9 @@
       "Read(//Users/miguelmendosa/Library/pnpm/**)",
       "Read(//Users/miguelmendosa/.local/share/**)",
       "Bash(/usr/local/lib/node_modules/corepack/shims/pnpm dev *)",
-      "Bash(jobs)"
+      "Bash(jobs)",
+      "Bash(curl -s http://localhost:3001/health)",
+      "Bash(curl -s http://localhost:3000/health)"
     ]
   }
 }
