@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole } from './user.entity';
 import { Responsable } from '../responsables/responsable.entity';
+import { Semana } from '../semanas/semana.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -20,6 +21,8 @@ export class UsersService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(Responsable)
     private readonly respRepo: Repository<Responsable>,
+    @InjectRepository(Semana)
+    private readonly semanaRepo: Repository<Semana>,
   ) {}
 
   async findAll(): Promise<Omit<User, 'passwordHash'>[]> {
@@ -111,7 +114,7 @@ export class UsersService {
       }
     } else if (saved.role !== UserRole.RESPONSABLE) {
       // If role changed to something else, we could delete the responsable association
-      await this.respRepo.delete({ userId: saved.id });
+      await this.respRepo.softDelete({ userId: saved.id });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -120,9 +123,25 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<void> {
-    const user = await this.findOne(id);
-    await this.respRepo.delete({ userId: id });
-    await this.userRepo.remove(user);
+    const user = await this.userRepo.findOne({
+      where: { id },
+      relations: ['responsable'],
+    });
+    if (!user) throw new NotFoundException(`Usuario ${id} no encontrado`);
+
+    if (user.responsable) {
+      const semanaCount = await this.semanaRepo.count({
+        where: { responsableId: user.responsable.id },
+      });
+      if (semanaCount > 0) {
+        throw new ConflictException(
+          'No se puede eliminar un responsable con semanas registradas.',
+        );
+      }
+      await this.respRepo.softDelete({ userId: id });
+    }
+
+    await this.userRepo.softDelete(id);
   }
 
   async updateProfile(
