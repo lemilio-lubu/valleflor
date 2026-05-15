@@ -10,6 +10,7 @@ export class DatabaseBootstrapService implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     await this.ensureConfiguracionTable();
     await this.migrateResponsableNombre();
+    await this.ensureSoftDeleteColumns();
   }
 
   private async ensureConfiguracionTable() {
@@ -32,6 +33,30 @@ export class DatabaseBootstrapService implements OnApplicationBootstrap {
       this.logger.log('Tabla configuracion creada con fila inicial');
     } catch (err) {
       this.logger.error('Error creando tabla configuracion', err);
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  private async ensureSoftDeleteColumns() {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    try {
+      const targets: Array<{ table: string; column: string }> = [
+        { table: 'users', column: 'deleted_at' },
+        { table: 'responsables', column: 'deleted_at' },
+      ];
+      for (const { table, column } of targets) {
+        const exists = await queryRunner.hasColumn(table, column);
+        if (!exists) {
+          await queryRunner.query(
+            `ALTER TABLE "${table}" ADD COLUMN "${column}" TIMESTAMPTZ NULL`,
+          );
+          this.logger.log(`Columna ${table}.${column} agregada`);
+        }
+      }
+    } catch (err) {
+      this.logger.error('Error agregando columnas soft-delete', err);
     } finally {
       await queryRunner.release();
     }
