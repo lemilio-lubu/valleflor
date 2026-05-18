@@ -209,47 +209,52 @@ export default function FincaDetallePage() {
       {/* Tab: Responsables */}
       {tab === 'responsables' && (
         <div className="card">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
             <h2 className="card-section-title">Responsables asignados</h2>
-            <button onClick={() => setShowModal(true)} className="btn-ghost text-xs py-1.5">
+            <button
+              onClick={() => setShowModal(true)}
+              className="btn-ghost text-xs py-1.5 w-full sm:w-auto shrink-0"
+            >
               <UserPlus className="w-3.5 h-3.5" /> Asignar responsable
             </button>
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-surface-border">
-                <th className="table-th">Nombre</th>
-                <th className="table-th">Email</th>
-                <th className="table-th text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(!finca?.responsables || finca.responsables.length === 0) && (
-                <tr><td colSpan={3} className="empty-state">Sin responsables asignados</td></tr>
-              )}
-              {finca?.responsables?.map((r) => {
-                const nombre = r.user?.nombre ?? '—';
-                return (
-                  <tr key={r.id} className="table-row-hover border-b border-surface-border/30">
-                    <td className="py-3 px-3 font-medium text-carbon-50">{nombre}</td>
-                    <td className="py-3 px-3 text-carbon-400 font-mono text-xs">{r.user?.email ?? '—'}</td>
-                    <td className="py-3 px-3 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <button onClick={() => setAsignarProductos({ responsableId: r.id, nombre })}
-                          className="text-carbon-400 hover:text-verde-600 transition-colors flex items-center gap-1 text-xs">
-                          <Settings2 className="w-3.5 h-3.5" /> Productos
-                        </button>
-                        <button onClick={() => setConfirmRemove({ responsableId: r.id, nombre })}
-                          className="text-carbon-400 hover:text-red-600 transition-colors" title="Quitar responsable">
-                          <UserMinus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="-mx-phi-4 overflow-x-auto">
+            <table className="w-full min-w-[480px] text-sm">
+              <thead>
+                <tr className="border-b border-surface-border">
+                  <th className="table-th">Nombre</th>
+                  <th className="table-th">Email</th>
+                  <th className="table-th text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(!finca?.responsables || finca.responsables.length === 0) && (
+                  <tr><td colSpan={3} className="empty-state">Sin responsables asignados</td></tr>
+                )}
+                {finca?.responsables?.map((r) => {
+                  const nombre = r.user?.nombre ?? '—';
+                  return (
+                    <tr key={r.id} className="table-row-hover border-b border-surface-border/30">
+                      <td className="py-3 px-3 font-medium text-carbon-50">{nombre}</td>
+                      <td className="py-3 px-3 text-carbon-400 font-mono text-xs">{r.user?.email ?? '—'}</td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="flex items-center justify-end gap-3 whitespace-nowrap">
+                          <button onClick={() => setAsignarProductos({ responsableId: r.id, nombre })}
+                            className="text-carbon-400 hover:text-verde-600 transition-colors flex items-center gap-1 text-xs">
+                            <Settings2 className="w-3.5 h-3.5" /> Productos
+                          </button>
+                          <button onClick={() => setConfirmRemove({ responsableId: r.id, nombre })}
+                            className="text-carbon-400 hover:text-red-600 transition-colors" title="Quitar responsable">
+                            <UserMinus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

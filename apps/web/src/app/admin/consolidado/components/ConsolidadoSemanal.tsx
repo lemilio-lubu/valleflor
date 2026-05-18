@@ -249,9 +249,9 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
           <thead>
             {/* Fila 1: número de semana */}
             <tr className="bg-surface-overlay border-b border-surface-border">
-              <th className="table-th sticky left-0 z-20 bg-surface-overlay min-w-[130px]" rowSpan={2}>Producto</th>
-              <th className="table-th sticky left-[130px] z-20 bg-surface-overlay min-w-[120px]" rowSpan={2}>Variedad</th>
-              <th className="table-th sticky left-[250px] z-20 bg-surface-overlay min-w-[110px]" rowSpan={2}>Color</th>
+              <th className="table-th md:sticky md:left-0 z-20 bg-surface-overlay min-w-[130px]" rowSpan={2}>Producto</th>
+              <th className="table-th md:sticky md:left-[130px] z-20 bg-surface-overlay min-w-[120px]" rowSpan={2}>Variedad</th>
+              <th className="table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[110px]" rowSpan={2}>Color</th>
               {weekCols.map((w) => (
                 <th
                   key={w}
@@ -307,7 +307,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
                   <tr className="bg-surface-overlay border-t border-surface-border">
                     <td
                       colSpan={3}
-                      className="px-3 py-1.5 sticky left-0 z-10 bg-surface-overlay"
+                      className="px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay"
                     >
                       <span className="text-[11px] font-bold uppercase tracking-widest text-verde-400">
                         {group.producto}
@@ -335,9 +335,9 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
                           sinDatos ? 'opacity-40' : ''
                         } ${i % 2 === 0 ? '' : 'bg-surface-overlay/10'}`}
                       >
-                        <td className="px-3 py-2 text-carbon-700 whitespace-nowrap text-[11px] sticky left-0 z-10 bg-white min-w-[130px]" />
-                        <td className="px-3 py-2 text-carbon-200 whitespace-nowrap sticky left-[130px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
-                        <td className="px-3 py-2 font-medium text-carbon-100 whitespace-nowrap sticky left-[250px] z-10 bg-white min-w-[110px]">{row.color}</td>
+                        <td className="px-3 py-2 text-carbon-700 whitespace-nowrap text-[11px] md:sticky md:left-0 z-10 bg-white min-w-[130px]" />
+                        <td className="px-3 py-2 text-carbon-200 whitespace-nowrap md:sticky md:left-[130px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
+                        <td className="px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[110px]">{row.color}</td>
                         {weekCols.map((w) => {
                           const s = row.semanas[w];
                           const est = s ? (isCajas ? s.cajasEstimadas : s.tallosEstimados) : null;
@@ -372,7 +372,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
             <tr className="border-t-2 border-surface-border bg-surface-overlay">
               <td
                 colSpan={3}
-                className="px-3 py-2.5 text-xs font-semibold text-carbon-200 uppercase tracking-wide sticky left-0 z-10 bg-surface-overlay"
+                className="px-3 py-2.5 text-xs font-semibold text-carbon-200 uppercase tracking-wide md:sticky md:left-0 z-10 bg-surface-overlay"
               >
                 Total general
               </td>

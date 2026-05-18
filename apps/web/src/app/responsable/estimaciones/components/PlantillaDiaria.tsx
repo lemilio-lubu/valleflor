@@ -210,8 +210,8 @@ export function PlantillaDiaria({ semanaId }: Props) {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-carbon-400">Mostrar en:</span>
           <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border">
             {(['cajas', 'tallos'] as const).map((mode) => (
@@ -253,9 +253,9 @@ export function PlantillaDiaria({ semanaId }: Props) {
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-surface-overlay border-b border-surface-border">
-              <th className="table-th text-left sticky left-0 z-20 bg-surface-overlay min-w-[110px]">Producto</th>
-              <th className="table-th text-left sticky left-[110px] z-20 bg-surface-overlay min-w-[110px]">Variedad</th>
-              <th className="table-th text-left sticky left-[220px] z-20 bg-surface-overlay min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">Color</th>
+              <th className="table-th text-left md:sticky md:left-0 z-20 bg-surface-overlay min-w-[110px]">Producto</th>
+              <th className="table-th text-left md:sticky md:left-[110px] z-20 bg-surface-overlay min-w-[110px]">Variedad</th>
+              <th className="table-th text-left md:sticky md:left-[220px] z-20 bg-surface-overlay min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">Color</th>
               {DIA_ORDER.map(d => (
                 <th key={d} className="table-th text-center">
                   <div>{d}</div>
@@ -270,9 +270,9 @@ export function PlantillaDiaria({ semanaId }: Props) {
               let totalFila = 0;
               return (
                 <tr key={group.colorId} className={`table-row-hover border-b border-surface-border/30`}>
-                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-0 z-10 bg-white min-w-[110px]">{group.producto}</td>
-                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-[110px] z-10 bg-white min-w-[110px]">{group.variedad}</td>
-                  <td className="px-3 py-2.5 text-carbon-50 font-semibold whitespace-nowrap sticky left-[220px] z-10 bg-white min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">{group.color}</td>
+                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap md:sticky md:left-0 z-10 bg-white min-w-[110px]">{group.producto}</td>
+                  <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap md:sticky md:left-[110px] z-10 bg-white min-w-[110px]">{group.variedad}</td>
+                  <td className="px-3 py-2.5 text-carbon-50 font-semibold whitespace-nowrap md:sticky md:left-[220px] z-10 bg-white min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">{group.color}</td>
                   {DIA_ORDER.map(dia => {
                     const r = group.registros[dia];
                     if (!r) {
@@ -312,7 +312,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
           </tbody>
           <tfoot>
             <tr className="bg-surface-overlay border-t-2 border-surface-border">
-              <td colSpan={3} className="px-3 py-2.5 text-right font-bold text-carbon-50 sticky left-0 z-10 bg-surface-overlay min-w-[320px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">Total general</td>
+              <td colSpan={3} className="px-3 py-2.5 text-right font-bold text-carbon-50 md:sticky md:left-0 z-10 bg-surface-overlay min-w-[320px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">Total general</td>
               {DIA_ORDER.map(dia => {
                 let totalColumna = 0;
                 groupedRows.forEach(g => {

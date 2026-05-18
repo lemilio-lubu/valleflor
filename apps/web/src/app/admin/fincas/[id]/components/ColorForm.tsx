@@ -98,8 +98,8 @@ export function ColorForm({ fincaId }: { fincaId: string }) {
         </form>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-surface-border">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border border-surface-border">
+        <table className="w-full min-w-[420px] text-sm">
           <tbody>
             {!selectedVariedadId && <tr><td className="empty-state py-6">Selecciona producto → variedad</td></tr>}
             {selectedVariedadId && colores.length === 0 && <tr><td className="empty-state py-6">Sin colores</td></tr>}

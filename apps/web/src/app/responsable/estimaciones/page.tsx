@@ -93,12 +93,16 @@ export default function EstimacionesPage() {
 
   return (
     <div className="max-w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      <div className="page-header">
+        <div className="min-w-0">
           <h1 className="section-title">Estimaciones</h1>
           <p className="text-carbon-400 text-sm mt-1">Ingreso de cajas y consulta de base semanal</p>
         </div>
-        <button id="btn-nueva-semana" onClick={() => setShowCreate(true)} className="btn-primary">
+        <button
+          id="btn-nueva-semana"
+          onClick={() => setShowCreate(true)}
+          className="btn-primary w-full sm:w-auto shrink-0"
+        >
           <Plus className="w-4 h-4" />
           Nueva semana
         </button>

@@ -92,13 +92,13 @@ body {
 /* ── Componentes reutilizables ── */
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center gap-phi-1 px-phi-4 py-phi-2 bg-verde-600 hover:bg-verde-700 text-white font-medium rounded-md transition-all duration-200 text-sm shadow-verde-sm hover:shadow-verde-glow active:scale-95;
+    @apply inline-flex items-center justify-center gap-phi-1 px-phi-4 py-phi-2 bg-verde-600 hover:bg-verde-700 text-white font-medium rounded-md transition-all duration-200 text-sm shadow-verde-sm hover:shadow-verde-glow active:scale-95 whitespace-nowrap;
   }
   .btn-ghost {
-    @apply inline-flex items-center gap-phi-1 px-phi-4 py-phi-2 text-carbon-300 hover:text-carbon-50 hover:bg-surface-overlay font-medium rounded-md transition-all duration-200 text-sm border border-surface-border;
+    @apply inline-flex items-center justify-center gap-phi-1 px-phi-4 py-phi-2 text-carbon-300 hover:text-carbon-50 hover:bg-surface-overlay font-medium rounded-md transition-all duration-200 text-sm border border-surface-border whitespace-nowrap;
   }
   .btn-danger {
-    @apply inline-flex items-center gap-phi-1 px-phi-4 py-phi-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md transition-all duration-200 text-sm;
+    @apply inline-flex items-center justify-center gap-phi-1 px-phi-4 py-phi-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md transition-all duration-200 text-sm whitespace-nowrap;
   }
   .input-field {
     @apply w-full bg-white border border-surface-border rounded-sm px-phi-4 py-phi-2 text-sm text-carbon-50 placeholder-carbon-400 focus:border-verde-600 focus:ring-2 focus:ring-verde-50 transition-colors duration-200 outline-none shadow-xs;
@@ -116,7 +116,10 @@ body {
     @apply inline-flex items-center px-phi-1 py-[2px] rounded-sm text-xs font-mono bg-surface-overlay text-carbon-400 border border-surface-border;
   }
   .section-title {
-    @apply font-sans text-2xl font-semibold text-carbon-50 tracking-tight;
+    @apply font-sans text-xl sm:text-2xl font-semibold text-carbon-50 tracking-tight;
+  }
+  .page-header {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 mb-6;
   }
   .nav-link {
     @apply flex items-center gap-phi-2 px-phi-3 py-phi-2 rounded-md text-sm font-medium text-carbon-300 hover:text-carbon-50 hover:bg-surface-overlay transition-all duration-200;

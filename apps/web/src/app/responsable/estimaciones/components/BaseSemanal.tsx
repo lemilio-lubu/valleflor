@@ -215,8 +215,8 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-carbon-400">Mostrar en:</span>
           <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border">
             {(['cajas', 'tallos'] as const).map((mode) => (
@@ -232,7 +232,7 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => {
               const s = targetWeeks[0];
@@ -272,9 +272,9 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
         <table className="min-w-max w-full text-xs">
         <thead>
           <tr className="bg-surface-overlay border-b border-surface-border">
-            <th className="table-th sticky left-0 z-20 bg-surface-overlay min-w-[110px]">Producto</th>
-            <th className="table-th sticky left-[110px] z-20 bg-surface-overlay min-w-[110px]">Variedad</th>
-            <th className="table-th sticky left-[220px] z-20 bg-surface-overlay min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">Color</th>
+            <th className="table-th md:sticky md:left-0 z-20 bg-surface-overlay min-w-[110px]">Producto</th>
+            <th className="table-th md:sticky md:left-[110px] z-20 bg-surface-overlay min-w-[110px]">Variedad</th>
+            <th className="table-th md:sticky md:left-[220px] z-20 bg-surface-overlay min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">Color</th>
             {targetWeeks.map((s) => (
               <th key={`${s.anio}-${s.numeroSemana}`} className="table-th text-center min-w-[90px]">
                 Sem {s.numeroSemana}
@@ -288,9 +288,9 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
               key={row.colorId}
               className={`table-row-hover border-b border-surface-border/30 ${i % 2 === 0 ? '' : 'bg-surface-overlay/15'}`}
             >
-              <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-0 z-10 bg-white min-w-[110px]">{row.producto}</td>
-              <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-[110px] z-10 bg-white min-w-[110px]">{row.variedad}</td>
-              <td className="px-3 py-2.5 font-medium text-carbon-50 whitespace-nowrap sticky left-[220px] z-10 bg-white min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">{row.color}</td>
+              <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap md:sticky md:left-0 z-10 bg-white min-w-[110px]">{row.producto}</td>
+              <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap md:sticky md:left-[110px] z-10 bg-white min-w-[110px]">{row.variedad}</td>
+              <td className="px-3 py-2.5 font-medium text-carbon-50 whitespace-nowrap md:sticky md:left-[220px] z-10 bg-white min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">{row.color}</td>
               {targetWeeks.map((s) => {
                 const d = row.semanas[String(s.numeroSemana)];
                 const key = `${row.colorId}-${s.anio}-${s.numeroSemana}`;
