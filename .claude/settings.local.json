@@ -71,7 +71,9 @@
       "Bash(curl -s -o /dev/null -w \"  /responsable/estimaciones → %{http_code}\\\\n\" http://localhost:3000/responsable/estimaciones)",
       "Bash(curl -s -o /dev/null -w \"  /admin/fincas → %{http_code}\\\\n\" http://localhost:3000/admin/fincas)",
       "Bash(kill 67242)",
-      "Bash(PORT=3000 npm run *)"
+      "Bash(PORT=3000 npm run *)",
+      "Bash(PORT=3000 nohup npm run start)",
+      "Bash(disown)"
     ]
   }
 }
