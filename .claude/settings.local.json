@@ -73,7 +73,8 @@
       "Bash(kill 67242)",
       "Bash(PORT=3000 npm run *)",
       "Bash(PORT=3000 nohup npm run start)",
-      "Bash(disown)"
+      "Bash(disown)",
+      "Bash(sips -g pixelWidth -g pixelHeight /Users/miguelmendosa/.claude/image-cache/1f6bc181-c957-4349-b905-9e1cb8e62240/1.png)"
     ]
   }
 }
