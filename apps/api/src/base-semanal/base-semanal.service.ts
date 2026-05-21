@@ -200,9 +200,9 @@ export class BaseSemanalService {
       }
       map.get(bs.colorId).semanas[String(bs.numeroSemana)] = {
         cajas: Number(bs.cajasTotal),
-        tallos: Number(bs.tallosTotal),
+        tallos: Number(bs.cajasTotal) * bs.color.tallosPorCaja,
         cajasEstimadas: Number(bs.cajasEstimadas || 0),
-        tallosEstimados: Number(bs.tallosEstimados || 0),
+        tallosEstimados: Number(bs.cajasEstimadas || 0) * bs.color.tallosPorCaja,
         esReal: (semanasCreadasKeys?.has(key) ?? false) || bs.esReal,
       };
     }

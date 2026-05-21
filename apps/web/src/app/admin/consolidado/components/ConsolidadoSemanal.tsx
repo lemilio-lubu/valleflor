@@ -52,7 +52,7 @@ interface Props {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const WEEK_COUNT = 10;
+const WEEK_COUNT = 9;
 
 function pivotRows(flat: FlatRow[]): PivotRow[] {
   const map = new Map<string, PivotRow>();

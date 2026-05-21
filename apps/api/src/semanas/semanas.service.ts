@@ -210,8 +210,8 @@ export class SemanasService {
       colorId: registro.colorId,
       registroId: registro.id,
       cajas: Number(registro.cajas),
-      divisorTallos: registro.divisorTallos,
-      tallos: Number(registro.tallos),
+      divisorTallos: registro.color.tallosPorCaja,
+      tallos: Number(registro.cajas) * registro.color.tallosPorCaja,
     }));
 
     return rows.sort((a, b) => {

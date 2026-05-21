@@ -170,7 +170,7 @@ export default function EstimacionesPage() {
             ? <div className="empty-state py-16">No se pudo obtener la finca del responsable</div>
             : <BaseSemanal
                 fincaId={fincaId}
-                semanas={10}
+                semanas={9}
                 startWeek={selectedSemanaWeek?.numeroSemana}
                 startYear={selectedSemanaWeek?.anio}
               />
