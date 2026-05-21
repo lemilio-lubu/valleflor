@@ -12,6 +12,9 @@ importers:
         specifier: 14.2.35
         version: 14.2.35(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@ducanh2912/next-pwa':
+        specifier: ^10.2.9
+        version: 10.2.9(next@14.2.35(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(webpack@5.97.1)
       turbo:
         specifier: ^2.0.0
         version: 2.9.12
@@ -4616,6 +4619,20 @@ snapshots:
       - '@types/babel__core'
       - supports-color
 
+  '@ducanh2912/next-pwa@10.2.9(next@14.2.35(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(webpack@5.97.1)':
+    dependencies:
+      fast-glob: 3.3.2
+      next: 14.2.35(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      semver: 7.6.3
+      webpack: 5.97.1
+      workbox-build: 7.1.1
+      workbox-core: 7.1.0
+      workbox-webpack-plugin: 7.1.0(webpack@5.97.1)
+      workbox-window: 7.1.0
+    transitivePeerDependencies:
+      - '@types/babel__core'
+      - supports-color
+
   '@hookform/resolvers@3.10.0(react-hook-form@7.75.0(react@18.3.1))':
     dependencies:
       react-hook-form: 7.75.0(react@18.3.1)
@@ -7447,6 +7464,15 @@ snapshots:
       mkdirp: 1.0.4
       yallist: 4.0.0
 
+  temp-dir@2.0.0: {}
+
+  tempy@0.6.0:
+    dependencies:
+      is-stream: 2.0.1
+      temp-dir: 2.0.0
+      type-fest: 0.16.0
+      unique-string: 2.0.0
+
   terser-webpack-plugin@5.6.0(postcss@8.5.14)(webpack@5.97.1(postcss@8.5.14)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
@@ -7995,6 +8021,18 @@ snapshots:
       pretty-bytes: 5.6.0
       upath: 1.2.0
       webpack: 5.97.1(postcss@8.5.14)
+      webpack-sources: 1.4.3
+      workbox-build: 7.1.0
+    transitivePeerDependencies:
+      - '@types/babel__core'
+      - supports-color
+
+  workbox-webpack-plugin@7.1.0(webpack@5.97.1):
+    dependencies:
+      fast-json-stable-stringify: 2.1.0
+      pretty-bytes: 5.6.0
+      upath: 1.2.0
+      webpack: 5.97.1
       webpack-sources: 1.4.3
       workbox-build: 7.1.0
     transitivePeerDependencies:
