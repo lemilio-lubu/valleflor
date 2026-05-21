@@ -198,9 +198,9 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
         <table className="min-w-max w-full text-xs">
           <thead>
             <tr className="bg-surface-overlay border-b border-surface-border">
-              <th className="table-th sticky left-0 z-20 bg-surface-overlay min-w-[130px]">Producto</th>
-              <th className="table-th sticky left-[130px] z-20 bg-surface-overlay min-w-[120px]">Variedad</th>
-              <th className="table-th sticky left-[250px] z-20 bg-surface-overlay min-w-[110px]">Color</th>
+              <th className="table-th md:sticky md:left-0 z-20 bg-surface-overlay min-w-[130px]">Producto</th>
+              <th className="table-th md:sticky md:left-[130px] z-20 bg-surface-overlay min-w-[120px]">Variedad</th>
+              <th className="table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[110px]">Color</th>
               {DIAS.map((d) => (
                 <th key={d} className="table-th text-center min-w-[72px]">
                   <div className="flex flex-col items-center gap-0.5">
@@ -233,7 +233,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
                   >
                     <td
                       colSpan={3}
-                      className="px-3 py-1.5 sticky left-0 z-10 bg-surface-overlay"
+                      className="px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay"
                     >
                       <span className="text-[11px] font-bold uppercase tracking-widest text-verde-400">
                         {group.producto}
@@ -260,11 +260,11 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
                           sinDatos ? 'opacity-40' : ''
                         } ${i % 2 === 0 ? '' : 'bg-surface-overlay/10'}`}
                       >
-                        <td className="px-3 py-2 text-carbon-400 whitespace-nowrap text-[11px] sticky left-0 z-10 bg-white min-w-[130px]">
+                        <td className="px-3 py-2 text-carbon-400 whitespace-nowrap text-[11px] md:sticky md:left-0 z-10 bg-white min-w-[130px]">
                           {/* Producto vacío porque ya aparece en el encabezado del grupo */}
                         </td>
-                        <td className="px-3 py-2 text-carbon-200 whitespace-nowrap sticky left-[130px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
-                        <td className="px-3 py-2 font-medium text-carbon-100 whitespace-nowrap sticky left-[250px] z-10 bg-white min-w-[110px]">{row.color}</td>
+                        <td className="px-3 py-2 text-carbon-200 whitespace-nowrap md:sticky md:left-[130px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
+                        <td className="px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[110px]">{row.color}</td>
                         {DIAS.map((d) => {
                           const v = row.dias[d];
                           const val = v ? (isCajas ? v.cajas : v.tallos) : null;
@@ -292,7 +292,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
             <tr className="border-t-2 border-surface-border bg-surface-overlay">
               <td
                 colSpan={3}
-                className="px-3 py-2.5 text-xs font-semibold text-carbon-200 uppercase tracking-wide sticky left-0 z-10 bg-surface-overlay"
+                className="px-3 py-2.5 text-xs font-semibold text-carbon-200 uppercase tracking-wide md:sticky md:left-0 z-10 bg-surface-overlay"
               >
                 Total general
               </td>

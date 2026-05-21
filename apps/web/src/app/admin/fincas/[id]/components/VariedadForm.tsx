@@ -84,8 +84,8 @@ export function VariedadForm({ fincaId }: { fincaId: string }) {
         </form>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-surface-border">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border border-surface-border">
+        <table className="w-full min-w-[420px] text-sm">
           <tbody>
             {!selectedProductoId && <tr><td className="empty-state py-6">Selecciona un producto</td></tr>}
             {selectedProductoId && variedades.length === 0 && <tr><td className="empty-state py-6">Sin variedades</td></tr>}

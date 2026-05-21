@@ -8,6 +8,14 @@ apps/api/dist
 apps/web/.next
 packages/*/dist
 
+# PWA service worker artifacts (generated por @ducanh2912/next-pwa)
+apps/web/public/sw.js
+apps/web/public/sw.js.map
+apps/web/public/swe-worker-*.js
+apps/web/public/workbox-*.js
+apps/web/public/workbox-*.js.map
+apps/web/public/fallback-*.js
+
 # Environment
 .env
 .env.local

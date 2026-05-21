@@ -169,19 +169,19 @@ export default function UsuariosPage() {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      <div className="page-header">
+        <div className="min-w-0">
           <h1 className="section-title">Usuarios</h1>
           <p className="text-carbon-400 text-sm mt-1">Cuentas de acceso al sistema</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="btn-primary">
+        <button onClick={() => setShowCreate(true)} className="btn-primary w-full sm:w-auto shrink-0">
           <Plus className="w-4 h-4" />
           Nuevo usuario
         </button>
       </div>
 
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <div className="relative w-full sm:flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-carbon-400" />
           <input
             type="text"

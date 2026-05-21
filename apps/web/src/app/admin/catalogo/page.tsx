@@ -21,8 +21,8 @@ export default function CatalogoPage() {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-8">
-        <div>
+      <div className="page-header mb-8">
+        <div className="min-w-0">
           <h1 className="section-title">Catálogo de productos</h1>
           <p className="text-carbon-400 text-sm mt-1">Gestiona productos, variedades y colores por finca</p>
         </div>

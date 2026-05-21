@@ -70,12 +70,16 @@ export default function FincasPage() {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-8">
-        <div>
+      <div className="page-header mb-8">
+        <div className="min-w-0">
           <h1 className="section-title">Fincas</h1>
           <p className="text-carbon-400 text-sm mt-1">Gestiona las fincas registradas en el sistema</p>
         </div>
-        <button id="btn-crear-finca" onClick={openCreate} className="btn-primary">
+        <button
+          id="btn-crear-finca"
+          onClick={openCreate}
+          className="btn-primary w-full sm:w-auto shrink-0"
+        >
           <Plus className="w-4 h-4" />
           Nueva finca
         </button>

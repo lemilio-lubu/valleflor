@@ -69,8 +69,8 @@ export function ProductoForm({ fincaId }: { fincaId: string }) {
         </form>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-surface-border">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border border-surface-border">
+        <table className="w-full min-w-[360px] text-sm">
           <tbody>
             {productos.length === 0 && <tr><td className="empty-state py-6">Sin productos</td></tr>}
             {productos.map((p) => (

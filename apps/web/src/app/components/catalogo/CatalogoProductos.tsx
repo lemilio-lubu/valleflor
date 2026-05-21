@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Pencil, Trash2, Check, X, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 
 interface Producto { id: string; nombre: string; }
@@ -140,6 +140,7 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
 
   const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null);
   const [selectedVariedad, setSelectedVariedad] = useState<Variedad | null>(null);
+  const [mobileLevel, setMobileLevel] = useState<'productos' | 'variedades' | 'colores'>('productos');
 
   const [addingProducto, setAddingProducto] = useState(false);
   const [editingProducto, setEditingProducto] = useState<Producto | null>(null);
@@ -244,7 +245,124 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
 
   return (
     <>
-      <div className="flex gap-0 overflow-hidden" style={{ height: '420px' }}>
+      {/* ─── Mobile: drill-down con breadcrumb ─── */}
+      <div className="md:hidden flex flex-col" style={{ height: '480px' }}>
+        <div className="flex items-center gap-2 mb-3 text-xs">
+          {mobileLevel !== 'productos' && (
+            <button
+              type="button"
+              onClick={() => {
+                if (mobileLevel === 'colores') setMobileLevel('variedades');
+                else if (mobileLevel === 'variedades') setMobileLevel('productos');
+              }}
+              className="w-8 h-8 rounded-md border border-surface-border hover:bg-surface-overlay flex items-center justify-center flex-shrink-0 transition-colors"
+              aria-label="Volver"
+            >
+              <ChevronLeft className="w-4 h-4 text-carbon-300" />
+            </button>
+          )}
+          <nav className="flex items-center gap-1 min-w-0 flex-1 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => setMobileLevel('productos')}
+              className={`whitespace-nowrap px-1.5 py-0.5 rounded transition-colors ${
+                mobileLevel === 'productos' ? 'text-carbon-50 font-medium' : 'text-carbon-400 hover:text-verde-600'
+              }`}
+            >
+              Productos
+            </button>
+            {selectedProducto && (
+              <>
+                <ChevronRight className="w-3 h-3 text-carbon-400 flex-shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => setMobileLevel('variedades')}
+                  className={`whitespace-nowrap px-1.5 py-0.5 rounded transition-colors truncate max-w-[120px] ${
+                    mobileLevel === 'variedades' ? 'text-carbon-50 font-medium' : 'text-carbon-400 hover:text-verde-600'
+                  }`}
+                  title={selectedProducto.nombre}
+                >
+                  {selectedProducto.nombre}
+                </button>
+              </>
+            )}
+            {selectedVariedad && mobileLevel === 'colores' && (
+              <>
+                <ChevronRight className="w-3 h-3 text-carbon-400 flex-shrink-0" />
+                <span className="whitespace-nowrap px-1.5 py-0.5 text-carbon-50 font-medium truncate max-w-[120px]" title={selectedVariedad.nombre}>
+                  {selectedVariedad.nombre}
+                </span>
+              </>
+            )}
+          </nav>
+        </div>
+
+        <div className="flex-1 min-h-0">
+          {mobileLevel === 'productos' && (
+            <Column
+              title="Productos" items={productos} isLoading={loadingProductos}
+              selectedId={selectedProducto?.id ?? null}
+              onSelect={(p) => {
+                setSelectedProducto(p); setSelectedVariedad(null);
+                setAddingVariedad(false); setEditingVariedad(null);
+                setMobileLevel('variedades');
+              }}
+              onAdd={() => { setEditingProducto(null); setAddingProducto(true); }}
+              onEdit={(p) => { setEditingProducto(p as Producto); setAddingProducto(false); }}
+              onDelete={(p) => setConfirmDelete({ type: 'producto', item: p })}
+              addingNew={addingProducto} editingId={editingProducto?.id ?? null}
+              addPlaceholder="Ej: ROSAS"
+              onSaveNew={(n) => saveProducto.mutate(n)} onCancelNew={() => setAddingProducto(false)}
+              onSaveEdit={(n) => saveProducto.mutate(n)} onCancelEdit={() => setEditingProducto(null)}
+              isSavingNew={saveProducto.isPending && !editingProducto}
+              isSavingEdit={saveProducto.isPending && !!editingProducto}
+              emptyText="Sin productos. Agrega el primero." hasArrow
+            />
+          )}
+          {mobileLevel === 'variedades' && selectedProducto && (
+            <Column
+              title="Variedades" subtitle={`de ${selectedProducto.nombre}`}
+              items={variedades} isLoading={loadingVariedades}
+              selectedId={selectedVariedad?.id ?? null}
+              onSelect={(v) => {
+                setSelectedVariedad(v as Variedad);
+                setAddingColor(false); setEditingColor(null);
+                setMobileLevel('colores');
+              }}
+              onAdd={() => { setEditingVariedad(null); setAddingVariedad(true); }}
+              onEdit={(v) => { setEditingVariedad(v as Variedad); setAddingVariedad(false); }}
+              onDelete={(v) => setConfirmDelete({ type: 'variedad', item: v })}
+              addingNew={addingVariedad} editingId={editingVariedad?.id ?? null}
+              addPlaceholder="Ej: FREEDOM"
+              onSaveNew={(n) => saveVariedad.mutate(n)} onCancelNew={() => setAddingVariedad(false)}
+              onSaveEdit={(n) => saveVariedad.mutate(n)} onCancelEdit={() => setEditingVariedad(null)}
+              isSavingNew={saveVariedad.isPending && !editingVariedad}
+              isSavingEdit={saveVariedad.isPending && !!editingVariedad}
+              emptyText="Sin variedades. Agrega la primera." hasArrow
+            />
+          )}
+          {mobileLevel === 'colores' && selectedVariedad && (
+            <Column
+              title="Colores" subtitle={`de ${selectedVariedad.nombre}`}
+              items={colores} isLoading={loadingColores}
+              selectedId={null} onSelect={() => {}}
+              onAdd={() => { setEditingColor(null); setAddingColor(true); }}
+              onEdit={(c) => { setEditingColor(c as Color); setAddingColor(false); }}
+              onDelete={(c) => setConfirmDelete({ type: 'color', item: c })}
+              addingNew={addingColor} editingId={editingColor?.id ?? null}
+              addPlaceholder="Ej: ROJO OSCURO"
+              onSaveNew={(n) => saveColor.mutate(n)} onCancelNew={() => setAddingColor(false)}
+              onSaveEdit={(n) => saveColor.mutate(n)} onCancelEdit={() => setEditingColor(null)}
+              isSavingNew={saveColor.isPending && !editingColor}
+              isSavingEdit={saveColor.isPending && !!editingColor}
+              emptyText="Sin colores. Agrega el primero."
+            />
+          )}
+        </div>
+      </div>
+
+      {/* ─── Desktop: cascade de 3 columnas ─── */}
+      <div className="hidden md:flex gap-0 overflow-hidden" style={{ height: '420px' }}>
 
         {/* Columna 1 — Productos */}
         <div style={{ width: col1W, transition: 'width 0.25s ease', overflow: 'hidden' }}

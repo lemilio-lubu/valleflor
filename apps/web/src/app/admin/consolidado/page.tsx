@@ -66,8 +66,8 @@ export default function ConsolidadoPage() {
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      <div className="page-header">
+        <div className="min-w-0">
           <h1 className="section-title">Consolidado</h1>
           <p className="text-carbon-400 text-sm mt-1">
             Suma total de estimados por producto — todas las fincas y responsables
@@ -76,7 +76,7 @@ export default function ConsolidadoPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border w-fit mb-4">
+      <div className="flex gap-1 bg-surface-overlay p-1 rounded-md border border-surface-border w-fit max-w-full overflow-x-auto mb-4">
         <button
           onClick={() => setTab('diario')}
           className={`px-5 py-1.5 text-sm font-medium rounded-sm transition-colors ${
