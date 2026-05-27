@@ -162,3 +162,23 @@ body {
   background-color: transparent;
   color: inherit;
 }
+
+/* Always-visible horizontal scrollbar for data tables */
+.scrollbar-always {
+  overflow-x: auto;
+  scrollbar-width: thin; /* Firefox */
+}
+.scrollbar-always::-webkit-scrollbar {
+  height: 8px;
+}
+.scrollbar-always::-webkit-scrollbar-track {
+  background: var(--bg-muted);
+  border-radius: 0 0 8px 8px;
+}
+.scrollbar-always::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 4px;
+}
+.scrollbar-always::-webkit-scrollbar-thumb:hover {
+  background: var(--text-disabled);
+}

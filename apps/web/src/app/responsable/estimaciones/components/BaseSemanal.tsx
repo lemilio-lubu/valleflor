@@ -5,8 +5,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx-js-style';
-import { Download, Eye, Trash2 } from 'lucide-react';
+import { Download, Eye, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FiltrosTabla } from './FiltrosTabla';
+import { useTableScroll } from '@/lib/useTableScroll';
+import { FloatingScrollbar } from '@/lib/FloatingScrollbar';
 
 interface SemanaData {
   cajas: number;
@@ -28,6 +30,29 @@ interface BaseSemanalResponse {
   rows: MatrizRow[];
 }
 
+interface VariedadGroup {
+  variedad: string;
+  rows: MatrizRow[];
+}
+interface ProductoGroup {
+  producto: string;
+  variedades: VariedadGroup[];
+}
+
+function groupRows(rows: MatrizRow[]): ProductoGroup[] {
+  const prodMap = new Map<string, Map<string, MatrizRow[]>>();
+  for (const row of rows) {
+    if (!prodMap.has(row.producto)) prodMap.set(row.producto, new Map());
+    const varMap = prodMap.get(row.producto)!;
+    if (!varMap.has(row.variedad)) varMap.set(row.variedad, []);
+    varMap.get(row.variedad)!.push(row);
+  }
+  return Array.from(prodMap.entries()).map(([producto, varMap]) => ({
+    producto,
+    variedades: Array.from(varMap.entries()).map(([variedad, rows]) => ({ variedad, rows })),
+  }));
+}
+
 interface Props { fincaId: string; semanas?: number; startWeek?: number; startYear?: number; }
 
 export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Props) {
@@ -38,6 +63,7 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
   const [filtroProducto, setFiltroProducto] = useState<string>('');
   const [filtroVariedad, setFiltroVariedad] = useState<string>('');
   const [filtroColor, setFiltroColor] = useState<string>('');
+  const { scrollRef, isScrolled, canScrollRight, isVisible, scrollLeft, scrollRight } = useTableScroll(220);
 
   const { data, isLoading } = useQuery<BaseSemanalResponse>({
     queryKey: ['base-semanal', fincaId, semanas, startWeek, startYear],
@@ -250,6 +276,26 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
             <Trash2 className="w-4 h-4" />
             <span>Limpiar</span>
           </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={scrollLeft}
+              disabled={!isScrolled}
+              className="p-1.5 rounded border border-surface-border text-carbon-400 hover:text-carbon-200 hover:bg-surface-overlay disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Scroll left"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={scrollRight}
+              disabled={!canScrollRight}
+              className="p-1.5 rounded border border-surface-border text-carbon-400 hover:text-carbon-200 hover:bg-surface-overlay disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Scroll right"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
           <button
             onClick={handleDownloadExcel}
             className="btn-ghost text-xs py-1.5 px-3 flex items-center gap-2"
@@ -271,13 +317,17 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
         onColor={setFiltroColor}
       />
 
-      <div className="overflow-x-auto rounded-lg border border-surface-border">
+      <div
+        ref={scrollRef}
+        className="overflow-x-auto rounded-lg border border-surface-border scrollbar-always"
+        style={{ scrollbarGutter: 'stable' }}
+      >
         <table className="min-w-max w-full text-xs">
         <thead>
           <tr className="bg-surface-overlay border-b border-surface-border">
             <th className="table-th md:sticky md:left-0 z-20 bg-surface-overlay min-w-[110px]">Producto</th>
             <th className="table-th md:sticky md:left-[110px] z-20 bg-surface-overlay min-w-[110px]">Variedad</th>
-            <th className="table-th md:sticky md:left-[220px] z-20 bg-surface-overlay min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">Color</th>
+            <th className={`table-th md:sticky md:left-[220px] z-20 bg-surface-overlay min-w-[100px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>Color</th>
             {targetWeeks.map((s) => (
               <th key={`${s.anio}-${s.numeroSemana}`} className="table-th text-center min-w-[90px]">
                 Sem {s.numeroSemana}
@@ -289,109 +339,204 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
           </tr>
         </thead>
         <tbody>
-          {filteredRows.map((row, i) => {
-            let totalFila = 0;
+          {groupRows(filteredRows).map((group) => {
+            // Compute producto-level total (all weeks × all rows in group)
+            const productoTotal = group.variedades.reduce((pAcc, vg) =>
+              pAcc + vg.rows.reduce((rAcc, row) =>
+                rAcc + targetWeeks.reduce((wAcc, s) => {
+                  const d = row.semanas[String(s.numeroSemana)];
+                  const key = `${row.colorId}-${s.anio}-${s.numeroSemana}`;
+                  const estimadasCajas = d?.cajasEstimadas ?? 0;
+                  const realesCajas = d?.cajas ?? 0;
+                  const realesTallos = d?.tallos ?? 0;
+                  const estimadasTallos = d?.tallosEstimados ?? 0;
+                  const isReal = d?.esReal ?? false;
+                  const multiplier = estimadasCajas > 0 ? (estimadasTallos / estimadasCajas) : (realesCajas > 0 ? (realesTallos / realesCajas) : 400);
+                  const valCajas = isReal ? realesCajas : parseFloat(localEstimaciones[key] ?? String(estimadasCajas)) || 0;
+                  const valTallos = isReal ? realesTallos : valCajas * multiplier;
+                  return wAcc + (viewMode === 'cajas' ? valCajas : valTallos);
+                }, 0)
+              , 0)
+            , 0);
+
             return (
-              <tr
-                key={row.colorId}
-                className={`table-row-hover border-b border-surface-border/30 ${i % 2 === 0 ? '' : 'bg-surface-overlay/15'}`}
-              >
-                <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-0 z-10 bg-white min-w-[110px]">{row.producto}</td>
-                <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap sticky left-[110px] z-10 bg-white min-w-[110px]">{row.variedad}</td>
-                <td className="px-3 py-2.5 font-medium text-carbon-50 whitespace-nowrap sticky left-[220px] z-10 bg-white min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">{row.color}</td>
-                  {targetWeeks.map((s) => {
-                    const d = row.semanas[String(s.numeroSemana)];
-                    const key = `${row.colorId}-${s.anio}-${s.numeroSemana}`;
-                    const estimadasCajas = d?.cajasEstimadas ?? 0;
-                    const realesCajas = d?.cajas ?? 0;
-                    const realesTallos = d?.tallos ?? 0;
-                    const estimadasTallos = d?.tallosEstimados ?? 0;
-                    const isReal = d?.esReal ?? false;
-
-                    const multiplier = estimadasCajas > 0 ? (estimadasTallos / estimadasCajas) : (realesCajas > 0 ? (realesTallos / realesCajas) : 400);
-
-                    const valCajas = isReal ? realesCajas : parseFloat(localEstimaciones[key] ?? String(estimadasCajas)) || 0;
-                    const valTallos = isReal ? realesTallos : valCajas * multiplier;
-                    totalFila += (viewMode === 'cajas' ? valCajas : valTallos);
-
-                    const realVal = viewMode === 'cajas' ? realesCajas : realesTallos;
-                    const hasReal = realVal > 0;
-                    const isPeeking = peekKey === key;
-                    const canPeek = hasReal && estimadasCajas > 0;
-                    const peekVal = viewMode === 'cajas'
-                      ? estimadasCajas.toFixed(2)
-                      : estimadasTallos.toFixed(2);
-
-                    return (
-                      <td key={key} className="px-2 py-2 w-[90px] group/cell">
-                        <div className="flex flex-col items-center w-full">
-                          {(() => {
-                            if (isPeeking) return (
-                              <div className="w-full text-center font-mono font-medium tabular-nums text-xs px-2 py-1 rounded border text-dorado-500 border-dorado-400/50 bg-surface-overlay">
-                                {peekVal}
-                              </div>
-                            );
-
-                            if (hasReal) return (
-                              <div className="w-full text-center font-mono font-medium tabular-nums text-xs px-2 py-1 rounded border text-agro-600 border-agro-200 bg-surface-overlay">
-                                {realVal.toFixed(2)}
-                              </div>
-                            );
-
-                            if (viewMode === 'tallos') return (
-                              <div className="w-full text-center font-mono tabular-nums text-xs px-2 py-1 rounded border text-carbon-300 border-surface-border bg-surface-overlay">
-                                {valTallos.toFixed(2)}
-                              </div>
-                            );
-
-                            return (
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="0.00"
-                                className="w-full bg-surface-overlay border border-surface-border rounded px-2 py-1 text-dorado-500 font-mono text-xs focus:border-dorado-500 focus:ring-1 focus:ring-dorado-500 outline-none transition-colors text-center placeholder:text-carbon-400"
-                                value={localEstimaciones[key] ?? (estimadasCajas === 0 ? '' : estimadasCajas.toFixed(2))}
-                                onChange={(e) => handleChange(key, e.target.value)}
-                                onBlur={() => handleBlur(row.colorId, s.numeroSemana, s.anio, estimadasCajas)}
-                              />
-                            );
-                          })()}
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <span className={`text-[9px] ${isPeeking ? 'text-dorado-500' : (viewMode === 'cajas' ? realesCajas : realesTallos) > 0 ? 'text-agro-500 font-medium' : 'text-carbon-400 opacity-70'}`}>
-                              {isPeeking ? 'Est.' : (viewMode === 'cajas' ? realesCajas : realesTallos) > 0 ? 'Real' : 'Est.'}
-                            </span>
-                            {canPeek && (
-                              <button
-                                type="button"
-                                onMouseDown={() => setPeekKey(key)}
-                                onMouseUp={() => setPeekKey(null)}
-                                onMouseLeave={() => setPeekKey(null)}
-                                onTouchStart={() => setPeekKey(key)}
-                                onTouchEnd={() => setPeekKey(null)}
-                                className="opacity-0 group-hover/cell:opacity-100 transition-opacity text-carbon-400 hover:text-carbon-200"
-                                title="Ver estimación"
-                              >
-                                <Eye className="w-2.5 h-2.5" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                    );
-                  })}
-                  <td className="px-2 py-2 text-center w-[90px] border-l border-surface-border">
-                    <div className="font-mono text-sm font-bold text-verde-600 tabular-nums">
-                      {totalFila.toFixed(2)}
-                    </div>
+              <React.Fragment key={group.producto}>
+                {/* ── Product group header ── */}
+                <tr className="bg-surface-overlay border-t border-surface-border">
+                  <td colSpan={3} className="px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-verde-400">
+                      {group.producto}
+                    </span>
+                  </td>
+                  <td colSpan={targetWeeks.length + 1} className="px-3 py-1.5 text-right">
+                    <span className="text-[10px] font-mono tabular-nums font-semibold text-verde-300">
+                      {viewMode === 'cajas' ? 'Cajas' : 'Tallos'}: {productoTotal.toFixed(2)}
+                    </span>
                   </td>
                 </tr>
+
+                {group.variedades.map((vg) => {
+                  // Variety subtotal (all weeks × all colors in this variety)
+                  const variedadTotal = vg.rows.reduce((rAcc, row) =>
+                    rAcc + targetWeeks.reduce((wAcc, s) => {
+                      const d = row.semanas[String(s.numeroSemana)];
+                      const key = `${row.colorId}-${s.anio}-${s.numeroSemana}`;
+                      const estimadasCajas = d?.cajasEstimadas ?? 0;
+                      const realesCajas = d?.cajas ?? 0;
+                      const realesTallos = d?.tallos ?? 0;
+                      const estimadasTallos = d?.tallosEstimados ?? 0;
+                      const isReal = d?.esReal ?? false;
+                      const multiplier = estimadasCajas > 0 ? (estimadasTallos / estimadasCajas) : (realesCajas > 0 ? (realesTallos / realesCajas) : 400);
+                      const valCajas = isReal ? realesCajas : parseFloat(localEstimaciones[key] ?? String(estimadasCajas)) || 0;
+                      const valTallos = isReal ? realesTallos : valCajas * multiplier;
+                      return wAcc + (viewMode === 'cajas' ? valCajas : valTallos);
+                    }, 0)
+                  , 0);
+
+                  return (
+                    <React.Fragment key={vg.variedad}>
+                      {vg.rows.map((row, i) => {
+                        let totalFila = 0;
+                        return (
+                          <tr
+                            key={row.colorId}
+                            className={`table-row-hover border-b border-surface-border/30 ${i % 2 === 0 ? '' : 'bg-surface-overlay/15'}`}
+                          >
+                            <td className="px-3 py-2.5 text-carbon-400 whitespace-nowrap sticky left-0 z-10 bg-white min-w-[110px] text-[11px]">
+                              {/* Producto omitted — shown in group header */}
+                            </td>
+                            <td className="px-3 py-2.5 text-carbon-200 whitespace-nowrap sticky left-[110px] z-10 bg-white min-w-[110px]">{row.variedad}</td>
+                            <td className={`px-3 py-2.5 font-medium text-carbon-50 whitespace-nowrap sticky left-[220px] z-10 bg-white min-w-[100px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>{row.color}</td>
+                            {targetWeeks.map((s) => {
+                              const d = row.semanas[String(s.numeroSemana)];
+                              const key = `${row.colorId}-${s.anio}-${s.numeroSemana}`;
+                              const estimadasCajas = d?.cajasEstimadas ?? 0;
+                              const realesCajas = d?.cajas ?? 0;
+                              const realesTallos = d?.tallos ?? 0;
+                              const estimadasTallos = d?.tallosEstimados ?? 0;
+                              const isReal = d?.esReal ?? false;
+                              const multiplier = estimadasCajas > 0 ? (estimadasTallos / estimadasCajas) : (realesCajas > 0 ? (realesTallos / realesCajas) : 400);
+                              const valCajas = isReal ? realesCajas : parseFloat(localEstimaciones[key] ?? String(estimadasCajas)) || 0;
+                              const valTallos = isReal ? realesTallos : valCajas * multiplier;
+                              totalFila += (viewMode === 'cajas' ? valCajas : valTallos);
+                              const realVal = viewMode === 'cajas' ? realesCajas : realesTallos;
+                              const hasReal = realVal > 0;
+                              const isPeeking = peekKey === key;
+                              const canPeek = hasReal && estimadasCajas > 0;
+                              const peekVal = viewMode === 'cajas' ? estimadasCajas.toFixed(2) : estimadasTallos.toFixed(2);
+                              return (
+                                <td key={key} className="px-2 py-2 w-[90px] group/cell">
+                                  <div className="flex flex-col items-center w-full">
+                                    {(() => {
+                                      if (isPeeking) return (
+                                        <div className="w-full text-center font-mono font-medium tabular-nums text-xs px-2 py-1 rounded border text-dorado-500 border-dorado-400/50 bg-surface-overlay">
+                                          {peekVal}
+                                        </div>
+                                      );
+                                      if (hasReal) return (
+                                        <div className="w-full text-center font-mono font-medium tabular-nums text-xs px-2 py-1 rounded border text-agro-600 border-agro-200 bg-surface-overlay">
+                                          {realVal.toFixed(2)}
+                                        </div>
+                                      );
+                                      if (viewMode === 'tallos') return (
+                                        <div className="w-full text-center font-mono tabular-nums text-xs px-2 py-1 rounded border text-carbon-300 border-surface-border bg-surface-overlay">
+                                          {valTallos.toFixed(2)}
+                                        </div>
+                                      );
+                                      return (
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          placeholder="0.00"
+                                          className="w-full bg-surface-overlay border border-surface-border rounded px-2 py-1 text-dorado-500 font-mono text-xs focus:border-dorado-500 focus:ring-1 focus:ring-dorado-500 outline-none transition-colors text-center placeholder:text-carbon-400"
+                                          value={localEstimaciones[key] ?? (estimadasCajas === 0 ? '' : estimadasCajas.toFixed(2))}
+                                          onChange={(e) => handleChange(key, e.target.value)}
+                                          onBlur={() => handleBlur(row.colorId, s.numeroSemana, s.anio, estimadasCajas)}
+                                        />
+                                      );
+                                    })()}
+                                    <div className="flex items-center gap-1 mt-0.5">
+                                      <span className={`text-[9px] ${isPeeking ? 'text-dorado-500' : realVal > 0 ? 'text-agro-500 font-medium' : 'text-carbon-400 opacity-70'}`}>
+                                        {isPeeking ? 'Est.' : realVal > 0 ? 'Real' : 'Est.'}
+                                      </span>
+                                      {canPeek && (
+                                        <button
+                                          type="button"
+                                          onMouseDown={() => setPeekKey(key)}
+                                          onMouseUp={() => setPeekKey(null)}
+                                          onMouseLeave={() => setPeekKey(null)}
+                                          onTouchStart={() => setPeekKey(key)}
+                                          onTouchEnd={() => setPeekKey(null)}
+                                          className="opacity-0 group-hover/cell:opacity-100 transition-opacity text-carbon-400 hover:text-carbon-200"
+                                          title="Ver estimación"
+                                        >
+                                          <Eye className="w-2.5 h-2.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                              );
+                            })}
+                            <td className="px-2 py-2 text-center w-[90px] border-l border-surface-border">
+                              <div className="font-mono text-sm font-bold text-verde-600 tabular-nums">
+                                {totalFila.toFixed(2)}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {/* ── Variety subtotal row ── */}
+                      {vg.rows.length > 1 && (
+                        <tr className="border-b border-surface-border bg-surface-overlay/40">
+                          <td className="px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay/40 min-w-[110px]"></td>
+                          <td
+                            colSpan={2}
+                            className={`px-3 py-1.5 text-[10px] font-semibold text-carbon-300 uppercase tracking-wide md:sticky md:left-[110px] z-10 bg-surface-overlay/40 min-w-[210px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}
+                          >
+                            Subtotal {vg.variedad}
+                          </td>
+                          {targetWeeks.map((s) => {
+                            const colTotal = vg.rows.reduce((acc, row) => {
+                              const d = row.semanas[String(s.numeroSemana)];
+                              const key = `${row.colorId}-${s.anio}-${s.numeroSemana}`;
+                              const estimadasCajas = d?.cajasEstimadas ?? 0;
+                              const realesCajas = d?.cajas ?? 0;
+                              const realesTallos = d?.tallos ?? 0;
+                              const estimadasTallos = d?.tallosEstimados ?? 0;
+                              const isReal = d?.esReal ?? false;
+                              const multiplier = estimadasCajas > 0 ? (estimadasTallos / estimadasCajas) : (realesCajas > 0 ? (realesTallos / realesCajas) : 400);
+                              const valCajas = isReal ? realesCajas : parseFloat(localEstimaciones[key] ?? String(estimadasCajas)) || 0;
+                              const valTallos = isReal ? realesTallos : valCajas * multiplier;
+                              return acc + (viewMode === 'cajas' ? valCajas : valTallos);
+                            }, 0);
+                            return (
+                              <td key={`vsub-${vg.variedad}-${s.anio}-${s.numeroSemana}`} className="px-2 py-1.5 text-center w-[90px]">
+                                <span className="font-mono text-xs tabular-nums text-carbon-200 font-semibold">
+                                  {colTotal > 0 ? colTotal.toFixed(2) : <span className="text-carbon-600">—</span>}
+                                </span>
+                              </td>
+                            );
+                          })}
+                          <td className="px-2 py-1.5 text-center w-[90px] border-l border-surface-border">
+                            <span className="font-mono text-xs font-bold text-verde-500 tabular-nums">
+                              {variedadTotal.toFixed(2)}
+                            </span>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </React.Fragment>
             );
           })}
         </tbody>
         <tfoot>
           <tr className="bg-surface-overlay border-t border-surface-border font-medium shadow-[0_-2px_6px_rgba(0,0,0,0.05)]">
-            <td colSpan={3} className="px-3 py-3 text-right text-carbon-200 sticky left-0 z-20 bg-surface-overlay border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">
+            <td colSpan={3} className={`px-3 py-3 text-right text-carbon-200 sticky left-0 z-20 bg-surface-overlay border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>
               TOTAL GENERAL
             </td>
             {targetWeeks.map((s) => {
@@ -440,6 +585,7 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
         </tfoot>
       </table>
       </div>
+      <FloatingScrollbar scrollRef={scrollRef} isVisible={isVisible} />
     </div>
   );
 }

@@ -5,8 +5,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx-js-style';
-import { Download } from 'lucide-react';
+import { Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FiltrosTabla } from './FiltrosTabla';
+import { useTableScroll } from '@/lib/useTableScroll';
+import { FloatingScrollbar } from '@/lib/FloatingScrollbar';
 
 interface PlantillaRow {
   semanaNumero: number;
@@ -41,6 +43,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
   const qc = useQueryClient();
   const [localCajas, setLocalCajas] = useState<Record<string, string>>({});
   const [viewMode, setViewMode] = useState<'cajas' | 'tallos'>('cajas');
+  const { scrollRef, isScrolled, canScrollRight, isVisible, scrollLeft, scrollRight } = useTableScroll(220);
 
   const { data: rows = [], isLoading } = useQuery<PlantillaRow[]>({
     queryKey: ['plantilla', semanaId],
@@ -227,6 +230,26 @@ export function PlantillaDiaria({ semanaId }: Props) {
             ))}
           </div>
         </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={scrollLeft}
+            disabled={!isScrolled}
+            className="p-1.5 rounded border border-surface-border text-carbon-400 hover:text-carbon-200 hover:bg-surface-overlay disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Scroll left"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={scrollRight}
+            disabled={!canScrollRight}
+            className="p-1.5 rounded border border-surface-border text-carbon-400 hover:text-carbon-200 hover:bg-surface-overlay disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Scroll right"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
         <button
           onClick={handleDownloadExcel}
           className="btn-ghost text-xs py-1.5 px-3 flex items-center gap-2"
@@ -249,13 +272,17 @@ export function PlantillaDiaria({ semanaId }: Props) {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-surface-border">
+      <div
+        ref={scrollRef}
+        className="overflow-x-auto rounded-lg border border-surface-border scrollbar-always"
+        style={{ scrollbarGutter: 'stable' }}
+      >
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-surface-overlay border-b border-surface-border">
               <th className="table-th text-left md:sticky md:left-0 z-20 bg-surface-overlay min-w-[110px]">Producto</th>
               <th className="table-th text-left md:sticky md:left-[110px] z-20 bg-surface-overlay min-w-[110px]">Variedad</th>
-              <th className="table-th text-left md:sticky md:left-[220px] z-20 bg-surface-overlay min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">Color</th>
+              <th className={`table-th text-left md:sticky md:left-[220px] z-20 bg-surface-overlay min-w-[100px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>Color</th>
               {DIA_ORDER.map(d => (
                 <th key={d} className="table-th text-center">
                   <div>{d}</div>
@@ -272,7 +299,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
                 <tr key={group.colorId} className={`table-row-hover border-b border-surface-border/30`}>
                   <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap md:sticky md:left-0 z-10 bg-white min-w-[110px]">{group.producto}</td>
                   <td className="px-3 py-2.5 text-carbon-50 whitespace-nowrap md:sticky md:left-[110px] z-10 bg-white min-w-[110px]">{group.variedad}</td>
-                  <td className="px-3 py-2.5 text-carbon-50 font-semibold whitespace-nowrap md:sticky md:left-[220px] z-10 bg-white min-w-[100px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">{group.color}</td>
+                  <td className={`px-3 py-2.5 text-carbon-50 font-semibold whitespace-nowrap md:sticky md:left-[220px] z-10 bg-white min-w-[100px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>{group.color}</td>
                   {DIA_ORDER.map(dia => {
                     const r = group.registros[dia];
                     if (!r) {
@@ -312,7 +339,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
           </tbody>
           <tfoot>
             <tr className="bg-surface-overlay border-t-2 border-surface-border">
-              <td colSpan={3} className="px-3 py-2.5 text-right font-bold text-carbon-50 md:sticky md:left-0 z-10 bg-surface-overlay min-w-[320px] border-r border-surface-border shadow-[2px_0_6px_rgba(0,0,0,0.06)]">Total general</td>
+              <td colSpan={3} className={`px-3 py-2.5 text-right font-bold text-carbon-50 md:sticky md:left-0 z-10 bg-surface-overlay min-w-[320px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>Total general</td>
               {DIA_ORDER.map(dia => {
                 let totalColumna = 0;
                 groupedRows.forEach(g => {
@@ -345,6 +372,7 @@ export function PlantillaDiaria({ semanaId }: Props) {
           </tfoot>
         </table>
       </div>
+      <FloatingScrollbar scrollRef={scrollRef} isVisible={isVisible} />
 
     </>
   );

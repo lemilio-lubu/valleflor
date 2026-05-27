@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Download } from 'lucide-react';
+import { Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { useTableScroll } from '@/lib/useTableScroll';
+import { FloatingScrollbar } from '@/lib/FloatingScrollbar';
 
 type DiaKey = 'DOMINGO' | 'LUNES' | 'MARTES' | 'MIERCOLES' | 'JUEVES' | 'VIERNES' | 'SABADO';
 
@@ -86,6 +88,7 @@ function groupByProducto(rows: ConsolidadoDiarioRow[]): ProductGroup[] {
 export function ConsolidadoDiario({ semana, anio }: Props) {
   const [viewMode, setViewMode] = useState<'cajas' | 'tallos'>('cajas');
   const weekDates = semana != null && anio != null ? getWeekDates(semana, anio) : null;
+  const { scrollRef, isScrolled, canScrollRight, isVisible, scrollLeft, scrollRight } = useTableScroll(220);
 
   const { data: rows = [], isLoading } = useQuery<ConsolidadoDiarioRow[]>({
     queryKey: ['consolidado-diario', semana, anio],
@@ -185,6 +188,27 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
           </button>
         </div>
 
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={scrollLeft}
+            disabled={!isScrolled}
+            className="p-1.5 rounded border border-surface-border text-carbon-400 hover:text-carbon-200 hover:bg-surface-overlay disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Scroll left"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={scrollRight}
+            disabled={!canScrollRight}
+            className="p-1.5 rounded border border-surface-border text-carbon-400 hover:text-carbon-200 hover:bg-surface-overlay disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Scroll right"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
         <button
           onClick={handleDownloadExcel}
           className="btn-ghost text-xs py-1.5 px-3 flex items-center gap-2"
@@ -194,13 +218,17 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-surface-border">
+      <div
+        ref={scrollRef}
+        className="overflow-x-auto rounded-lg border border-surface-border scrollbar-always"
+        style={{ scrollbarGutter: 'stable' }}
+      >
         <table className="min-w-max w-full text-xs">
           <thead>
             <tr className="bg-surface-overlay border-b border-surface-border">
               <th className="table-th md:sticky md:left-0 z-20 bg-surface-overlay min-w-[130px]">Producto</th>
               <th className="table-th md:sticky md:left-[130px] z-20 bg-surface-overlay min-w-[120px]">Variedad</th>
-              <th className="table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[110px]">Color</th>
+              <th className={`table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>Color</th>
               {DIAS.map((d) => (
                 <th key={d} className="table-th text-center min-w-[72px]">
                   <div className="flex flex-col items-center gap-0.5">
@@ -264,7 +292,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
                           {/* Producto vacío porque ya aparece en el encabezado del grupo */}
                         </td>
                         <td className="px-3 py-2 text-carbon-200 whitespace-nowrap md:sticky md:left-[130px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
-                        <td className="px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[110px]">{row.color}</td>
+                        <td className={`px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>{row.color}</td>
                         {DIAS.map((d) => {
                           const v = row.dias[d];
                           const val = v ? (isCajas ? v.cajas : v.tallos) : null;
@@ -292,7 +320,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
             <tr className="border-t-2 border-surface-border bg-surface-overlay">
               <td
                 colSpan={3}
-                className="px-3 py-2.5 text-xs font-semibold text-carbon-200 uppercase tracking-wide md:sticky md:left-0 z-10 bg-surface-overlay"
+                className={`px-3 py-2.5 text-xs font-semibold text-carbon-200 uppercase tracking-wide md:sticky md:left-0 z-10 bg-surface-overlay border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}
               >
                 Total general
               </td>
@@ -317,6 +345,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
           </tfoot>
         </table>
       </div>
+      <FloatingScrollbar scrollRef={scrollRef} isVisible={isVisible} />
     </div>
   );
 }
