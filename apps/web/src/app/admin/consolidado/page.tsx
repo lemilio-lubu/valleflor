@@ -2,8 +2,15 @@
 
 import { useState } from 'react';
 import { Filter, X } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 import { ConsolidadoDiario } from './components/ConsolidadoDiario';
 import { ConsolidadoSemanal } from './components/ConsolidadoSemanal';
+
+interface Finca {
+  id: string;
+  nombre: string;
+}
 
 function getCurrentWeekAndYear(): { semana: number; anio: number } {
   const now = new Date();
@@ -24,43 +31,58 @@ export default function ConsolidadoPage() {
   // ── Filtros Diario ──────────────────────────────────────────────────────────
   const [semana, setSemana] = useState<number | ''>(defaults.semana);
   const [anio, setAnio] = useState<number | ''>(defaults.anio);
+  const [fincaIdDiario, setFincaIdDiario] = useState<string>('');
 
   // ── Filtros Semanal ─────────────────────────────────────────────────────────
   const [semanaInicio, setSemanaInicio] = useState<number | ''>(defaults.semana);
   const [semanaFin, setSemanaFin] = useState<number | ''>(defaults.semana);
   const [anioSemanal, setAnioSemanal] = useState<number | ''>(defaults.anio);
+  const [fincaIdSemanal, setFincaIdSemanal] = useState<string>('');
+
+  // ── Fincas ──────────────────────────────────────────────────────────────────
+  const { data: fincas = [] } = useQuery<Finca[]>({
+    queryKey: ['fincas'],
+    queryFn: () => api.get('/fincas').then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleResetDiario = () => {
     setSemana(defaults.semana);
     setAnio(defaults.anio);
+    setFincaIdDiario('');
   };
 
   const handleResetSemanal = () => {
     setSemanaInicio(defaults.semana);
     setSemanaFin(defaults.semana);
     setAnioSemanal(defaults.anio);
+    setFincaIdSemanal('');
   };
 
   const diarioActivos = [
     semana !== defaults.semana,
     anio !== defaults.anio,
+    fincaIdDiario !== '',
   ].filter(Boolean).length;
 
   const semanalActivos = [
     semanaInicio !== defaults.semana,
     semanaFin !== defaults.semana,
     anioSemanal !== defaults.anio,
+    fincaIdSemanal !== '',
   ].filter(Boolean).length;
 
   const diarioFilters = {
     semana: semana !== '' && semana >= 1 ? semana : undefined,
     anio: anio !== '' && anio >= 2020 ? anio : undefined,
+    fincaId: fincaIdDiario || undefined,
   };
 
   const semanalFilters = {
     semanaInicio: semanaInicio !== '' && semanaInicio >= 1 ? semanaInicio : undefined,
     semanaFin: semanaFin !== '' && semanaFin >= 1 ? semanaFin : undefined,
     anio: anioSemanal !== '' && anioSemanal >= 2020 ? anioSemanal : undefined,
+    fincaId: fincaIdSemanal || undefined,
   };
 
   return (
@@ -147,6 +169,19 @@ export default function ConsolidadoPage() {
                 placeholder="2026"
               />
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-medium text-carbon-400 uppercase tracking-wider">Finca</label>
+              <select
+                className="input-field text-xs w-44"
+                value={fincaIdDiario}
+                onChange={(e) => setFincaIdDiario(e.target.value)}
+              >
+                <option value="">Todas las fincas</option>
+                {fincas.map((f) => (
+                  <option key={f.id} value={f.id}>{f.nombre}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       )}
@@ -210,6 +245,19 @@ export default function ConsolidadoPage() {
                 onChange={(e) => setAnioSemanal(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="2026"
               />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-medium text-carbon-400 uppercase tracking-wider">Finca</label>
+              <select
+                className="input-field text-xs w-44"
+                value={fincaIdSemanal}
+                onChange={(e) => setFincaIdSemanal(e.target.value)}
+              >
+                <option value="">Todas las fincas</option>
+                {fincas.map((f) => (
+                  <option key={f.id} value={f.id}>{f.nombre}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

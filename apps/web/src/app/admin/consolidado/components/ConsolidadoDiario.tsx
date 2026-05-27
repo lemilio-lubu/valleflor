@@ -58,6 +58,7 @@ interface DiaData {
 }
 
 interface ConsolidadoDiarioRow {
+  finca: string;
   producto: string;
   variedad: string;
   color: string;
@@ -74,6 +75,7 @@ interface ProductGroup {
 interface Props {
   semana?: number;
   anio?: number;
+  fincaId?: string;
 }
 
 function groupByProducto(rows: ConsolidadoDiarioRow[]): ProductGroup[] {
@@ -85,16 +87,16 @@ function groupByProducto(rows: ConsolidadoDiarioRow[]): ProductGroup[] {
   return Array.from(map.entries()).map(([producto, rows]) => ({ producto, rows }));
 }
 
-export function ConsolidadoDiario({ semana, anio }: Props) {
+export function ConsolidadoDiario({ semana, anio, fincaId }: Props) {
   const [viewMode, setViewMode] = useState<'cajas' | 'tallos'>('cajas');
   const weekDates = semana != null && anio != null ? getWeekDates(semana, anio) : null;
   const { scrollRef, isScrolled, canScrollRight, isVisible, scrollLeft, scrollRight } = useTableScroll(220);
 
   const { data: rows = [], isLoading } = useQuery<ConsolidadoDiarioRow[]>({
-    queryKey: ['consolidado-diario', semana, anio],
+    queryKey: ['consolidado-diario', semana, anio, fincaId],
     queryFn: () =>
       api
-        .get('/consolidado/diario', { params: { semana, anio } })
+        .get('/consolidado/diario', { params: { semana, anio, fincaId } })
         .then((r) => r.data),
   });
 
@@ -111,6 +113,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
   const handleDownloadExcel = () => {
     const isCajas = viewMode === 'cajas';
     const headers = [
+      'Finca',
       'Producto',
       'Variedad',
       'Color',
@@ -122,6 +125,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
       isCajas ? 'Total Cajas' : 'Total Tallos',
     ];
     const data = rows.map((r) => [
+      r.finca,
       r.producto,
       r.variedad,
       r.color,
@@ -226,9 +230,10 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
         <table className="min-w-max w-full text-xs">
           <thead>
             <tr className="bg-surface-overlay border-b border-surface-border">
-              <th className="table-th md:sticky md:left-0 z-20 bg-surface-overlay min-w-[130px]">Producto</th>
-              <th className="table-th md:sticky md:left-[130px] z-20 bg-surface-overlay min-w-[120px]">Variedad</th>
-              <th className={`table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>Color</th>
+              <th className="table-th md:sticky md:left-0 z-20 bg-surface-overlay min-w-[120px]">Finca</th>
+              <th className="table-th md:sticky md:left-[120px] z-20 bg-surface-overlay min-w-[130px]">Producto</th>
+              <th className="table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[120px]">Variedad</th>
+              <th className={`table-th md:sticky md:left-[370px] z-20 bg-surface-overlay min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>Color</th>
               {DIAS.map((d) => (
                 <th key={d} className="table-th text-center min-w-[72px]">
                   <div className="flex flex-col items-center gap-0.5">
@@ -260,7 +265,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
                     className="bg-surface-overlay border-t border-surface-border"
                   >
                     <td
-                      colSpan={3}
+                      colSpan={4}
                       className="px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay"
                     >
                       <span className="text-[11px] font-bold uppercase tracking-widest text-verde-400">
@@ -283,16 +288,17 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
                     const sinDatos = Object.keys(row.dias).length === 0;
                     return (
                       <tr
-                        key={`${row.producto}-${row.variedad}-${row.color}`}
+                        key={`${row.finca}-${row.producto}-${row.variedad}-${row.color}`}
                         className={`table-row-hover border-b border-surface-border/20 transition-opacity ${
                           sinDatos ? 'opacity-40' : ''
                         } ${i % 2 === 0 ? '' : 'bg-surface-overlay/10'}`}
                       >
-                        <td className="px-3 py-2 text-carbon-400 whitespace-nowrap text-[11px] md:sticky md:left-0 z-10 bg-white min-w-[130px]">
+                        <td className="px-3 py-2 text-carbon-300 whitespace-nowrap text-[11px] md:sticky md:left-0 z-10 bg-white min-w-[120px]">{row.finca}</td>
+                        <td className="px-3 py-2 text-carbon-400 whitespace-nowrap text-[11px] md:sticky md:left-[120px] z-10 bg-white min-w-[130px]">
                           {/* Producto vacío porque ya aparece en el encabezado del grupo */}
                         </td>
-                        <td className="px-3 py-2 text-carbon-200 whitespace-nowrap md:sticky md:left-[130px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
-                        <td className={`px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>{row.color}</td>
+                        <td className="px-3 py-2 text-carbon-200 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
+                        <td className={`px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[370px] z-10 bg-white min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>{row.color}</td>
                         {DIAS.map((d) => {
                           const v = row.dias[d];
                           const val = v ? (isCajas ? v.cajas : v.tallos) : null;
@@ -319,7 +325,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
           <tfoot>
             <tr className="border-t-2 border-surface-border bg-surface-overlay">
               <td
-                colSpan={3}
+                colSpan={4}
                 className={`px-3 py-2.5 text-xs font-semibold text-carbon-200 uppercase tracking-wide md:sticky md:left-0 z-10 bg-surface-overlay border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}
               >
                 Total general

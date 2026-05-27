@@ -19,7 +19,10 @@ export class BaseSemanal {
   @Column({ name: 'color_id' })
   colorId: string;
 
-  @ManyToOne(() => Color, (color) => color.baseSemanal, { nullable: false })
+  @ManyToOne(() => Color, (color) => color.baseSemanal, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'color_id' })
   color: Color;
 

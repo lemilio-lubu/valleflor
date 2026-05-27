@@ -35,7 +35,10 @@ export class RegistroDiario {
   @Column({ name: 'color_id' })
   colorId: string;
 
-  @ManyToOne(() => Color, (color) => color.registros, { nullable: false })
+  @ManyToOne(() => Color, (color) => color.registros, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'color_id' })
   color: Color;
 
