@@ -17,6 +17,8 @@ interface FlatRow {
   producto: string;
   variedad: string;
   color: string;
+  codigo: string | null;
+  nombreOriginal: string | null;
   numeroSemana: number;
   cajasEstimadas: number;
   tallosEstimados: number;
@@ -36,6 +38,8 @@ interface PivotRow {
   producto: string;
   variedad: string;
   color: string;
+  codigo: string | null;
+  nombreOriginal: string | null;
   semanas: Record<number, SemanaData>;
   totalCajasEstimadas: number;
   totalTallosEstimados: number;
@@ -69,6 +73,8 @@ function pivotRows(flat: FlatRow[]): PivotRow[] {
         producto: row.producto,
         variedad: row.variedad,
         color: row.color,
+        codigo: row.codigo,
+        nombreOriginal: row.nombreOriginal,
         semanas: {},
         totalCajasEstimadas: 0,
         totalTallosEstimados: 0,
@@ -165,12 +171,12 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio, fincaId }: P
   const handleDownloadExcel = () => {
     const unit = isCajas ? 'Cajas' : 'Tallos';
     const headers = [
-      'Finca', 'Producto', 'Variedad', 'Color',
+      'Finca', 'Código', 'Producto', 'Nombre Original', 'Variedad', 'Color',
       ...weekCols.flatMap((w) => [`S${w} ${unit} Est.`, `S${w} ${unit} Real`]),
       `Total ${unit} Est.`, `Total ${unit} Real`,
     ];
     const data = allRows.map((r) => [
-      r.finca, r.producto, r.variedad, r.color,
+      r.finca, r.codigo || '', r.producto, r.nombreOriginal || '', r.variedad, r.color,
       ...weekCols.flatMap((w) => {
         const s = r.semanas[w];
         if (!s) return [0, 0];
@@ -285,6 +291,8 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio, fincaId }: P
               <th className="table-th md:sticky md:left-[120px] z-20 bg-surface-overlay min-w-[130px]" rowSpan={2}>Producto</th>
               <th className="table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[120px]" rowSpan={2}>Variedad</th>
               <th className={`table-th md:sticky md:left-[370px] z-20 bg-surface-overlay min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`} rowSpan={2}>Color</th>
+              <th className="table-th min-w-[90px] border-r border-surface-border/40 text-carbon-200" rowSpan={2}>Código</th>
+              <th className="table-th min-w-[150px] border-r border-surface-border/40 text-carbon-200" rowSpan={2}>Nombre Original</th>
               {weekCols.map((w) => (
                 <th
                   key={w}
@@ -339,7 +347,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio, fincaId }: P
                   {/* Encabezado de grupo — Producto */}
                   <tr className="bg-surface-overlay border-t border-surface-border">
                     <td
-                      colSpan={4}
+                      colSpan={6}
                       className="px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay"
                     >
                       <span className="text-[11px] font-bold uppercase tracking-widest text-verde-400">
@@ -372,6 +380,8 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio, fincaId }: P
                         <td className="px-3 py-2 text-carbon-700 whitespace-nowrap text-[11px] md:sticky md:left-[120px] z-10 bg-white min-w-[130px]" />
                         <td className="px-3 py-2 text-carbon-200 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
                         <td className={`px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[370px] z-10 bg-white min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>{row.color}</td>
+                        <td className="px-3 py-2 text-carbon-300 font-mono text-[11px] whitespace-nowrap border-r border-surface-border/20">{row.codigo || <span className="text-carbon-600">—</span>}</td>
+                        <td className="px-3 py-2 text-carbon-300 text-[11px] whitespace-nowrap italic border-r border-surface-border/20">{row.nombreOriginal || <span className="text-carbon-600">—</span>}</td>
                         {weekCols.map((w) => {
                           const s = row.semanas[w];
                           const est = s ? (isCajas ? s.cajasEstimadas : s.tallosEstimados) : null;
@@ -405,7 +415,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio, fincaId }: P
           <tfoot>
             <tr className="border-t-2 border-surface-border bg-surface-overlay">
               <td
-                colSpan={4}
+                colSpan={6}
                 className={`px-3 py-2.5 text-xs font-semibold text-carbon-200 uppercase tracking-wide md:sticky md:left-0 z-10 bg-surface-overlay border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}
               >
                 Total general

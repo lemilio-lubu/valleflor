@@ -14,6 +14,8 @@ export interface ConsolidadoDiarioRow {
   producto: string;
   variedad: string;
   color: string;
+  codigo: string | null;
+  nombreOriginal: string | null;
   dias: Partial<Record<DiaSemana, DiaData>>;
   totalCajas: number;
   totalTallos: number;
@@ -25,6 +27,8 @@ export interface ConsolidadoSemanalRow {
   producto: string;
   variedad: string;
   color: string;
+  codigo: string | null;
+  nombreOriginal: string | null;
   numeroSemana: number;
   cajasEstimadas: number;
   tallosEstimados: number;
@@ -56,6 +60,8 @@ export class ConsolidadoService {
       producto: string;
       variedad: string;
       color: string;
+      codigo: string | null;
+      nombre_original: string | null;
       dia: string | null;
       cajas: string;
       tallos: string;
@@ -68,6 +74,8 @@ export class ConsolidadoService {
         p.nombre  AS producto,
         v.nombre  AS variedad,
         c.nombre  AS color,
+        c.codigo  AS codigo,
+        c.nombre_original AS nombre_original,
         rd.dia    AS dia,
         COALESCE(SUM(rd.cajas), 0)  AS cajas,
         COALESCE(SUM(rd.tallos), 0) AS tallos
@@ -80,7 +88,7 @@ export class ConsolidadoService {
         AND ($1::int IS NULL OR s.numero_semana = $1::int)
         AND ($2::int IS NULL OR s.anio           = $2::int)
       WHERE ($3::uuid IS NULL OR p.finca_id = $3::uuid)
-      GROUP BY f.nombre, p.nombre, v.nombre, c.nombre, rd.dia
+      GROUP BY f.nombre, p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_original, rd.dia
       ORDER BY f.nombre, p.nombre, v.nombre, c.nombre
       `,
       [semana ?? null, anio ?? null, fincaId ?? null],
@@ -95,6 +103,8 @@ export class ConsolidadoService {
           producto: row.producto,
           variedad: row.variedad,
           color: row.color,
+          codigo: row.codigo,
+          nombreOriginal: row.nombre_original,
           dias: {},
           totalCajas: 0,
           totalTallos: 0,
@@ -131,6 +141,8 @@ export class ConsolidadoService {
       producto: string;
       variedad: string;
       color: string;
+      codigo: string | null;
+      nombre_original: string | null;
       numero_semana: string | null;
       cajas_estimadas: string;
       tallos_estimados: string;
@@ -145,6 +157,8 @@ export class ConsolidadoService {
         p.nombre AS producto,
         v.nombre AS variedad,
         c.nombre AS color,
+        c.codigo AS codigo,
+        c.nombre_original AS nombre_original,
         bs.numero_semana,
         COALESCE(SUM(bs.cajas_estimadas), 0)  AS cajas_estimadas,
         COALESCE(SUM(bs.tallos_estimados), 0) AS tallos_estimados,
@@ -159,7 +173,7 @@ export class ConsolidadoService {
         AND ($2::int IS NULL OR bs.numero_semana <= $2::int)
         AND ($3::int IS NULL OR bs.anio           = $3::int)
       WHERE ($4::uuid IS NULL OR p.finca_id = $4::uuid)
-      GROUP BY f.nombre, p.nombre, v.nombre, c.nombre, bs.numero_semana
+      GROUP BY f.nombre, p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_original, bs.numero_semana
       ORDER BY f.nombre, p.nombre, v.nombre, c.nombre, bs.numero_semana
       `,
       [semanaInicio ?? null, semanaFin ?? null, anio ?? null, fincaId ?? null],
@@ -174,6 +188,8 @@ export class ConsolidadoService {
       producto: row.producto,
       variedad: row.variedad,
       color: row.color,
+      codigo: row.codigo,
+      nombreOriginal: row.nombre_original,
       numeroSemana: row.numero_semana !== null ? Number(row.numero_semana) : 0,
       cajasEstimadas: Math.round(Number(row.cajas_estimadas) * 100) / 100,
       tallosEstimados: Math.round(Number(row.tallos_estimados) * 100) / 100,
