@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Pencil, Trash2, Check, X, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, PowerOff, Check, X, ChevronRight, Hash, Tag } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 
 interface Producto { id: string; nombre: string; }
 interface Variedad { id: string; nombre: string; productoId: string; }
-interface Color { id: string; nombre: string; variedadId: string; }
+interface Color { id: string; nombre: string; variedadId: string; codigo: string | null; nombreOriginal: string | null; }
 type ConfirmItem = { type: 'producto' | 'variedad' | 'color'; item: Producto | Variedad | Color };
 
 // ─── Inline input ──────────────────────────────────────────────────────────
@@ -36,13 +36,52 @@ function InlineInput({ placeholder, initialValue = '', onSave, onCancel, isPendi
   );
 }
 
+// ─── Color code/name editor ─────────────────────────────────────────────────
+function ColorMetaEditor({ color, onSave, onCancel, isPending }: {
+  color: Color;
+  onSave: (codigo: string, nombreOriginal: string) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  const [codigo, setCodigo] = useState(color.codigo ?? '');
+  const [nombreOriginal, setNombreOriginal] = useState(color.nombreOriginal ?? '');
+  return (
+    <form
+      onSubmit={(e) => { e.preventDefault(); onSave(codigo.trim(), nombreOriginal.trim()); }}
+      onClick={(e) => e.stopPropagation()}
+      className="flex flex-col gap-1.5 py-1"
+    >
+      <div className="flex items-center gap-1.5">
+        <Hash className="w-3 h-3 text-carbon-400 flex-shrink-0" />
+        <input
+          autoFocus
+          className="input-field text-xs py-1 h-6 w-24"
+          placeholder="Código"
+          value={codigo}
+          onChange={(e) => setCodigo(e.target.value)}
+        />
+        <Tag className="w-3 h-3 text-carbon-400 flex-shrink-0" />
+        <input
+          className="input-field text-xs py-1 h-6 flex-1 min-w-0"
+          placeholder="Nombre original"
+          value={nombreOriginal}
+          onChange={(e) => setNombreOriginal(e.target.value)}
+        />
+        <button type="submit" disabled={isPending}
+          className="w-6 h-6 rounded bg-verde-600 hover:bg-verde-700 flex items-center justify-center flex-shrink-0 disabled:opacity-50">
+          <Check className="w-3 h-3 text-white" />
+        </button>
+        <button type="button" onClick={onCancel}
+          className="w-6 h-6 rounded border border-surface-border hover:bg-surface-overlay flex items-center justify-center flex-shrink-0">
+          <X className="w-3 h-3 text-carbon-400" />
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // ─── Column ────────────────────────────────────────────────────────────────
-function Column<T extends { id: string; nombre: string }>({
-  title, subtitle, items, isLoading, selectedId, onSelect,
-  onAdd, onEdit, onDelete, addingNew, editingId, addPlaceholder,
-  onSaveNew, onCancelNew, onSaveEdit, onCancelEdit,
-  isSavingNew, isSavingEdit, emptyText, hasArrow = false,
-}: {
+function Column<T extends { id: string; nombre: string }>(props: {
   title: string; subtitle?: string; items: T[]; isLoading?: boolean;
   selectedId: string | null; onSelect: (item: T) => void;
   onAdd: () => void; onEdit: (item: T) => void; onDelete: (item: T) => void;
@@ -50,7 +89,14 @@ function Column<T extends { id: string; nombre: string }>({
   onSaveNew: (n: string) => void; onCancelNew: () => void;
   onSaveEdit: (n: string) => void; onCancelEdit: () => void;
   isSavingNew: boolean; isSavingEdit: boolean; emptyText: string; hasArrow?: boolean;
+  renderExtra?: (item: T) => React.ReactNode;
 }) {
+  const {
+    title, subtitle, items, isLoading, selectedId, onSelect,
+    onAdd, onEdit, onDelete, addingNew, editingId, addPlaceholder,
+    onSaveNew, onCancelNew, onSaveEdit, onCancelEdit,
+    isSavingNew, isSavingEdit, emptyText, hasArrow = false, renderExtra,
+  } = props;
   return (
     <div className="flex flex-col h-full border border-surface-border rounded-xl overflow-hidden bg-surface-raised">
       {/* Header */}
@@ -85,34 +131,39 @@ function Column<T extends { id: string; nombre: string }>({
           const isEditing = editingId === item.id;
           return (
             <div key={item.id} onClick={() => !isEditing && onSelect(item)}
-              className={`group flex items-center gap-2 px-3 py-2.5 cursor-pointer border-b border-surface-border/30 last:border-0 transition-all border-l-2 ${
+              className={`group flex flex-col px-3 py-2 cursor-pointer border-b border-surface-border/30 last:border-0 transition-all border-l-2 ${
                 isSelected ? 'bg-verde-50 border-l-verde-600' : 'hover:bg-surface-overlay/50 border-l-transparent'
               }`}>
-              {isEditing ? (
-                <div className="flex-1 min-w-0">
-                  <InlineInput initialValue={item.nombre} placeholder={addPlaceholder}
-                    onSave={onSaveEdit} onCancel={onCancelEdit} isPending={isSavingEdit} />
-                </div>
-              ) : (
-                <>
-                  <span className={`flex-1 text-sm truncate ${isSelected ? 'text-verde-700 font-medium' : 'text-carbon-50'}`}>
-                    {item.nombre}
-                  </span>
-                  <div className={`flex items-center gap-0.5 flex-shrink-0 transition-opacity ${isSelected || true ? '' : ''} opacity-0 group-hover:opacity-100`}>
-                    <button onClick={(e) => { e.stopPropagation(); onEdit(item); }}
-                      className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-verde-600 hover:bg-verde-50 transition-colors">
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(item); }}
-                      className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+              <div className="flex items-center gap-2">
+                {isEditing ? (
+                  <div className="flex-1 min-w-0">
+                    <InlineInput initialValue={item.nombre} placeholder={addPlaceholder}
+                      onSave={onSaveEdit} onCancel={onCancelEdit} isPending={isSavingEdit} />
                   </div>
-                  {hasArrow && isSelected && (
-                    <ChevronRight className="w-3.5 h-3.5 text-verde-500 flex-shrink-0" />
-                  )}
-                </>
-              )}
+                ) : (
+                  <>
+                    <span className={`flex-1 text-sm truncate ${isSelected ? 'text-verde-700 font-medium' : 'text-carbon-50'}`}>
+                      {item.nombre}
+                    </span>
+                    <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+                        className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-verde-600 hover:bg-verde-50 transition-colors">
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); onDelete(item); }}
+                        className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        title="Dar de baja">
+                        <PowerOff className="w-3 h-3" />
+                      </button>
+                    </div>
+                    {hasArrow && isSelected && (
+                      <ChevronRight className="w-3.5 h-3.5 text-verde-500 flex-shrink-0" />
+                    )}
+                  </>
+                )}
+              </div>
+              {/* Extra content below the name row */}
+              {!isEditing && renderExtra && renderExtra(item)}
             </div>
           );
         })}
@@ -147,12 +198,12 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
   const [editingVariedad, setEditingVariedad] = useState<Variedad | null>(null);
   const [addingColor, setAddingColor] = useState(false);
   const [editingColor, setEditingColor] = useState<Color | null>(null);
+  const [editingColorMeta, setEditingColorMeta] = useState<Color | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ConfirmItem | null>(null);
 
   const showCol2 = !!selectedProducto;
   const showCol3 = !!selectedVariedad;
 
-  // Widths: descontar separadores (24px c/u) del ancho total de columnas
   const col1W = showCol3 ? 'calc(33.33% - 16px)' : showCol2 ? 'calc(50% - 12px)' : '100%';
   const col2W = showCol3 ? 'calc(33.33% - 16px)' : showCol2 ? 'calc(50% - 12px)' : '0%';
   const col3W = showCol3 ? 'calc(33.33% - 16px)' : '0%';
@@ -189,7 +240,7 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     mutationFn: (id: string) => api.delete(`/productos/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['productos', fincaId] });
-      toast.success(`Producto "${confirmDelete?.item.nombre}" eliminado`);
+      toast.success(`Producto "${confirmDelete?.item.nombre}" dado de baja`);
       if (selectedProducto?.id === confirmDelete?.item.id) { setSelectedProducto(null); setSelectedVariedad(null); }
       setConfirmDelete(null);
     },
@@ -212,7 +263,7 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     mutationFn: (id: string) => api.delete(`/variedades/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['variedades', selectedProducto?.id] });
-      toast.success(`Variedad "${confirmDelete?.item.nombre}" eliminada`);
+      toast.success(`Variedad "${confirmDelete?.item.nombre}" dada de baja`);
       if (selectedVariedad?.id === confirmDelete?.item.id) setSelectedVariedad(null);
       setConfirmDelete(null);
     },
@@ -230,11 +281,21 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al guardar'),
   });
+  const saveColorMeta = useMutation({
+    mutationFn: ({ id, codigo, nombreOriginal }: { id: string; codigo: string; nombreOriginal: string }) =>
+      api.patch(`/colores/${id}`, { codigo: codigo || null, nombreOriginal: nombreOriginal || null }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['colores', selectedVariedad?.id] });
+      toast.success('Código y nombre actualizados');
+      setEditingColorMeta(null);
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al guardar'),
+  });
   const removeColor = useMutation({
     mutationFn: (id: string) => api.delete(`/colores/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['colores', selectedVariedad?.id] });
-      toast.success(`Color "${confirmDelete?.item.nombre}" eliminado`);
+      toast.success(`Color "${confirmDelete?.item.nombre}" dado de baja`);
       setConfirmDelete(null);
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'No se puede eliminar'),
@@ -249,7 +310,7 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
 
   return (
     <>
-      <div className="flex gap-0 overflow-hidden" style={{ height: '420px' }}>
+      <div className="flex gap-0 overflow-hidden" style={{ height: '460px' }}>
 
         {/* Columna 1 — Productos */}
         <div style={{ width: col1W, transition: 'width 0.25s ease', overflow: 'hidden' }}
@@ -291,7 +352,7 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
               subtitle={selectedProducto ? `de ${selectedProducto.nombre}` : undefined}
               items={selectedProducto ? variedades : []} isLoading={!!selectedProducto && loadingVariedades}
               selectedId={selectedVariedad?.id ?? null}
-              onSelect={(v) => { setSelectedVariedad(v as Variedad); setAddingColor(false); setEditingColor(null); }}
+              onSelect={(v) => { setSelectedVariedad(v as Variedad); setAddingColor(false); setEditingColor(null); setEditingColorMeta(null); }}
               onAdd={() => { setEditingVariedad(null); setAddingVariedad(true); }}
               onEdit={(v) => { setEditingVariedad(v as Variedad); setAddingVariedad(false); }}
               onDelete={(v) => setConfirmDelete({ type: 'variedad', item: v })}
@@ -320,12 +381,12 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
           width: col3W, transition: 'width 0.25s ease, opacity 0.2s ease',
           opacity: showCol3 ? 1 : 0, overflow: 'hidden', flexShrink: 0,
         }} className="h-full">
-          <Column title="Colores"
+          <Column<Color> title="Colores"
             subtitle={selectedVariedad ? `de ${selectedVariedad.nombre}` : undefined}
             items={selectedVariedad ? colores : []} isLoading={!!selectedVariedad && loadingColores}
             selectedId={null} onSelect={() => {}}
-            onAdd={() => { setEditingColor(null); setAddingColor(true); }}
-            onEdit={(c) => { setEditingColor(c as Color); setAddingColor(false); }}
+            onAdd={() => { setEditingColor(null); setAddingColor(true); setEditingColorMeta(null); }}
+            onEdit={(c) => { setEditingColor(c as Color); setAddingColor(false); setEditingColorMeta(null); }}
             onDelete={(c) => setConfirmDelete({ type: 'color', item: c })}
             addingNew={addingColor} editingId={editingColor?.id ?? null}
             addPlaceholder="Ej: ROJO OSCURO"
@@ -333,14 +394,46 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
             onSaveEdit={(n) => saveColor.mutate(n)} onCancelEdit={() => setEditingColor(null)}
             isSavingNew={saveColor.isPending && !editingColor}
             isSavingEdit={saveColor.isPending && !!editingColor}
-            emptyText="Sin colores. Agrega el primero." />
+            emptyText="Sin colores. Agrega el primero."
+            renderExtra={(c) => {
+              const color = c as Color;
+              if (editingColorMeta?.id === color.id) {
+                return (
+                  <ColorMetaEditor
+                    color={color}
+                    onSave={(codigo, nombreOriginal) => saveColorMeta.mutate({ id: color.id, codigo, nombreOriginal })}
+                    onCancel={() => setEditingColorMeta(null)}
+                    isPending={saveColorMeta.isPending}
+                  />
+                );
+              }
+              return (
+                <div
+                  className="flex items-center gap-2 mt-0.5 cursor-pointer group/meta"
+                  onClick={(e) => { e.stopPropagation(); setEditingColorMeta(color); setEditingColor(null); }}
+                  title="Editar código y nombre"
+                >
+                  {color.codigo ? (
+                    <span className="text-[10px] font-mono text-carbon-400 bg-surface-overlay px-1.5 py-0.5 rounded">
+                      {color.codigo}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-carbon-600 italic group-hover/meta:text-carbon-400">+ código</span>
+                  )}
+                  {color.nombreOriginal && (
+                    <span className="text-[10px] text-carbon-500 truncate">{color.nombreOriginal}</span>
+                  )}
+                </div>
+              );
+            }}
+          />
         </div>
 
       </div>
 
       {confirmDelete && (
         <ConfirmModal
-          message={`¿Eliminar ${confirmDelete.type === 'producto' ? 'el producto' : confirmDelete.type === 'variedad' ? 'la variedad' : 'el color'} "${confirmDelete.item.nombre}"?`}
+          message={`¿Dar de baja ${confirmDelete.type === 'producto' ? 'el producto' : confirmDelete.type === 'variedad' ? 'la variedad' : 'el color'} "${confirmDelete.item.nombre}"? Si tiene datos históricos se desactivará; si no, se eliminará permanentemente.`}
           onConfirm={handleDeleteConfirm}
           onCancel={() => setConfirmDelete(null)}
           isPending={removeProducto.isPending || removeVariedad.isPending || removeColor.isPending}

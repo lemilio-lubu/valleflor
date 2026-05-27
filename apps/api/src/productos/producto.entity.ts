@@ -28,6 +28,9 @@ export class Producto {
   @Column({ type: 'varchar', nullable: false })
   nombre: string;
 
+  @Column({ type: 'boolean', default: true })
+  activo: boolean;
+
   @OneToMany(() => Variedad, (variedad) => variedad.producto)
   variedades: Variedad[];
 

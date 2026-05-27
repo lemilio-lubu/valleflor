@@ -7,6 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Color } from './color.entity';
 import { Variedad } from '../variedades/variedad.entity';
+import { BaseSemanal } from '../base-semanal/base-semanal.entity';
+import { RegistroDiario } from '../registros/registro-diario.entity';
 import { CreateColorDto } from './dto/create-color.dto';
 import { UpdateColorDto } from './dto/update-color.dto';
 
@@ -17,13 +19,18 @@ export class ColoresService {
     private readonly colorRepo: Repository<Color>,
     @InjectRepository(Variedad)
     private readonly variedadRepo: Repository<Variedad>,
+    @InjectRepository(BaseSemanal)
+    private readonly baseSemanalRepo: Repository<BaseSemanal>,
+    @InjectRepository(RegistroDiario)
+    private readonly registroRepo: Repository<RegistroDiario>,
   ) {}
 
   async findAll(variedadId?: string): Promise<Color[]> {
     if (variedadId) {
-      return this.colorRepo.find({ where: { variedadId } });
+      return this.colorRepo.find({ where: { variedadId, activo: true } });
     }
     return this.colorRepo.find({
+      where: { activo: true },
       relations: ['variedad', 'variedad.producto', 'variedad.producto.finca'],
       order: {
         variedad: {
@@ -85,6 +92,20 @@ export class ColoresService {
   async remove(id: string): Promise<void> {
     const color = await this.colorRepo.findOne({ where: { id } });
     if (!color) throw new NotFoundException(`Color ${id} no encontrado`);
-    await this.colorRepo.remove(color);
+
+    // Check if there are any related records that would prevent hard delete
+    const hasBase = await this.baseSemanalRepo.count({ where: { colorId: id } });
+    const hasRegistros = hasBase === 0
+      ? await this.registroRepo.count({ where: { colorId: id } })
+      : 1;
+
+    if (hasBase > 0 || hasRegistros > 0) {
+      // Has historical data — soft delete
+      color.activo = false;
+      await this.colorRepo.save(color);
+    } else {
+      // No data — safe to hard delete
+      await this.colorRepo.remove(color);
+    }
   }
 }

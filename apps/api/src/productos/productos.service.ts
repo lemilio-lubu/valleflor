@@ -8,6 +8,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Producto } from './producto.entity';
+import { Variedad } from '../variedades/variedad.entity';
+import { Color } from '../colores/color.entity';
 import { Responsable } from '../responsables/responsable.entity';
 import { UserRole } from '../users/user.entity';
 import { JwtUser } from '../auth/types/jwt-user.type';
@@ -19,6 +21,10 @@ export class ProductosService {
   constructor(
     @InjectRepository(Producto)
     private readonly productoRepo: Repository<Producto>,
+    @InjectRepository(Variedad)
+    private readonly variedadRepo: Repository<Variedad>,
+    @InjectRepository(Color)
+    private readonly colorRepo: Repository<Color>,
     @InjectRepository(Responsable)
     private readonly responsableRepo: Repository<Responsable>,
   ) {}
@@ -40,7 +46,7 @@ export class ProductosService {
         throw new ForbiddenException('No tienes acceso a esta finca');
       }
     }
-    return this.productoRepo.find({ where: { fincaId } });
+    return this.productoRepo.find({ where: { fincaId, activo: true } });
   }
 
   async create(dto: CreateProductoDto, user: JwtUser): Promise<Producto> {
@@ -93,8 +99,29 @@ export class ProductosService {
   }
 
   async remove(id: string): Promise<void> {
-    const producto = await this.productoRepo.findOne({ where: { id } });
+    const producto = await this.productoRepo.findOne({
+      where: { id },
+      relations: ['variedades', 'variedades.colores'],
+    });
     if (!producto) throw new NotFoundException(`Producto ${id} no encontrado`);
-    await this.productoRepo.remove(producto);
+
+    const colores = producto.variedades.flatMap((v) => v.colores ?? []);
+    const hasData = colores.length > 0;
+
+    if (hasData) {
+      // Cascade soft-delete: producto → variedades → colores
+      await this.colorRepo.update(
+        colores.map((c) => c.id),
+        { activo: false },
+      );
+      const variedadIds = producto.variedades.map((v) => v.id);
+      if (variedadIds.length > 0) {
+        await this.variedadRepo.update(variedadIds, { activo: false });
+      }
+      producto.activo = false;
+      await this.productoRepo.save(producto);
+    } else {
+      await this.productoRepo.remove(producto);
+    }
   }
 }

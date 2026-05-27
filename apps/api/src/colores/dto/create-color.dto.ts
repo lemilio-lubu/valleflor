@@ -15,4 +15,14 @@ export class CreateColorDto {
   @Min(1)
   @IsOptional()
   tallosPorCaja?: number;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  codigo?: string | null;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  nombreOriginal?: string | null;
 }

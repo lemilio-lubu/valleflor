@@ -256,7 +256,8 @@ export class BaseSemanalService {
       .innerJoinAndSelect('color.variedad', 'variedad')
       .innerJoinAndSelect('variedad.producto', 'producto')
       .innerJoinAndSelect('producto.finca', 'finca')
-      .where('producto.fincaId = :fincaId', { fincaId });
+      .where('producto.fincaId = :fincaId', { fincaId })
+      .andWhere('color.activo = true');
 
     if (productoIds !== null && productoIds.length > 0) {
       qb = qb.andWhere('variedad.productoId IN (:...productoIds)', { productoIds });
@@ -274,7 +275,8 @@ export class BaseSemanalService {
        JOIN variedades v ON c.variedad_id = v.id
        JOIN productos p ON v.producto_id = p.id
        JOIN fincas f ON p.finca_id = f.id
-       WHERE f.id = $1`;
+       WHERE f.id = $1
+       AND c.activo = true`;
     const params: any[] = [fincaId];
     if (productoIds !== null && productoIds.length > 0) {
       colorQuery += ` AND p.id = ANY($2)`;
@@ -316,6 +318,7 @@ export class BaseSemanalService {
       .innerJoinAndSelect('variedad.producto', 'producto')
       .innerJoinAndSelect('producto.finca', 'finca')
       .where('producto.fincaId = :fincaId', { fincaId })
+      .andWhere('color.activo = true')
       .andWhere('bs.numeroSemana = :numeroSemana', { numeroSemana })
       .andWhere('bs.anio = :anio', { anio });
 

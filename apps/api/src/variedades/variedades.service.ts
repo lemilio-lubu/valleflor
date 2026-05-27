@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Variedad } from './variedad.entity';
 import { Producto } from '../productos/producto.entity';
+import { Color } from '../colores/color.entity';
 import { Responsable } from '../responsables/responsable.entity';
 import { UserRole } from '../users/user.entity';
 import { JwtUser } from '../auth/types/jwt-user.type';
@@ -21,12 +22,14 @@ export class VariedadesService {
     private readonly variedadRepo: Repository<Variedad>,
     @InjectRepository(Producto)
     private readonly productoRepo: Repository<Producto>,
+    @InjectRepository(Color)
+    private readonly colorRepo: Repository<Color>,
     @InjectRepository(Responsable)
     private readonly responsableRepo: Repository<Responsable>,
   ) {}
 
   async findAll(productoId: string): Promise<Variedad[]> {
-    return this.variedadRepo.find({ where: { productoId } });
+    return this.variedadRepo.find({ where: { productoId, activo: true } });
   }
 
   private async verifyProductoAccess(
@@ -95,8 +98,24 @@ export class VariedadesService {
   }
 
   async remove(id: string): Promise<void> {
-    const variedad = await this.variedadRepo.findOne({ where: { id } });
+    const variedad = await this.variedadRepo.findOne({
+      where: { id },
+      relations: ['colores'],
+    });
     if (!variedad) throw new NotFoundException(`Variedad ${id} no encontrada`);
-    await this.variedadRepo.remove(variedad);
+
+    const colores = variedad.colores ?? [];
+
+    if (colores.length > 0) {
+      // Cascade soft-delete: variedad → colores
+      await this.colorRepo.update(
+        colores.map((c) => c.id),
+        { activo: false },
+      );
+      variedad.activo = false;
+      await this.variedadRepo.save(variedad);
+    } else {
+      await this.variedadRepo.remove(variedad);
+    }
   }
 }
