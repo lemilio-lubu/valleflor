@@ -83,10 +83,13 @@ export class ConsolidadoService {
       JOIN variedades v ON v.id = c.variedad_id
       JOIN productos  p ON p.id = v.producto_id
       JOIN fincas     f ON f.id = p.finca_id
-      LEFT JOIN registros_diarios rd ON rd.color_id = c.id
-      LEFT JOIN semanas s ON s.id = rd.semana_id
-        AND ($1::int IS NULL OR s.numero_semana = $1::int)
-        AND ($2::int IS NULL OR s.anio           = $2::int)
+      LEFT JOIN (
+        SELECT rd.color_id, rd.dia, rd.cajas, rd.tallos
+        FROM registros_diarios rd
+        JOIN semanas s ON s.id = rd.semana_id
+          AND ($1::int IS NULL OR s.numero_semana = $1::int)
+          AND ($2::int IS NULL OR s.anio           = $2::int)
+      ) rd ON rd.color_id = c.id
       WHERE ($3::uuid IS NULL OR p.finca_id = $3::uuid)
       GROUP BY f.nombre, p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_original, rd.dia
       ORDER BY f.nombre, p.nombre, v.nombre, c.nombre
