@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Download, ChevronLeft, ChevronRight } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { useTableScroll } from '@/lib/useTableScroll';
 import { FloatingScrollbar } from '@/lib/FloatingScrollbar';
 
@@ -168,30 +168,228 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
   // ── Excel ─────────────────────────────────────────────────────────────────
 
   const handleDownloadExcel = () => {
-    const unit = isCajas ? 'Cajas' : 'Tallos';
-    const headers = [
-      'Finca', 'Código', 'Producto', 'Nombre Original', 'Variedad', 'Color',
-      ...weekCols.flatMap((w) => [`S${w} ${unit} Est.`, `S${w} ${unit} Real`]),
-      `Total ${unit} Est.`, `Total ${unit} Real`,
-    ];
-    const data = allRows.map((r) => [
-      r.finca, r.codigo || '', r.producto, r.nombreOriginal || '', r.variedad, r.color,
-      ...weekCols.flatMap((w) => {
-        const s = r.semanas[w];
-        if (!s) return [0, 0];
-        return isCajas
-          ? [s.cajasEstimadas, s.cajasReales]
-          : [s.tallosEstimados, s.tallosReales];
-      }),
-      isCajas ? r.totalCajasEstimadas : r.totalTallosEstimados,
-      isCajas ? r.totalCajasReales : r.totalTallosReales,
-    ]);
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Consolidado Semanal');
-    const rango = semanaInicio
-      ? `sem${semanaInicio}-${semanaInicio + WEEK_COUNT - 1}`
-      : 'sem_all';
+    const COLORS = {
+      VERDE_BG:    '1B3FA0',
+      VERDE_LIGHT: 'E8EDF8',
+      VERDE_TEXT:  '5A7FCC',
+      AGRO_TEXT:   '2E8B3D',
+      AGRO_BG:     'ECFDF3',
+      DORADO_TEXT: 'DC9B04',
+      DORADO_BG:   'FFFBEB',
+      CARBON_DARK: '101828',
+      CARBON_MID:  '475467',
+      SURFACE:     'F2F4F7',
+      WHITE:       'FFFFFF',
+    };
+    const THIN   = { style: 'thin', color: { rgb: 'E4E7EC' } };
+    const BORDER = { top: THIN, bottom: THIN, left: THIN, right: THIN };
+
+    const ahora    = new Date();
+    const fechaStr = ahora.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const horaStr  = ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+    const FIXED     = 6;
+    const totalCols = FIXED + weekCols.length * 2 + 2;
+
+    const buildSheet = (forCajas: boolean) => {
+      const tipo     = forCajas ? 'Cajas' : 'Tallos';
+      const semLabel = semanaInicio != null
+        ? `Semanas ${semanaInicio} – ${semanaInicio + WEEK_COUNT - 1} / ${anio ?? ''}`
+        : `Año ${anio ?? ''}`;
+
+      type RowKind = 'title' | 'subtitle' | 'meta' | 'empty' | 'header1' | 'header2' | 'group' | 'data' | 'grandtotal';
+      const rowKinds: RowKind[] = [];
+      const alternateSet        = new Set<number>();
+      const groupSet            = new Set<number>();
+
+      const h1: (string | number)[] = ['Finca', 'Código', 'Producto', 'Nombre Original', 'Variedad', 'Color'];
+      const h2: (string | number)[] = ['', '', '', '', '', ''];
+      weekCols.forEach((w) => { h1.push(`Sem ${w}`, ''); h2.push('Est.', 'Real'); });
+      h1.push('Total', '');
+      h2.push('Est.', 'Real');
+
+      const aoa: (string | number)[][] = [
+        ['CONSOLIDADO SEMANAL'],
+        [`${semLabel}   |   Vista: ${tipo}`],
+        [`Exportado: ${fechaStr} ${horaStr}`],
+        [],
+        h1,
+        h2,
+      ];
+      rowKinds.push('title', 'subtitle', 'meta', 'empty', 'header1', 'header2');
+
+      for (const group of groups) {
+        const gEst  = group.rows.reduce((s, r) => s + (forCajas ? r.totalCajasEstimadas : r.totalTallosEstimados), 0);
+        const gReal = group.rows.reduce((s, r) => s + (forCajas ? r.totalCajasReales    : r.totalTallosReales),    0);
+        const gRow  = new Array<string | number>(totalCols).fill('');
+        gRow[0]            = group.producto.toUpperCase();
+        gRow[totalCols - 2] = `Est: ${gEst.toFixed(2)}`;
+        gRow[totalCols - 1] = `Real: ${gReal.toFixed(2)}`;
+        aoa.push(gRow);
+        groupSet.add(aoa.length - 1);
+        rowKinds.push('group');
+
+        group.rows.forEach((r, i) => {
+          const row: (string | number)[] = [
+            r.finca, r.codigo || '—', r.producto, r.nombreOriginal || '—', r.variedad, r.color,
+          ];
+          weekCols.forEach((w) => {
+            const s = r.semanas[w];
+            row.push(s ? (forCajas ? s.cajasEstimadas  : s.tallosEstimados) : 0);
+            row.push(s ? (forCajas ? s.cajasReales      : s.tallosReales)    : 0);
+          });
+          row.push(forCajas ? r.totalCajasEstimadas  : r.totalTallosEstimados);
+          row.push(forCajas ? r.totalCajasReales      : r.totalTallosReales);
+          aoa.push(row);
+          if (i % 2 !== 0) alternateSet.add(aoa.length - 1);
+          rowKinds.push('data');
+        });
+      }
+
+      const gtRow = new Array<string | number>(totalCols).fill('');
+      gtRow[0] = 'TOTAL GENERAL';
+      weekCols.forEach((w, wi) => {
+        const ct = colTotals[w];
+        gtRow[FIXED + wi * 2]     = forCajas ? ct.cajasEstimadas  : ct.tallosEstimados;
+        gtRow[FIXED + wi * 2 + 1] = forCajas ? ct.cajasReales      : ct.tallosReales;
+      });
+      gtRow[totalCols - 2] = forCajas ? grandTotal.cajasEst  : grandTotal.tallosEst;
+      gtRow[totalCols - 1] = forCajas ? grandTotal.cajasReal  : grandTotal.tallosReal;
+      aoa.push(gtRow);
+      rowKinds.push('grandtotal');
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      ws['!cols'] = [
+        { wch: 22 }, { wch: 12 }, { wch: 22 }, { wch: 24 }, { wch: 20 }, { wch: 14 },
+        ...weekCols.flatMap(() => [{ wch: 11 }, { wch: 11 }]),
+        { wch: 12 }, { wch: 12 },
+      ];
+      ws['!rows'] = aoa.map((_, i) => {
+        if (i === 0) return { hpt: 28 };
+        if (i === 4 || i === 5) return { hpt: 20 };
+        return { hpt: 17 };
+      });
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: totalCols - 1 } },
+        { s: { r: 4, c: 0 }, e: { r: 5, c: 0 } },
+        { s: { r: 4, c: 1 }, e: { r: 5, c: 1 } },
+        { s: { r: 4, c: 2 }, e: { r: 5, c: 2 } },
+        { s: { r: 4, c: 3 }, e: { r: 5, c: 3 } },
+        { s: { r: 4, c: 4 }, e: { r: 5, c: 4 } },
+        { s: { r: 4, c: 5 }, e: { r: 5, c: 5 } },
+        { s: { r: 4, c: FIXED + weekCols.length * 2 }, e: { r: 4, c: totalCols - 1 } },
+        { s: { r: aoa.length - 1, c: 0 }, e: { r: aoa.length - 1, c: FIXED - 1 } },
+      ];
+      weekCols.forEach((_, wi) => {
+        ws['!merges']!.push({
+          s: { r: 4, c: FIXED + wi * 2 },
+          e: { r: 4, c: FIXED + wi * 2 + 1 },
+        });
+      });
+      for (const gIdx of groupSet) {
+        ws['!merges']!.push({ s: { r: gIdx, c: 0 }, e: { r: gIdx, c: FIXED - 1 } });
+      }
+
+      for (let R = 0; R < aoa.length; R++) {
+        for (let col = 0; col < totalCols; col++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: col });
+          if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+          const cell        = ws[addr];
+          const kind        = rowKinds[R];
+          const isDataCol   = col >= FIXED;
+          const offset      = col - FIXED;
+          const wkCount     = weekCols.length;
+          const isEstCol    = isDataCol && offset < wkCount * 2 && offset % 2 === 0;
+          const isTotalEst  = col === totalCols - 2;
+          const isTotalReal = col === totalCols - 1;
+          const isAlt       = alternateSet.has(R);
+
+          if (kind === 'title') {
+            cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.VERDE_BG } },
+              font: { color: { rgb: COLORS.WHITE }, bold: true, sz: 14 },
+              alignment: { horizontal: 'center', vertical: 'center' } };
+          } else if (kind === 'subtitle') {
+            cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.VERDE_LIGHT } },
+              font: { color: { rgb: COLORS.CARBON_DARK }, bold: true, sz: 10 },
+              alignment: { horizontal: 'center', vertical: 'center' } };
+          } else if (kind === 'meta') {
+            cell.s = { font: { color: { rgb: COLORS.CARBON_MID }, sz: 9, italic: true },
+              alignment: { horizontal: 'center', vertical: 'center' } };
+          } else if (kind === 'header1') {
+            cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.VERDE_BG } },
+              font: { color: { rgb: COLORS.WHITE }, bold: true, sz: 9 },
+              alignment: { horizontal: col < FIXED ? 'left' : 'center', vertical: 'center' },
+              border: BORDER };
+          } else if (kind === 'header2') {
+            if (col < FIXED) {
+              cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.VERDE_BG } },
+                font: { color: { rgb: COLORS.WHITE }, bold: true, sz: 9 },
+                border: BORDER };
+            } else if (isEstCol || isTotalEst) {
+              cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.DORADO_BG } },
+                font: { color: { rgb: COLORS.DORADO_TEXT }, bold: true, sz: 9 },
+                alignment: { horizontal: 'center', vertical: 'center' }, border: BORDER };
+            } else {
+              cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.AGRO_BG } },
+                font: { color: { rgb: COLORS.AGRO_TEXT }, bold: true, sz: 9 },
+                alignment: { horizontal: 'center', vertical: 'center' }, border: BORDER };
+            }
+          } else if (kind === 'group') {
+            cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.VERDE_LIGHT } },
+              font: { color: { rgb: col < FIXED ? COLORS.VERDE_BG : COLORS.VERDE_TEXT }, bold: true, sz: 9 },
+              alignment: { horizontal: col < FIXED ? 'left' : 'center', vertical: 'center' },
+              border: BORDER };
+          } else if (kind === 'data') {
+            const bg = isAlt ? COLORS.SURFACE : COLORS.WHITE;
+            if (!isDataCol) {
+              cell.s = { fill: { patternType: 'solid', fgColor: { rgb: bg } },
+                font: { color: { rgb: COLORS.CARBON_DARK }, bold: col === 0 || col === 4 || col === 5, sz: 9 },
+                alignment: { horizontal: 'left', vertical: 'center' }, border: BORDER };
+            } else if (isEstCol || isTotalEst) {
+              cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.DORADO_BG } },
+                font: { color: { rgb: COLORS.DORADO_TEXT }, bold: isTotalEst, sz: 9 },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: BORDER, numFmt: '0.00' };
+              if (typeof cell.v === 'number') cell.z = '0.00';
+            } else {
+              cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.AGRO_BG } },
+                font: { color: { rgb: COLORS.AGRO_TEXT }, bold: isTotalReal, sz: 9 },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: BORDER, numFmt: '0.00' };
+              if (typeof cell.v === 'number') cell.z = '0.00';
+            }
+          } else if (kind === 'grandtotal') {
+            if (!isDataCol) {
+              cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.VERDE_BG } },
+                font: { color: { rgb: COLORS.WHITE }, bold: true, sz: 9 },
+                alignment: { horizontal: 'left', vertical: 'center' }, border: BORDER };
+            } else if (isEstCol || isTotalEst) {
+              cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.DORADO_TEXT } },
+                font: { color: { rgb: COLORS.WHITE }, bold: true, sz: 9 },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: BORDER, numFmt: '0.00' };
+              if (typeof cell.v === 'number') cell.z = '0.00';
+            } else {
+              cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.AGRO_TEXT } },
+                font: { color: { rgb: COLORS.WHITE }, bold: true, sz: 9 },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: BORDER, numFmt: '0.00' };
+              if (typeof cell.v === 'number') cell.z = '0.00';
+            }
+          }
+        }
+      }
+
+      return ws;
+    };
+
+    const wb    = XLSX.utils.book_new();
+    const rango = semanaInicio ? `sem${semanaInicio}-${semanaInicio + WEEK_COUNT - 1}` : 'sem_all';
+    XLSX.utils.book_append_sheet(wb, buildSheet(true),  'Cajas');
+    XLSX.utils.book_append_sheet(wb, buildSheet(false), 'Tallos');
     XLSX.writeFile(wb, `consolidado_semanal_${rango}_${anio ?? ''}.xlsx`);
   };
 
