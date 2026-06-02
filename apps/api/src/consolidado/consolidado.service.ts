@@ -10,7 +10,6 @@ export interface DiaData {
 }
 
 export interface ConsolidadoDiarioRow {
-  finca: string;
   producto: string;
   variedad: string;
   color: string;
@@ -23,7 +22,6 @@ export interface ConsolidadoDiarioRow {
 
 /** Una fila plana por (producto, variedad, color, semana) para que el frontend construya la matriz */
 export interface ConsolidadoSemanalRow {
-  finca: string;
   producto: string;
   variedad: string;
   color: string;
@@ -55,7 +53,6 @@ export class ConsolidadoService {
     anio?: number,
   ): Promise<ConsolidadoDiarioRow[]> {
     type RawRow = {
-      finca: string;
       producto: string;
       variedad: string;
       color: string;
@@ -69,7 +66,6 @@ export class ConsolidadoService {
     const rawRows = await this.registroRepo.manager.query<RawRow[]>(
       `
       SELECT
-        f.nombre  AS finca,
         p.nombre  AS producto,
         v.nombre  AS variedad,
         c.nombre  AS color,
@@ -89,18 +85,17 @@ export class ConsolidadoService {
           AND ($1::int IS NULL OR s.numero_semana = $1::int)
           AND ($2::int IS NULL OR s.anio           = $2::int)
       ) rd ON rd.color_id = c.id
-      GROUP BY f.nombre, p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_original, rd.dia
-      ORDER BY f.nombre, p.nombre, v.nombre, c.nombre
+      GROUP BY p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_original, rd.dia
+      ORDER BY p.nombre, v.nombre, c.nombre
       `,
       [semana ?? null, anio ?? null],
     );
 
     const map = new Map<string, ConsolidadoDiarioRow>();
     for (const row of rawRows) {
-      const key = `${row.finca}||${row.producto}||${row.variedad}||${row.color}`;
+      const key = `${row.producto}||${row.variedad}||${row.color}`;
       if (!map.has(key)) {
         map.set(key, {
-          finca: row.finca,
           producto: row.producto,
           variedad: row.variedad,
           color: row.color,
@@ -137,7 +132,6 @@ export class ConsolidadoService {
     anio?: number,
   ): Promise<ConsolidadoSemanalRow[]> {
     type RawRow = {
-      finca: string;
       producto: string;
       variedad: string;
       color: string;
@@ -153,7 +147,6 @@ export class ConsolidadoService {
     const rawRows = await this.baseSemanalRepo.manager.query<RawRow[]>(
       `
       SELECT
-        f.nombre AS finca,
         p.nombre AS producto,
         v.nombre AS variedad,
         c.nombre AS color,
@@ -172,8 +165,8 @@ export class ConsolidadoService {
         AND ($1::int IS NULL OR bs.numero_semana >= $1::int)
         AND ($2::int IS NULL OR bs.numero_semana <= $2::int)
         AND ($3::int IS NULL OR bs.anio           = $3::int)
-      GROUP BY f.nombre, p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_original, bs.numero_semana
-      ORDER BY f.nombre, p.nombre, v.nombre, c.nombre, bs.numero_semana
+      GROUP BY p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_original, bs.numero_semana
+      ORDER BY p.nombre, v.nombre, c.nombre, bs.numero_semana
       `,
       [semanaInicio ?? null, semanaFin ?? null, anio ?? null],
     );
@@ -183,7 +176,6 @@ export class ConsolidadoService {
     // numeroSemana = 0 (centinela) para que el frontend pueda mostrar el
     // producto en la tabla aunque no tenga datos en ninguna semana.
     return rawRows.map((row) => ({
-      finca: row.finca,
       producto: row.producto,
       variedad: row.variedad,
       color: row.color,

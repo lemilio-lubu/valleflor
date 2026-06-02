@@ -58,7 +58,6 @@ interface DiaData {
 }
 
 interface ConsolidadoDiarioRow {
-  finca: string;
   producto: string;
   variedad: string;
   color: string;
@@ -128,7 +127,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
     const fechaStr = ahora.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const horaStr  = ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 
-    const FIXED    = 6;
+    const FIXED    = 5;
     const totalCols = FIXED + DIAS.length + 1;
 
     const buildSheet = (forCajas: boolean) => {
@@ -150,7 +149,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
         [`${semLabel}   |   Vista: ${tipo}`],
         [`Exportado: ${fechaStr} ${horaStr}`],
         [],
-        ['Finca', 'Código', 'Producto', 'Nombre Original', 'Variedad', 'Color', ...dayHeaders, `Total ${tipo}`],
+        ['Código', 'Producto', 'Nombre Original', 'Variedad', 'Color', ...dayHeaders, `Total ${tipo}`],
       ];
       rowKinds.push('title', 'subtitle', 'meta', 'empty', 'header');
 
@@ -167,7 +166,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
 
         group.rows.forEach((r, i) => {
           aoa.push([
-            r.finca, r.codigo || '—', r.producto, r.nombreOriginal || '—', r.variedad, r.color,
+            r.codigo || '—', r.producto, r.nombreOriginal || '—', r.variedad, r.color,
             ...DIAS.map((d) => { const v = r.dias[d]; return v ? (forCajas ? v.cajas : v.tallos) : 0; }),
             forCajas ? r.totalCajas : r.totalTallos,
           ]);
@@ -190,7 +189,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
       const ws = XLSX.utils.aoa_to_sheet(aoa);
 
       ws['!cols'] = [
-        { wch: 22 }, { wch: 12 }, { wch: 22 }, { wch: 24 }, { wch: 20 }, { wch: 14 },
+        { wch: 12 }, { wch: 22 }, { wch: 24 }, { wch: 20 }, { wch: 14 },
         ...DIAS.map(() => ({ wch: 13 })),
         { wch: 14 },
       ];
@@ -254,7 +253,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
                 border: BORDER, numFmt: '0.00' };
             } else {
               cell.s = { fill: { patternType: 'solid', fgColor: { rgb: bg } },
-                font: { color: { rgb: COLORS.CARBON_DARK }, bold: col === 0 || col === 4 || col === 5, sz: 9 },
+                font: { color: { rgb: COLORS.CARBON_DARK }, bold: col === 3 || col === 4, sz: 9 },
                 alignment: { horizontal: 'left', vertical: 'center' },
                 border: BORDER };
             }
@@ -367,10 +366,9 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
         <table className="min-w-max w-full text-xs">
           <thead>
             <tr className="bg-surface-overlay border-b border-surface-border">
-              <th className="table-th md:sticky md:left-0 z-20 bg-surface-overlay min-w-[120px]">Finca</th>
-              <th className="table-th md:sticky md:left-[120px] z-20 bg-surface-overlay min-w-[130px]">Producto</th>
-              <th className="table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[120px]">Variedad</th>
-              <th className={`table-th md:sticky md:left-[370px] z-20 bg-surface-overlay min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>Color</th>
+              <th className="table-th md:sticky md:left-0 z-20 bg-surface-overlay min-w-[130px]">Producto</th>
+              <th className="table-th md:sticky md:left-[130px] z-20 bg-surface-overlay min-w-[120px]">Variedad</th>
+              <th className={`table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>Color</th>
               <th className="table-th min-w-[90px] border-r border-surface-border/40 text-carbon-200">Código</th>
               <th className="table-th min-w-[150px] border-r border-surface-border/40 text-carbon-200">Nombre Original</th>
               {DIAS.map((d) => (
@@ -404,7 +402,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
                     className="bg-surface-overlay border-t border-surface-border"
                   >
                     <td
-                      colSpan={6}
+                      colSpan={5}
                       className="px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay"
                     >
                       <span className="text-[11px] font-bold uppercase tracking-widest text-verde-400">
@@ -427,17 +425,16 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
                     const sinDatos = Object.keys(row.dias).length === 0;
                     return (
                       <tr
-                        key={`${row.finca}-${row.producto}-${row.variedad}-${row.color}`}
+                        key={`${row.producto}-${row.variedad}-${row.color}`}
                         className={`table-row-hover border-b border-surface-border/20 transition-opacity ${
                           sinDatos ? 'opacity-40' : ''
                         } ${i % 2 === 0 ? '' : 'bg-surface-overlay/10'}`}
                       >
-                        <td className="px-3 py-2 text-carbon-300 whitespace-nowrap text-[11px] md:sticky md:left-0 z-10 bg-white min-w-[120px]">{row.finca}</td>
-                        <td className="px-3 py-2 text-carbon-400 whitespace-nowrap text-[11px] md:sticky md:left-[120px] z-10 bg-white min-w-[130px]">
+                        <td className="px-3 py-2 text-carbon-400 whitespace-nowrap text-[11px] md:sticky md:left-0 z-10 bg-white min-w-[130px]">
                           {/* Producto vacío porque ya aparece en el encabezado del grupo */}
                         </td>
-                        <td className="px-3 py-2 text-carbon-200 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
-                        <td className={`px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[370px] z-10 bg-white min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>{row.color}</td>
+                        <td className="px-3 py-2 text-carbon-200 whitespace-nowrap md:sticky md:left-[130px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
+                        <td className={`px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>{row.color}</td>
                         <td className="px-3 py-2 text-carbon-300 font-mono text-[11px] whitespace-nowrap border-r border-surface-border/20">{row.codigo || <span className="text-carbon-600">—</span>}</td>
                         <td className="px-3 py-2 text-carbon-300 text-[11px] whitespace-nowrap italic border-r border-surface-border/20">{row.nombreOriginal || <span className="text-carbon-600">—</span>}</td>
                         {DIAS.map((d) => {
@@ -466,7 +463,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
           <tfoot>
             <tr className="border-t-2 border-surface-border bg-surface-overlay">
               <td
-                colSpan={6}
+                colSpan={5}
                 className={`px-3 py-2.5 text-xs font-semibold text-carbon-200 uppercase tracking-wide md:sticky md:left-0 z-10 bg-surface-overlay border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}
               >
                 Total general
