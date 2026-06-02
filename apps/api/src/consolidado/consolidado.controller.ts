@@ -25,9 +25,8 @@ export class ConsolidadoController {
   getDiario(
     @Query('semana', new ParseIntPipe({ optional: true })) semana?: number,
     @Query('anio', new ParseIntPipe({ optional: true })) anio?: number,
-    @Query('fincaId') fincaId?: string,
   ) {
-    return this.consolidadoService.getDiario(semana, anio, fincaId);
+    return this.consolidadoService.getDiario(semana, anio);
   }
 
   /**
@@ -39,8 +38,7 @@ export class ConsolidadoController {
     @Query('semanaInicio', new ParseIntPipe({ optional: true })) semanaInicio?: number,
     @Query('semanaFin', new ParseIntPipe({ optional: true })) semanaFin?: number,
     @Query('anio', new ParseIntPipe({ optional: true })) anio?: number,
-    @Query('fincaId') fincaId?: string,
   ) {
-    return this.consolidadoService.getSemanal(semanaInicio, semanaFin, anio, fincaId);
+    return this.consolidadoService.getSemanal(semanaInicio, semanaFin, anio);
   }
 }

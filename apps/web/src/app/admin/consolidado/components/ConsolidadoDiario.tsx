@@ -77,7 +77,6 @@ interface ProductGroup {
 interface Props {
   semana?: number;
   anio?: number;
-  fincaId?: string;
 }
 
 function groupByProducto(rows: ConsolidadoDiarioRow[]): ProductGroup[] {
@@ -89,16 +88,16 @@ function groupByProducto(rows: ConsolidadoDiarioRow[]): ProductGroup[] {
   return Array.from(map.entries()).map(([producto, rows]) => ({ producto, rows }));
 }
 
-export function ConsolidadoDiario({ semana, anio, fincaId }: Props) {
+export function ConsolidadoDiario({ semana, anio }: Props) {
   const [viewMode, setViewMode] = useState<'cajas' | 'tallos'>('cajas');
   const weekDates = semana != null && anio != null ? getWeekDates(semana, anio) : null;
   const { scrollRef, isScrolled, canScrollRight, isVisible, scrollLeft, scrollRight } = useTableScroll(220);
 
   const { data: rows = [], isLoading } = useQuery<ConsolidadoDiarioRow[]>({
-    queryKey: ['consolidado-diario', semana, anio, fincaId],
+    queryKey: ['consolidado-diario', semana, anio],
     queryFn: () =>
       api
-        .get('/consolidado/diario', { params: { semana, anio, fincaId } })
+        .get('/consolidado/diario', { params: { semana, anio } })
         .then((r) => r.data),
   });
 

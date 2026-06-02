@@ -13,7 +13,7 @@ export default function OfflinePage() {
           width={160}
           height={120}
           priority
-          className="object-contain"
+          className="object-contain invert"
         />
 
         <div className="w-16 h-16 rounded-full bg-verde-50 flex items-center justify-center">

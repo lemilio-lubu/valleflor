@@ -56,7 +56,6 @@ interface Props {
   semanaInicio?: number;
   semanaFin?: number;
   anio?: number;
-  fincaId?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -114,16 +113,16 @@ function groupByProducto(rows: PivotRow[]): ProductGroup[] {
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
-export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio, fincaId }: Props) {
+export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
   const [viewMode, setViewMode] = useState<'cajas' | 'tallos'>('cajas');
   const isCajas = viewMode === 'cajas';
   const { scrollRef, isScrolled, canScrollRight, isVisible, scrollLeft, scrollRight } = useTableScroll(220);
 
   const { data: flat = [], isLoading } = useQuery<FlatRow[]>({
-    queryKey: ['consolidado-semanal', semanaInicio, semanaFin, anio, fincaId],
+    queryKey: ['consolidado-semanal', semanaInicio, semanaFin, anio],
     queryFn: () =>
       api
-        .get('/consolidado/semanal', { params: { semanaInicio, semanaFin, anio, fincaId } })
+        .get('/consolidado/semanal', { params: { semanaInicio, semanaFin, anio } })
         .then((r) => r.data),
   });
 

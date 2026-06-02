@@ -74,7 +74,8 @@
       "Bash(PORT=3000 npm run *)",
       "Bash(PORT=3000 nohup npm run start)",
       "Bash(disown)",
-      "Bash(sips -g pixelWidth -g pixelHeight /Users/miguelmendosa/.claude/image-cache/1f6bc181-c957-4349-b905-9e1cb8e62240/1.png)"
+      "Bash(sips -g pixelWidth -g pixelHeight /Users/miguelmendosa/.claude/image-cache/1f6bc181-c957-4349-b905-9e1cb8e62240/1.png)",
+      "Bash(grep -rn \"manager.query\\\\|WHERE.*\\\\$[0-9]\" /Users/miguelmendosa/Documents/GitLab/valleflor/apps/api/src --include=\"*.service.ts\")"
     ]
   }
 }

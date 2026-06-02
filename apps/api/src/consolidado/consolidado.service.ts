@@ -53,7 +53,6 @@ export class ConsolidadoService {
   async getDiario(
     semana?: number,
     anio?: number,
-    fincaId?: string,
   ): Promise<ConsolidadoDiarioRow[]> {
     type RawRow = {
       finca: string;
@@ -90,11 +89,10 @@ export class ConsolidadoService {
           AND ($1::int IS NULL OR s.numero_semana = $1::int)
           AND ($2::int IS NULL OR s.anio           = $2::int)
       ) rd ON rd.color_id = c.id
-      WHERE ($3::uuid IS NULL OR p.finca_id = $3::uuid)
       GROUP BY f.nombre, p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_original, rd.dia
       ORDER BY f.nombre, p.nombre, v.nombre, c.nombre
       `,
-      [semana ?? null, anio ?? null, fincaId ?? null],
+      [semana ?? null, anio ?? null],
     );
 
     const map = new Map<string, ConsolidadoDiarioRow>();
@@ -137,7 +135,6 @@ export class ConsolidadoService {
     semanaInicio?: number,
     semanaFin?: number,
     anio?: number,
-    fincaId?: string,
   ): Promise<ConsolidadoSemanalRow[]> {
     type RawRow = {
       finca: string;
@@ -175,11 +172,10 @@ export class ConsolidadoService {
         AND ($1::int IS NULL OR bs.numero_semana >= $1::int)
         AND ($2::int IS NULL OR bs.numero_semana <= $2::int)
         AND ($3::int IS NULL OR bs.anio           = $3::int)
-      WHERE ($4::uuid IS NULL OR p.finca_id = $4::uuid)
       GROUP BY f.nombre, p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_original, bs.numero_semana
       ORDER BY f.nombre, p.nombre, v.nombre, c.nombre, bs.numero_semana
       `,
-      [semanaInicio ?? null, semanaFin ?? null, anio ?? null, fincaId ?? null],
+      [semanaInicio ?? null, semanaFin ?? null, anio ?? null],
     );
 
     // Cuando un color no tiene ningún registro en el rango, el LEFT JOIN
