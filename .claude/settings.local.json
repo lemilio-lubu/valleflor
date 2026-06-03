@@ -78,7 +78,8 @@
       "Bash(grep -rn \"manager.query\\\\|WHERE.*\\\\$[0-9]\" /Users/miguelmendosa/Documents/GitLab/valleflor/apps/api/src --include=\"*.service.ts\")",
       "Bash(xargs ls *)",
       "Bash(python3 -c ' *)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(pip install *)"
     ]
   }
 }
