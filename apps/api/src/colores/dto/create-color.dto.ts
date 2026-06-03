@@ -21,6 +21,9 @@ export class CreateColorDto {
   @MaxLength(20)
   codigo?: string | null;
 
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toUpperCase().trim() : value,
+  )
   @IsString()
   @IsOptional()
   @MaxLength(200)
