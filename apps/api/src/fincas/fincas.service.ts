@@ -94,7 +94,7 @@ export class FincasService {
       where: { id: responsableId, fincaId },
     });
     if (!responsable) throw new NotFoundException('Responsable no encontrado en esta finca');
-    await this.responsableRepo.remove(responsable);
+    await this.responsableRepo.softRemove(responsable);
   }
 
   async assignResponsable(
@@ -111,10 +111,21 @@ export class FincasService {
 
     const existing = await this.responsableRepo.findOne({
       where: { userId: dto.userId },
+      withDeleted: true,
     });
     if (existing) {
       if (existing.fincaId === fincaId) {
+        if (existing.deletedAt) {
+          await this.responsableRepo.recover(existing);
+          return this.responsableRepo.findOne({
+            where: { id: existing.id },
+            relations: ['user'],
+          });
+        }
         throw new ConflictException('El usuario ya está asignado a esta finca');
+      }
+      if (existing.deletedAt) {
+        await this.responsableRepo.recover(existing);
       }
       await this.responsableRepo.update(existing.id, { fincaId });
       return this.responsableRepo.findOne({

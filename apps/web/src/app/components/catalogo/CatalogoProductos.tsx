@@ -187,6 +187,8 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     mutationFn: (id: string) => api.delete(`/productos/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['productos', fincaId] });
+      qc.invalidateQueries({ queryKey: ['consolidado-diario'] });
+      qc.invalidateQueries({ queryKey: ['consolidado-semanal'] });
       toast.success(`Producto "${confirmDelete?.item.nombre}" eliminado`);
       if (selectedProducto?.id === confirmDelete?.item.id) { setSelectedProducto(null); setSelectedVariedad(null); }
       setConfirmDelete(null);
@@ -209,6 +211,8 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     mutationFn: (id: string) => api.delete(`/variedades/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['variedades', selectedProducto?.id] });
+      qc.invalidateQueries({ queryKey: ['consolidado-diario'] });
+      qc.invalidateQueries({ queryKey: ['consolidado-semanal'] });
       toast.success(`Variedad "${confirmDelete?.item.nombre}" eliminada`);
       if (selectedVariedad?.id === confirmDelete?.item.id) setSelectedVariedad(null);
       setConfirmDelete(null);
@@ -230,6 +234,8 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     mutationFn: (id: string) => api.delete(`/colores/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['colores', selectedVariedad?.id] });
+      qc.invalidateQueries({ queryKey: ['consolidado-diario'] });
+      qc.invalidateQueries({ queryKey: ['consolidado-semanal'] });
       toast.success(`Color "${confirmDelete?.item.nombre}" eliminado`);
       setConfirmDelete(null);
     },

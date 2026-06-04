@@ -151,6 +151,7 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
 
 export default function FincaDetallePage() {
   const { id } = useParams<{ id: string }>();
+  const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>('responsables');
   const [showModal, setShowModal] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<{ responsableId: string; nombre: string } | null>(null);
@@ -172,7 +173,14 @@ export default function FincaDetallePage() {
   const removeResp = useMutation({
     mutationFn: ({ responsableId }: { responsableId: string; nombre: string }) =>
       api.delete(`/fincas/${id}/responsables/${responsableId}`),
-    onSuccess: async (_, { nombre }) => { await refetch(); toast.success(`Responsable "${nombre}" removido`); setConfirmRemove(null); },
+    onSuccess: async (_, { nombre }) => {
+      await refetch();
+      qc.invalidateQueries({ queryKey: ['consolidado-diario'] });
+      qc.invalidateQueries({ queryKey: ['consolidado-semanal'] });
+      qc.invalidateQueries({ queryKey: ['base-semanal'] });
+      toast.success(`Responsable "${nombre}" removido`);
+      setConfirmRemove(null);
+    },
     onError: () => toast.error('Error al remover responsable'),
   });
 

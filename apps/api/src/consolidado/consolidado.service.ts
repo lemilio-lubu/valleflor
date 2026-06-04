@@ -85,6 +85,10 @@ export class ConsolidadoService {
           AND ($1::int IS NULL OR s.numero_semana = $1::int)
           AND ($2::int IS NULL OR s.anio           = $2::int)
       ) rd ON rd.color_id = c.id
+      WHERE c.activo = true
+        AND v.activo = true
+        AND p.activo = true
+        AND f.activo = true
       GROUP BY p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_original, rd.dia
       ORDER BY p.nombre, v.nombre, c.nombre
       `,
@@ -165,6 +169,10 @@ export class ConsolidadoService {
         AND ($1::int IS NULL OR bs.numero_semana >= $1::int)
         AND ($2::int IS NULL OR bs.numero_semana <= $2::int)
         AND ($3::int IS NULL OR bs.anio           = $3::int)
+      WHERE c.activo = true
+        AND v.activo = true
+        AND p.activo = true
+        AND f.activo = true
       GROUP BY p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_original, bs.numero_semana
       ORDER BY p.nombre, v.nombre, c.nombre, bs.numero_semana
       `,
