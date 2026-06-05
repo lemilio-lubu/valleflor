@@ -161,6 +161,8 @@ export default function UsuariosPage() {
     mutationFn: ({ id }: { id: string; label: string }) => api.delete(`/users/${id}`),
     onSuccess: (_, { label }) => {
       qc.invalidateQueries({ queryKey: ['usuarios'] });
+      qc.invalidateQueries({ queryKey: ['finca'] });
+      qc.invalidateQueries({ queryKey: ['fincas'] });
       toast.success(`Usuario "${label}" eliminado`);
       setConfirmDelete(null);
     },
