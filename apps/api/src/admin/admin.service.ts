@@ -11,6 +11,7 @@ import { Producto } from '../productos/producto.entity';
 import { Variedad } from '../variedades/variedad.entity';
 import { Color } from '../colores/color.entity';
 import { ResponsableColor } from '../responsables/responsable-color.entity';
+import { SemanaReconciliationService } from '../base-semanal/semana-reconciliation.service';
 
 export interface BulkUploadSummary {
   insertados: number;
@@ -29,6 +30,7 @@ export class AdminService {
     @InjectRepository(Variedad) private variedadRepo: Repository<Variedad>,
     @InjectRepository(Color) private colorRepo: Repository<Color>,
     @InjectRepository(ResponsableColor) private respColorRepo: Repository<ResponsableColor>,
+    private readonly reconciliationService: SemanaReconciliationService,
   ) {}
 
   async processBulkUpload(file: Express.Multer.File, isPreview = false): Promise<BulkUploadSummary> {
@@ -199,6 +201,14 @@ export class AdminService {
           await this.respColorRepo.save(newAssoc);
         }
         summary.insertados++;
+      }
+    }
+
+    // Sincronizar las semanas actual y futuras de cada responsable tocado por la
+    // carga con sus nuevas asignaciones (no aplica en modo preview)
+    if (!isPreview) {
+      for (const responsable of responsablesMap.values()) {
+        await this.reconciliationService.reconcileResponsable(responsable.id);
       }
     }
 

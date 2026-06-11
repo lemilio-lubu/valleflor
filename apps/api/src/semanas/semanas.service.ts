@@ -15,27 +15,7 @@ import { ConfiguracionService } from '../configuracion/configuracion.service';
 import { BaseSemanalService } from '../base-semanal/base-semanal.service';
 import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateSemanaDto } from './dto/create-semana.dto';
-
-// Maps JS Date.getUTCDay() (0=Sun … 6=Sat) to DiaSemana enum
-const DIA_BY_JS_DAY: DiaSemana[] = [
-  DiaSemana.DOMINGO,
-  DiaSemana.LUNES,
-  DiaSemana.MARTES,
-  DiaSemana.MIERCOLES,
-  DiaSemana.JUEVES,
-  DiaSemana.VIERNES,
-  DiaSemana.SABADO,
-];
-
-const DIA_SORT_ORDER: Record<DiaSemana, number> = {
-  [DiaSemana.DOMINGO]: 0,
-  [DiaSemana.LUNES]: 1,
-  [DiaSemana.MARTES]: 2,
-  [DiaSemana.MIERCOLES]: 3,
-  [DiaSemana.JUEVES]: 4,
-  [DiaSemana.VIERNES]: 5,
-  [DiaSemana.SABADO]: 6,
-};
+import { buildRegistroSeeds, DIA_SORT_ORDER } from './registro-seeds.util';
 
 export interface PlantillaRow {
   semanaNumero: number;
@@ -112,28 +92,16 @@ export class SemanasService {
 
     // 3. Generar 7 registros por color (uno por día de la semana)
     const tallosPorCajaGlobal = await this.configuracionService.getTallosPorCaja();
-    const fechaBase = new Date(dto.fechaInicio + 'T00:00:00Z');
     const registros: RegistroDiario[] = [];
 
     for (const color of colores) {
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(fechaBase);
-        d.setUTCDate(d.getUTCDate() + i);
-        const dia = DIA_BY_JS_DAY[d.getUTCDay()];
-        const fecha = d.toISOString().split('T')[0];
-
-        registros.push(
-          this.registroRepo.create({
-            semanaId: semana.id,
-            colorId: color.id,
-            dia,
-            fecha,
-            cajas: 0,
-            divisorTallos: color.tallosPorCaja ?? tallosPorCajaGlobal,
-            tallos: 0,
-          }),
-        );
-      }
+      const seeds = buildRegistroSeeds(
+        semana.id,
+        dto.fechaInicio,
+        color.id,
+        color.tallosPorCaja ?? tallosPorCajaGlobal,
+      );
+      registros.push(...seeds.map((s) => this.registroRepo.create(s)));
     }
 
     await this.registroRepo.save(registros);
@@ -193,11 +161,26 @@ export class SemanasService {
         'registros.color',
         'registros.color.variedad',
         'registros.color.variedad.producto',
+        'registros.color.variedad.producto.finca',
       ],
     });
     if (!semana) throw new NotFoundException(`Semana ${id} no encontrada`);
 
-    const rows: PlantillaRow[] = semana.registros.map((registro) => ({
+    // Solo mostrar registros cuya cadena producto/variedad/color/finca siga activa
+    const registrosActivos = semana.registros.filter((registro) => {
+      const color = registro.color;
+      const variedad = color?.variedad;
+      const producto = variedad?.producto;
+      const finca = producto?.finca;
+      return (
+        color?.activo &&
+        variedad?.activo &&
+        producto?.activo &&
+        finca?.activo
+      );
+    });
+
+    const rows: PlantillaRow[] = registrosActivos.map((registro) => ({
       semanaNumero: semana.numeroSemana,
       anio: semana.anio,
       dia: registro.dia,

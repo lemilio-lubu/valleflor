@@ -6,6 +6,7 @@ import { RegistroDiario } from '../registros/registro-diario.entity';
 import { Semana } from '../semanas/semana.entity';
 import { Responsable } from '../responsables/responsable.entity';
 import { ResponsableColor } from '../responsables/responsable-color.entity';
+import { getCurrentISOWeek, getNextWeeks } from '../common/iso-week.util';
 
 export interface SemanaData {
   cajas: number;
@@ -22,30 +23,6 @@ export interface MatrizRow {
   color: string;
   colorId: string;
   semanas: Record<string, SemanaData>;
-}
-
-function getCurrentISOWeek(): { numeroSemana: number; anio: number } {
-  const now = new Date();
-  const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const weekNum = Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
-  return { numeroSemana: weekNum, anio: d.getUTCFullYear() };
-}
-
-function getNextWeeks(startWeek: number, startYear: number, count: number): Array<{ anio: number; numeroSemana: number }> {
-  const weeks = [];
-  let w = startWeek;
-  let y = startYear;
-  for (let i = 0; i < count; i++) {
-    weeks.push({ anio: y, numeroSemana: w });
-    w++;
-    if (w > 52) { // Asumimos 52 por simplicidad, aunque algunas tienen 53
-      w = 1;
-      y++;
-    }
-  }
-  return weeks;
 }
 
 @Injectable()
@@ -257,7 +234,10 @@ export class BaseSemanalService {
       .innerJoinAndSelect('variedad.producto', 'producto')
       .innerJoinAndSelect('producto.finca', 'finca')
       .where('producto.fincaId = :fincaId', { fincaId })
-      .andWhere('color.activo = true');
+      .andWhere('color.activo = true')
+      .andWhere('variedad.activo = true')
+      .andWhere('producto.activo = true')
+      .andWhere('finca.activo = true');
 
     if (productoIds !== null && productoIds.length > 0) {
       qb = qb.andWhere('variedad.productoId IN (:...productoIds)', { productoIds });
@@ -276,7 +256,10 @@ export class BaseSemanalService {
        JOIN productos p ON v.producto_id = p.id
        JOIN fincas f ON p.finca_id = f.id
        WHERE f.id = $1
-       AND c.activo = true`;
+       AND c.activo = true
+       AND v.activo = true
+       AND p.activo = true
+       AND f.activo = true`;
     const params: any[] = [fincaId];
     if (productoIds !== null && productoIds.length > 0) {
       colorQuery += ` AND p.id = ANY($2)`;
@@ -319,6 +302,9 @@ export class BaseSemanalService {
       .innerJoinAndSelect('producto.finca', 'finca')
       .where('producto.fincaId = :fincaId', { fincaId })
       .andWhere('color.activo = true')
+      .andWhere('variedad.activo = true')
+      .andWhere('producto.activo = true')
+      .andWhere('finca.activo = true')
       .andWhere('bs.numeroSemana = :numeroSemana', { numeroSemana })
       .andWhere('bs.anio = :anio', { anio });
 

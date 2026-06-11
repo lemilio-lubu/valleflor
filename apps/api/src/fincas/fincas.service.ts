@@ -16,6 +16,7 @@ import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateFincaDto } from './dto/create-finca.dto';
 import { UpdateFincaDto } from './dto/update-finca.dto';
 import { AssignResponsableDto } from './dto/assign-responsable.dto';
+import { SemanaReconciliationService } from '../base-semanal/semana-reconciliation.service';
 
 @Injectable()
 export class FincasService {
@@ -32,6 +33,7 @@ export class FincasService {
     private readonly colorRepo: Repository<Color>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly reconciliationService: SemanaReconciliationService,
   ) {}
 
   async findAll(user: JwtUser): Promise<Finca[]> {
@@ -165,10 +167,16 @@ export class FincasService {
       const colores = await this.colorRepo.createQueryBuilder('color')
           .innerJoin('color.variedad', 'variedad')
           .where('variedad.productoId IN (:...productoIds)', { productoIds })
+          .andWhere('color.activo = true')
           .getMany();
       const records = colores.map((c) => this.respColorRepo.create({ responsableId, colorId: c.id }));
       await this.respColorRepo.save(records);
     }
+
+    // Sincronizar las semanas actual y futuras del responsable con sus
+    // nuevas asignaciones (agrega/elimina registros diarios según corresponda)
+    await this.reconciliationService.reconcileResponsable(responsableId);
+
     return this.getProductosResponsable(fincaId, responsableId);
   }
 }

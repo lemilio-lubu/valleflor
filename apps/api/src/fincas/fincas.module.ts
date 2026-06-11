@@ -8,9 +8,13 @@ import { Color } from '../colores/color.entity';
 import { User } from '../users/user.entity';
 import { FincasService } from './fincas.service';
 import { FincasController } from './fincas.controller';
+import { BaseSemanalModule } from '../base-semanal/base-semanal.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Finca, Responsable, ResponsableColor, Producto, Color, User])],
+  imports: [
+    TypeOrmModule.forFeature([Finca, Responsable, ResponsableColor, Producto, Color, User]),
+    BaseSemanalModule,
+  ],
   providers: [FincasService],
   controllers: [FincasController],
   exports: [FincasService],

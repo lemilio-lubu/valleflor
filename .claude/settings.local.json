@@ -79,7 +79,8 @@
       "Bash(xargs ls *)",
       "Bash(python3 -c ' *)",
       "Bash(python3 *)",
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/api && cat package.json | grep -A 20 '\"scripts\"')"
     ]
   }
 }

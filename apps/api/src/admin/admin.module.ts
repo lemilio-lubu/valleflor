@@ -9,6 +9,7 @@ import { Producto } from '../productos/producto.entity';
 import { Variedad } from '../variedades/variedad.entity';
 import { Color } from '../colores/color.entity';
 import { ResponsableColor } from '../responsables/responsable-color.entity';
+import { BaseSemanalModule } from '../base-semanal/base-semanal.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ResponsableColor } from '../responsables/responsable-color.entity';
       Color,
       ResponsableColor,
     ]),
+    BaseSemanalModule,
   ],
   controllers: [AdminController],
   providers: [AdminService],
