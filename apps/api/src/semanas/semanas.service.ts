@@ -77,7 +77,11 @@ export class SemanasService {
       where: { responsableId: responsable.id },
       relations: ['color'],
     });
-    const colores = asignaciones.map((a) => a.color);
+    // Solo generar registros para colores activos: un color dado de baja no
+    // debe reaparecer al crear una semana nueva.
+    const colores = asignaciones
+      .map((a) => a.color)
+      .filter((c): c is Color => !!c && c.activo);
 
     // 2. Crear la semana
     const semana = await this.semanaRepo.save(

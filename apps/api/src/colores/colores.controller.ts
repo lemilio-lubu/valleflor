@@ -23,8 +23,11 @@ export class ColoresController {
   constructor(private readonly coloresService: ColoresService) {}
 
   @Get()
-  findAll(@Query('variedadId', new ParseUUIDPipe({ optional: true })) variedadId?: string) {
-    return this.coloresService.findAll(variedadId);
+  findAll(
+    @Query('variedadId', new ParseUUIDPipe({ optional: true })) variedadId?: string,
+    @Query('incluirInactivos') incluirInactivos?: string,
+  ) {
+    return this.coloresService.findAll(variedadId, incluirInactivos === 'true');
   }
 
   @Post()
@@ -38,6 +41,19 @@ export class ColoresController {
     @Body() dto: UpdateColorDto,
   ) {
     return this.coloresService.update(id, dto);
+  }
+
+  @Patch(':id/baja')
+  darDeBaja(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('motivoBaja') motivoBaja: string,
+  ) {
+    return this.coloresService.darDeBaja(id, motivoBaja);
+  }
+
+  @Patch(':id/alta')
+  darDeAlta(@Param('id', ParseUUIDPipe) id: string) {
+    return this.coloresService.darDeAlta(id);
   }
 
   @Delete(':id')

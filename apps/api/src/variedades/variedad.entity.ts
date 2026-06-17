@@ -34,6 +34,9 @@ export class Variedad {
   @Column({ type: 'boolean', default: true })
   activo: boolean;
 
+  @Column({ name: 'motivo_baja', type: 'text', nullable: true })
+  motivoBaja: string | null;
+
   @OneToMany(() => Color, (color) => color.variedad)
   colores: Color[];
 

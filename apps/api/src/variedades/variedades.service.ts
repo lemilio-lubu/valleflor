@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -14,6 +15,7 @@ import { UserRole } from '../users/user.entity';
 import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateVariedadDto } from './dto/create-variedad.dto';
 import { UpdateVariedadDto } from './dto/update-variedad.dto';
+import { SemanaReconciliationService } from '../base-semanal/semana-reconciliation.service';
 
 @Injectable()
 export class VariedadesService {
@@ -26,10 +28,17 @@ export class VariedadesService {
     private readonly colorRepo: Repository<Color>,
     @InjectRepository(Responsable)
     private readonly responsableRepo: Repository<Responsable>,
+    private readonly reconciliationService: SemanaReconciliationService,
   ) {}
 
-  async findAll(productoId: string): Promise<Variedad[]> {
-    return this.variedadRepo.find({ where: { productoId, activo: true } });
+  async findAll(
+    productoId: string,
+    incluirInactivos = false,
+  ): Promise<Variedad[]> {
+    const where = incluirInactivos
+      ? { productoId }
+      : { productoId, activo: true };
+    return this.variedadRepo.find({ where });
   }
 
   private async verifyProductoAccess(
@@ -97,6 +106,49 @@ export class VariedadesService {
     return this.variedadRepo.save(variedad);
   }
 
+  async darDeBaja(id: string, motivoBaja: string): Promise<Variedad> {
+    const variedad = await this.variedadRepo.findOne({
+      where: { id },
+      relations: ['colores'],
+    });
+    if (!variedad) throw new NotFoundException(`Variedad ${id} no encontrada`);
+
+    const colorIds = (variedad.colores ?? []).map((c) => c.id);
+    if (colorIds.length > 0) {
+      await this.colorRepo.update(colorIds, { activo: false });
+    }
+    variedad.activo = false;
+    variedad.motivoBaja = motivoBaja ?? null;
+    await this.variedadRepo.save(variedad);
+
+    await this.reconciliationService.reconcileColores(colorIds);
+    return variedad;
+  }
+
+  async darDeAlta(id: string): Promise<Variedad> {
+    const variedad = await this.variedadRepo.findOne({
+      where: { id },
+      relations: ['producto', 'colores'],
+    });
+    if (!variedad) throw new NotFoundException(`Variedad ${id} no encontrada`);
+    if (variedad.producto && !variedad.producto.activo) {
+      throw new BadRequestException(
+        'El producto está dado de baja; reactívalo primero',
+      );
+    }
+
+    const colorIds = (variedad.colores ?? []).map((c) => c.id);
+    if (colorIds.length > 0) {
+      await this.colorRepo.update(colorIds, { activo: true });
+    }
+    variedad.activo = true;
+    variedad.motivoBaja = null;
+    await this.variedadRepo.save(variedad);
+
+    await this.reconciliationService.reconcileColores(colorIds);
+    return variedad;
+  }
+
   async remove(id: string): Promise<void> {
     const variedad = await this.variedadRepo.findOne({
       where: { id },
@@ -108,12 +160,12 @@ export class VariedadesService {
 
     if (colores.length > 0) {
       // Cascade soft-delete: variedad → colores
-      await this.colorRepo.update(
-        colores.map((c) => c.id),
-        { activo: false },
-      );
+      const colorIds = colores.map((c) => c.id);
+      await this.colorRepo.update(colorIds, { activo: false });
       variedad.activo = false;
       await this.variedadRepo.save(variedad);
+      // Reflejar la baja en las semanas actual y futuras de los responsables.
+      await this.reconciliationService.reconcileColoresDadosDeBaja(colorIds);
     } else {
       await this.variedadRepo.remove(variedad);
     }

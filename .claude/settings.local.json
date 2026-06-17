@@ -80,7 +80,10 @@
       "Bash(python3 -c ' *)",
       "Bash(python3 *)",
       "Bash(pip install *)",
-      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/api && cat package.json | grep -A 20 '\"scripts\"')"
+      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/api && cat package.json | grep -A 20 '\"scripts\"')",
+      "mcp__plugin_claude-mem_mcp-search__get_observations",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\)\")",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./package.json'\\).scripts,null,2\\)\\)\")"
     ]
   }
 }

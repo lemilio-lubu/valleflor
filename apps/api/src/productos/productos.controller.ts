@@ -26,8 +26,13 @@ export class ProductosController {
   findAll(
     @Query('fincaId', ParseUUIDPipe) fincaId: string,
     @CurrentUser() user: JwtUser,
+    @Query('incluirInactivos') incluirInactivos?: string,
   ) {
-    return this.productosService.findAll(fincaId, user);
+    return this.productosService.findAll(
+      fincaId,
+      user,
+      incluirInactivos === 'true',
+    );
   }
 
   @Post()
@@ -41,6 +46,19 @@ export class ProductosController {
     @Body() dto: UpdateProductoDto,
   ) {
     return this.productosService.update(id, dto);
+  }
+
+  @Patch(':id/baja')
+  darDeBaja(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('motivoBaja') motivoBaja: string,
+  ) {
+    return this.productosService.darDeBaja(id, motivoBaja);
+  }
+
+  @Patch(':id/alta')
+  darDeAlta(@Param('id', ParseUUIDPipe) id: string) {
+    return this.productosService.darDeAlta(id);
   }
 
   @Delete(':id')

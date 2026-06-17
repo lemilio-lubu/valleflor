@@ -15,6 +15,7 @@ import { UserRole } from '../users/user.entity';
 import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
+import { SemanaReconciliationService } from '../base-semanal/semana-reconciliation.service';
 
 @Injectable()
 export class ProductosService {
@@ -27,6 +28,7 @@ export class ProductosService {
     private readonly colorRepo: Repository<Color>,
     @InjectRepository(Responsable)
     private readonly responsableRepo: Repository<Responsable>,
+    private readonly reconciliationService: SemanaReconciliationService,
   ) {}
 
   private async getResponsable(userId: string): Promise<Responsable> {
@@ -39,14 +41,19 @@ export class ProductosService {
     return responsable;
   }
 
-  async findAll(fincaId: string, user: JwtUser): Promise<Producto[]> {
+  async findAll(
+    fincaId: string,
+    user: JwtUser,
+    incluirInactivos = false,
+  ): Promise<Producto[]> {
     if (user.role !== UserRole.ADMIN) {
       const responsable = await this.getResponsable(user.id);
       if (responsable.fincaId !== fincaId) {
         throw new ForbiddenException('No tienes acceso a esta finca');
       }
     }
-    return this.productoRepo.find({ where: { fincaId, activo: true } });
+    const where = incluirInactivos ? { fincaId } : { fincaId, activo: true };
+    return this.productoRepo.find({ where });
   }
 
   async create(dto: CreateProductoDto, user: JwtUser): Promise<Producto> {
@@ -98,6 +105,64 @@ export class ProductosService {
     return this.productoRepo.save(producto);
   }
 
+  async darDeBaja(id: string, motivoBaja: string): Promise<Producto> {
+    const producto = await this.productoRepo.findOne({
+      where: { id },
+      relations: ['variedades', 'variedades.colores'],
+    });
+    if (!producto) throw new NotFoundException(`Producto ${id} no encontrado`);
+
+    const colorIds = producto.variedades
+      .flatMap((v) => v.colores ?? [])
+      .map((c) => c.id);
+    const variedadIds = producto.variedades.map((v) => v.id);
+
+    if (colorIds.length > 0) {
+      await this.colorRepo.update(colorIds, { activo: false });
+    }
+    if (variedadIds.length > 0) {
+      await this.variedadRepo.update(variedadIds, { activo: false });
+    }
+    producto.activo = false;
+    producto.motivoBaja = motivoBaja ?? null;
+    await this.productoRepo.save(producto);
+
+    // Reversible: conserva las asignaciones, solo limpia las semanas vivas.
+    await this.reconciliationService.reconcileColores(colorIds);
+    return producto;
+  }
+
+  async darDeAlta(id: string): Promise<Producto> {
+    const producto = await this.productoRepo.findOne({
+      where: { id },
+      relations: ['finca', 'variedades', 'variedades.colores'],
+    });
+    if (!producto) throw new NotFoundException(`Producto ${id} no encontrado`);
+    if (producto.finca && !producto.finca.activo) {
+      throw new BadRequestException(
+        'La finca está dada de baja; reactívala primero',
+      );
+    }
+
+    const colorIds = producto.variedades
+      .flatMap((v) => v.colores ?? [])
+      .map((c) => c.id);
+    const variedadIds = producto.variedades.map((v) => v.id);
+
+    if (colorIds.length > 0) {
+      await this.colorRepo.update(colorIds, { activo: true });
+    }
+    if (variedadIds.length > 0) {
+      await this.variedadRepo.update(variedadIds, { activo: true });
+    }
+    producto.activo = true;
+    producto.motivoBaja = null;
+    await this.productoRepo.save(producto);
+
+    await this.reconciliationService.reconcileColores(colorIds);
+    return producto;
+  }
+
   async remove(id: string): Promise<void> {
     const producto = await this.productoRepo.findOne({
       where: { id },
@@ -110,16 +175,16 @@ export class ProductosService {
 
     if (hasData) {
       // Cascade soft-delete: producto → variedades → colores
-      await this.colorRepo.update(
-        colores.map((c) => c.id),
-        { activo: false },
-      );
+      const colorIds = colores.map((c) => c.id);
+      await this.colorRepo.update(colorIds, { activo: false });
       const variedadIds = producto.variedades.map((v) => v.id);
       if (variedadIds.length > 0) {
         await this.variedadRepo.update(variedadIds, { activo: false });
       }
       producto.activo = false;
       await this.productoRepo.save(producto);
+      // Reflejar la baja en las semanas actual y futuras de los responsables.
+      await this.reconciliationService.reconcileColoresDadosDeBaja(colorIds);
     } else {
       await this.productoRepo.remove(producto);
     }

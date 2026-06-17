@@ -39,6 +39,9 @@ export class Color {
   @Column({ type: 'boolean', default: true })
   activo: boolean;
 
+  @Column({ name: 'motivo_baja', type: 'text', nullable: true })
+  motivoBaja: string | null;
+
   @Column({ type: 'varchar', length: 20, nullable: true, name: 'codigo' })
   codigo: string | null;
 
