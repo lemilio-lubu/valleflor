@@ -1,7 +1,5 @@
 import {
-  BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,9 +8,6 @@ import { Repository } from 'typeorm';
 import { Producto } from './producto.entity';
 import { Variedad } from '../variedades/variedad.entity';
 import { Color } from '../colores/color.entity';
-import { Responsable } from '../responsables/responsable.entity';
-import { UserRole } from '../users/user.entity';
-import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
 
@@ -25,55 +20,36 @@ export class ProductosService {
     private readonly variedadRepo: Repository<Variedad>,
     @InjectRepository(Color)
     private readonly colorRepo: Repository<Color>,
-    @InjectRepository(Responsable)
-    private readonly responsableRepo: Repository<Responsable>,
   ) {}
 
-  private async getResponsable(userId: string): Promise<Responsable> {
-    const responsable = await this.responsableRepo.findOne({
-      where: { userId },
+  async findAll(): Promise<Producto[]> {
+    return this.productoRepo.find({
+      where: { activo: true },
+      order: { nombre: 'ASC' },
     });
-    if (!responsable) {
-      throw new ForbiddenException('No eres responsable de ninguna finca');
-    }
-    return responsable;
   }
 
-  async findAll(fincaId: string, user: JwtUser): Promise<Producto[]> {
-    if (user.role !== UserRole.ADMIN) {
-      const responsable = await this.getResponsable(user.id);
-      if (responsable.fincaId !== fincaId) {
-        throw new ForbiddenException('No tienes acceso a esta finca');
-      }
-    }
-    return this.productoRepo.find({ where: { fincaId, activo: true } });
-  }
-
-  async create(dto: CreateProductoDto, user: JwtUser): Promise<Producto> {
-    let fincaId: string;
-
-    if (user.role === UserRole.ADMIN) {
-      if (!dto.fincaId) {
-        throw new BadRequestException('fincaId es requerido para administradores');
-      }
-      fincaId = dto.fincaId;
-    } else {
-      const responsable = await this.getResponsable(user.id);
-      fincaId = responsable.fincaId;
-    }
-
+  async create(dto: CreateProductoDto): Promise<Producto> {
+    const codigo = dto.codigo.toUpperCase().trim();
     const nombre = dto.nombre.toUpperCase().trim();
 
     const exists = await this.productoRepo.findOne({
-      where: { nombre, fincaId },
+      where: [{ codigo }, { nombre }],
     });
     if (exists) {
       throw new ConflictException(
-        `Ya existe el producto "${nombre}" en esta finca`,
+        exists.codigo === codigo
+          ? `Ya existe un producto con el código "${codigo}"`
+          : `Ya existe el producto "${nombre}"`,
       );
     }
 
-    const producto = this.productoRepo.create({ nombre, fincaId });
+    const producto = this.productoRepo.create({
+      codigo,
+      nombre,
+      longitud: dto.longitud ?? null,
+      tallosPorCaja: dto.tallosPorCaja ?? 400,
+    });
     return this.productoRepo.save(producto);
   }
 
@@ -81,15 +57,22 @@ export class ProductosService {
     const producto = await this.productoRepo.findOne({ where: { id } });
     if (!producto) throw new NotFoundException(`Producto ${id} no encontrado`);
 
-    if (dto.nombre) {
-      const nombre = dto.nombre.toUpperCase().trim();
-      const exists = await this.productoRepo.findOne({
-        where: { nombre, fincaId: producto.fincaId },
-      });
+    if (dto.codigo) {
+      const codigo = dto.codigo.toUpperCase().trim();
+      const exists = await this.productoRepo.findOne({ where: { codigo } });
       if (exists && exists.id !== id) {
         throw new ConflictException(
-          `Ya existe el producto "${nombre}" en esta finca`,
+          `Ya existe un producto con el código "${codigo}"`,
         );
+      }
+      dto.codigo = codigo;
+    }
+
+    if (dto.nombre) {
+      const nombre = dto.nombre.toUpperCase().trim();
+      const exists = await this.productoRepo.findOne({ where: { nombre } });
+      if (exists && exists.id !== id) {
+        throw new ConflictException(`Ya existe el producto "${nombre}"`);
       }
       dto.nombre = nombre;
     }

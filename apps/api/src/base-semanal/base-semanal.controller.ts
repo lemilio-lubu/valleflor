@@ -61,7 +61,15 @@ export class BaseSemanalController {
     @Query('anio', ParseIntPipe) anio: number,
     @Query('cajasEstimadas') cajasEstimadas: number,
     @Query('divisor') divisor: number,
+    @CurrentUser() user: JwtUser,
   ) {
-    return this.baseSemanalService.upsertEstimacion(colorId, numeroSemana, anio, Number(cajasEstimadas), Number(divisor));
+    return this.baseSemanalService.upsertEstimacion(
+      user.id,
+      colorId,
+      numeroSemana,
+      anio,
+      Number(cajasEstimadas),
+      Number(divisor),
+    );
   }
 }

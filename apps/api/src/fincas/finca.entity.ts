@@ -10,7 +10,6 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Responsable } from '../responsables/responsable.entity';
-import { Producto } from '../productos/producto.entity';
 
 @Entity('fincas')
 export class Finca {
@@ -32,9 +31,6 @@ export class Finca {
 
   @OneToMany(() => Responsable, (responsable) => responsable.finca)
   responsables: Responsable[];
-
-  @OneToMany(() => Producto, (producto) => producto.finca)
-  productos: Producto[];
 
   @Column({ type: 'boolean', default: true })
   activo: boolean;

@@ -11,8 +11,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtUser } from '../auth/types/jwt-user.type';
 import { VariedadesService } from './variedades.service';
 import { CreateVariedadDto } from './dto/create-variedad.dto';
 import { UpdateVariedadDto } from './dto/update-variedad.dto';
@@ -28,8 +26,8 @@ export class VariedadesController {
   }
 
   @Post()
-  create(@Body() dto: CreateVariedadDto, @CurrentUser() user: JwtUser) {
-    return this.variedadesService.create(dto, user);
+  create(@Body() dto: CreateVariedadDto) {
+    return this.variedadesService.create(dto);
   }
 
   @Patch(':id')

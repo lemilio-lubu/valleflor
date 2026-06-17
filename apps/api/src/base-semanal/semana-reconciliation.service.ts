@@ -41,11 +41,17 @@ export class SemanaReconciliationService {
 
     const asignaciones = await this.respColorRepo.find({
       where: { responsableId },
-      relations: ['color'],
+      relations: ['color', 'color.variedad', 'color.variedad.producto'],
     });
     const coloresAsignados: Color[] = asignaciones
       .map((a) => a.color)
-      .filter((c): c is Color => !!c && c.activo);
+      .filter(
+        (c): c is Color =>
+          !!c &&
+          c.activo &&
+          !!c.variedad?.activo &&
+          !!c.variedad?.producto?.activo,
+      );
     const asignadoPorId = new Map(coloresAsignados.map((c) => [c.id, c]));
 
     const divisorGlobal = await this.configuracionService.getTallosPorCaja();
@@ -64,7 +70,7 @@ export class SemanaReconciliationService {
           semana.id,
           semana.fechaInicio,
           color.id,
-          color.tallosPorCaja ?? divisorGlobal,
+          color.variedad?.producto?.tallosPorCaja ?? divisorGlobal,
         );
         nuevos.push(...seeds.map((s) => this.registroRepo.create(s)));
       }

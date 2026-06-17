@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  Unique,
   BeforeInsert,
   BeforeUpdate,
 } from 'typeorm';
@@ -16,6 +17,7 @@ import { BaseSemanal } from '../base-semanal/base-semanal.entity';
 import { ResponsableColor } from '../responsables/responsable-color.entity';
 
 @Entity('colores')
+@Unique('uq_color_nombre_variedad', ['variedadId', 'nombre'])
 export class Color {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -33,17 +35,8 @@ export class Color {
   @Column({ type: 'varchar', nullable: false })
   nombre: string;
 
-  @Column({ type: 'int', default: 400, name: 'tallos_por_caja' })
-  tallosPorCaja: number;
-
   @Column({ type: 'boolean', default: true })
   activo: boolean;
-
-  @Column({ type: 'varchar', length: 20, nullable: true, name: 'codigo' })
-  codigo: string | null;
-
-  @Column({ type: 'varchar', length: 200, nullable: true, name: 'nombre_original' })
-  nombreOriginal: string | null;
 
   @OneToMany(() => RegistroDiario, (registro) => registro.color)
   registros: RegistroDiario[];

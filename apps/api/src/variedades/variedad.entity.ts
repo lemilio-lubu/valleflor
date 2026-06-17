@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  Unique,
   BeforeInsert,
   BeforeUpdate,
 } from 'typeorm';
@@ -14,6 +15,7 @@ import { Producto } from '../productos/producto.entity';
 import { Color } from '../colores/color.entity';
 
 @Entity('variedades')
+@Unique('uq_variedad_nombre_producto', ['productoId', 'nombre'])
 export class Variedad {
   @PrimaryGeneratedColumn('uuid')
   id: string;

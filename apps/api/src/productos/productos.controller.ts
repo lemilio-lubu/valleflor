@@ -7,12 +7,9 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtUser } from '../auth/types/jwt-user.type';
 import { ProductosService } from './productos.service';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
@@ -23,16 +20,13 @@ export class ProductosController {
   constructor(private readonly productosService: ProductosService) {}
 
   @Get()
-  findAll(
-    @Query('fincaId', ParseUUIDPipe) fincaId: string,
-    @CurrentUser() user: JwtUser,
-  ) {
-    return this.productosService.findAll(fincaId, user);
+  findAll() {
+    return this.productosService.findAll();
   }
 
   @Post()
-  create(@Body() dto: CreateProductoDto, @CurrentUser() user: JwtUser) {
-    return this.productosService.create(dto, user);
+  create(@Body() dto: CreateProductoDto) {
+    return this.productosService.create(dto);
   }
 
   @Patch(':id')

@@ -34,7 +34,7 @@ export class RegistrosService {
   private async getOrFail(id: string): Promise<RegistroDiario> {
     const registro = await this.registroRepo.findOne({
       where: { id },
-      relations: ['semana', 'color'],
+      relations: ['semana', 'color', 'color.variedad', 'color.variedad.producto'],
     });
     if (!registro) {
       throw new NotFoundException(`Registro ${id} no encontrado`);
@@ -81,7 +81,7 @@ export class RegistrosService {
 
     // 1. Redondear cajas a máximo 2 decimales
     const cajas = this.round2(dto.cajas);
-    const tallosPorCaja = registro.color.tallosPorCaja;
+    const tallosPorCaja = registro.color.variedad.producto.tallosPorCaja;
 
     // 2. Detección de tipeo (warning, no error)
     let warning: string | undefined;

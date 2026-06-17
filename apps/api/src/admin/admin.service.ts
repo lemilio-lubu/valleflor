@@ -72,14 +72,17 @@ export class AdminService {
 
       const rFinca = String(normalizedRow['FINCA'] || '').trim().toUpperCase();
       const rResponsable = String(normalizedRow['RESPONSABLE'] || '').trim().toUpperCase();
+      const rCodigo = String(normalizedRow['CODIGO'] || '').trim().toUpperCase();
       const rProducto = String(normalizedRow['PRODUCTO'] || '').trim().toUpperCase();
       const rVariedad = String(normalizedRow['VARIEDAD'] || '').trim().toUpperCase();
       const rColor = String(normalizedRow['COLOR'] || '').trim().toUpperCase();
-      const rawTallos = String(normalizedRow['TALLOS'] || '').trim();
-      const rTallos = rawTallos ? parseInt(rawTallos, 10) : undefined;
+      const rawLongitud = String(normalizedRow['LONGITUD'] || '').trim();
+      const rLongitud = rawLongitud ? parseInt(rawLongitud, 10) : undefined;
+      const rawCaja = String(normalizedRow['CAJA'] || '').trim();
+      const rCaja = rawCaja ? parseInt(rawCaja, 10) : undefined;
 
-      if (!rFinca || !rResponsable || !rProducto || !rVariedad || !rColor) {
-        summary.errores.push(`Fila ${rowIndex}: Faltan datos requeridos (FINCA, RESPONSABLE, PRODUCTO, VARIEDAD, COLOR).`);
+      if (!rFinca || !rResponsable || !rCodigo || !rProducto || !rVariedad || !rColor) {
+        summary.errores.push(`Fila ${rowIndex}: Faltan datos requeridos (FINCA, RESPONSABLE, CODIGO, PRODUCTO, VARIEDAD, COLOR).`);
         continue;
       }
 
@@ -117,19 +120,32 @@ export class AdminService {
         continue;
       }
 
-      // 3. Find or Create Producto
-      const productoKey = `${rFinca}-${rProducto}`;
+      // 3. Find or Create Producto (catálogo global, identificado por código)
+      const productoKey = rCodigo;
       let producto = productosMap.get(productoKey);
       if (!producto) {
-        producto = await this.productoRepo.findOne({ where: { nombre: rProducto, fincaId: finca.id } });
+        producto = await this.productoRepo.findOne({ where: { codigo: rCodigo } });
         if (!producto) {
-          producto = this.productoRepo.create({ nombre: rProducto, fincaId: finca.id });
+          producto = this.productoRepo.create({
+            codigo: rCodigo,
+            nombre: rProducto,
+            longitud: rLongitud ?? null,
+            tallosPorCaja: rCaja ?? 400,
+          });
           if (isPreview) {
             producto.id = crypto.randomUUID();
           } else {
             await this.productoRepo.save(producto);
           }
           summary.insertados++;
+        } else if (
+          (rLongitud !== undefined && producto.longitud !== rLongitud) ||
+          (rCaja !== undefined && producto.tallosPorCaja !== rCaja)
+        ) {
+          if (rLongitud !== undefined) producto.longitud = rLongitud;
+          if (rCaja !== undefined) producto.tallosPorCaja = rCaja;
+          if (!isPreview) await this.productoRepo.save(producto);
+          summary.actualizados++;
         }
         productosMap.set(productoKey, producto);
       }
@@ -157,28 +173,15 @@ export class AdminService {
       if (!color) {
         color = await this.colorRepo.findOne({ where: { nombre: rColor, variedadId: variedad.id } });
         if (!color) {
-          color = this.colorRepo.create({ nombre: rColor, variedadId: variedad.id, tallosPorCaja: rTallos ?? 400 });
+          color = this.colorRepo.create({ nombre: rColor, variedadId: variedad.id });
           if (isPreview) {
             color.id = crypto.randomUUID();
           } else {
             await this.colorRepo.save(color);
           }
           summary.insertados++;
-        } else if (rTallos !== undefined && color.tallosPorCaja !== rTallos) {
-          color.tallosPorCaja = rTallos;
-          if (!isPreview) {
-            await this.colorRepo.save(color);
-          }
-          summary.actualizados++;
         }
         coloresMap.set(colorKey, color);
-      } else if (rTallos !== undefined && color.tallosPorCaja !== rTallos) {
-        // Update memory map and DB if it changed
-        color.tallosPorCaja = rTallos;
-        if (!isPreview) {
-          await this.colorRepo.save(color);
-        }
-        summary.actualizados++;
       }
 
       // 6. Manage ResponsableColor duplicate checks

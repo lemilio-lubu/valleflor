@@ -31,11 +31,10 @@ export class ColoresService {
     }
     return this.colorRepo.find({
       where: { activo: true },
-      relations: ['variedad', 'variedad.producto', 'variedad.producto.finca'],
+      relations: ['variedad', 'variedad.producto'],
       order: {
         variedad: {
           producto: {
-            finca: { nombre: 'ASC' },
             nombre: 'ASC'
           },
           nombre: 'ASC'
@@ -64,7 +63,7 @@ export class ColoresService {
       );
     }
 
-    const color = this.colorRepo.create({ nombre, variedadId: dto.variedadId, tallosPorCaja: dto.tallosPorCaja ?? 400 });
+    const color = this.colorRepo.create({ nombre, variedadId: dto.variedadId });
     return this.colorRepo.save(color);
   }
 

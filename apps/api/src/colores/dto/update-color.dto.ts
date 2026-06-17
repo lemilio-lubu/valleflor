@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateColorDto {
   @Transform(({ value }) => value?.toUpperCase()?.trim())
@@ -8,22 +8,4 @@ export class UpdateColorDto {
   @IsOptional()
   @MaxLength(100)
   nombre?: string;
-
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  tallosPorCaja?: number;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(20)
-  codigo?: string | null;
-
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.toUpperCase().trim() : value,
-  )
-  @IsString()
-  @IsOptional()
-  @MaxLength(200)
-  nombreOriginal?: string | null;
 }

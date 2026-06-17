@@ -9,12 +9,23 @@ import {
   Unique,
 } from 'typeorm';
 import { Color } from '../colores/color.entity';
+import { Responsable } from '../responsables/responsable.entity';
 
 @Entity('base_semanal')
-@Unique(['colorId', 'numeroSemana', 'anio'])
+@Unique(['responsableId', 'colorId', 'numeroSemana', 'anio'])
 export class BaseSemanal {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ name: 'responsable_id' })
+  responsableId: string;
+
+  @ManyToOne(() => Responsable, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'responsable_id' })
+  responsable: Responsable;
 
   @Column({ name: 'color_id' })
   colorId: string;

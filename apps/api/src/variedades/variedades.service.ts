@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,9 +8,6 @@ import { Repository } from 'typeorm';
 import { Variedad } from './variedad.entity';
 import { Producto } from '../productos/producto.entity';
 import { Color } from '../colores/color.entity';
-import { Responsable } from '../responsables/responsable.entity';
-import { UserRole } from '../users/user.entity';
-import { JwtUser } from '../auth/types/jwt-user.type';
 import { CreateVariedadDto } from './dto/create-variedad.dto';
 import { UpdateVariedadDto } from './dto/update-variedad.dto';
 
@@ -24,39 +20,24 @@ export class VariedadesService {
     private readonly productoRepo: Repository<Producto>,
     @InjectRepository(Color)
     private readonly colorRepo: Repository<Color>,
-    @InjectRepository(Responsable)
-    private readonly responsableRepo: Repository<Responsable>,
   ) {}
 
   async findAll(productoId: string): Promise<Variedad[]> {
     return this.variedadRepo.find({ where: { productoId, activo: true } });
   }
 
-  private async verifyProductoAccess(
-    productoId: string,
-    user: JwtUser,
-  ): Promise<Producto> {
+  private async getProductoOrFail(productoId: string): Promise<Producto> {
     const producto = await this.productoRepo.findOne({
       where: { id: productoId },
     });
     if (!producto) {
       throw new NotFoundException(`Producto ${productoId} no encontrado`);
     }
-
-    if (user.role !== UserRole.ADMIN) {
-      const responsable = await this.responsableRepo.findOne({
-        where: { userId: user.id },
-      });
-      if (!responsable || responsable.fincaId !== producto.fincaId) {
-        throw new ForbiddenException('No tienes acceso a este producto');
-      }
-    }
-
     return producto;
   }
 
-  async create(dto: CreateVariedadDto, user: JwtUser): Promise<Variedad> {
-    await this.verifyProductoAccess(dto.productoId, user);
+  async create(dto: CreateVariedadDto): Promise<Variedad> {
+    await this.getProductoOrFail(dto.productoId);
 
     const nombre = dto.nombre.toUpperCase().trim();
 

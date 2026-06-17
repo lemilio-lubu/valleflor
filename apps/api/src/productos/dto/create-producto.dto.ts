@@ -1,14 +1,33 @@
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateProductoDto {
+  @Transform(({ value }) => value?.toUpperCase()?.trim())
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  codigo: string;
+
   @Transform(({ value }) => value?.toUpperCase()?.trim())
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   nombre: string;
 
-  @IsUUID()
+  @IsInt()
+  @Min(1)
   @IsOptional()
-  fincaId?: string;
+  longitud?: number;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  tallosPorCaja?: number;
 }

@@ -72,12 +72,20 @@ export class SemanasService {
       throw new ConflictException(`La semana ${dto.numeroSemana} del año ${dto.anio} ya existe`);
     }
 
-    // 1. Obtener colores asignados al responsable
+    // 1. Obtener colores asignados al responsable (solo cadena activa)
     const asignaciones = await this.respColorRepo.find({
       where: { responsableId: responsable.id },
-      relations: ['color'],
+      relations: ['color', 'color.variedad', 'color.variedad.producto'],
     });
-    const colores = asignaciones.map((a) => a.color);
+    const colores = asignaciones
+      .map((a) => a.color)
+      .filter(
+        (c): c is Color =>
+          !!c &&
+          c.activo &&
+          !!c.variedad?.activo &&
+          !!c.variedad?.producto?.activo,
+      );
 
     // 2. Crear la semana
     const semana = await this.semanaRepo.save(
@@ -99,7 +107,7 @@ export class SemanasService {
         semana.id,
         dto.fechaInicio,
         color.id,
-        color.tallosPorCaja ?? tallosPorCajaGlobal,
+        color.variedad?.producto?.tallosPorCaja ?? tallosPorCajaGlobal,
       );
       registros.push(...seeds.map((s) => this.registroRepo.create(s)));
     }
@@ -161,23 +169,16 @@ export class SemanasService {
         'registros.color',
         'registros.color.variedad',
         'registros.color.variedad.producto',
-        'registros.color.variedad.producto.finca',
       ],
     });
     if (!semana) throw new NotFoundException(`Semana ${id} no encontrada`);
 
-    // Solo mostrar registros cuya cadena producto/variedad/color/finca siga activa
+    // Solo mostrar registros cuya cadena producto/variedad/color siga activa
     const registrosActivos = semana.registros.filter((registro) => {
       const color = registro.color;
       const variedad = color?.variedad;
       const producto = variedad?.producto;
-      const finca = producto?.finca;
-      return (
-        color?.activo &&
-        variedad?.activo &&
-        producto?.activo &&
-        finca?.activo
-      );
+      return color?.activo && variedad?.activo && producto?.activo;
     });
 
     const rows: PlantillaRow[] = registrosActivos.map((registro) => ({
@@ -193,8 +194,8 @@ export class SemanasService {
       colorId: registro.colorId,
       registroId: registro.id,
       cajas: Number(registro.cajas),
-      divisorTallos: registro.color.tallosPorCaja,
-      tallos: Number(registro.cajas) * registro.color.tallosPorCaja,
+      divisorTallos: registro.color.variedad.producto.tallosPorCaja,
+      tallos: Number(registro.cajas) * registro.color.variedad.producto.tallosPorCaja,
     }));
 
     return rows.sort((a, b) => {
@@ -219,7 +220,7 @@ export class SemanasService {
     // Obtener los colorIds del responsable para resetear base semanal
     const asignaciones = await this.respColorRepo.find({ where: { responsableId: responsable.id } });
     const colorIds = asignaciones.map((a) => a.colorId);
-    await this.baseSemanalService.resetSemana(colorIds, semana.numeroSemana, semana.anio);
+    await this.baseSemanalService.resetSemana(responsable.id, colorIds, semana.numeroSemana, semana.anio);
 
     await this.registroRepo.delete({ semanaId: id });
     await this.semanaRepo.remove(semana);

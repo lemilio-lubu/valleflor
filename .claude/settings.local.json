@@ -80,7 +80,8 @@
       "Bash(python3 -c ' *)",
       "Bash(python3 *)",
       "Bash(pip install *)",
-      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/api && cat package.json | grep -A 20 '\"scripts\"')"
+      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/api && cat package.json | grep -A 20 '\"scripts\"')",
+      "mcp__plugin_claude-mem_mcp-search__memory_add"
     ]
   }
 }
