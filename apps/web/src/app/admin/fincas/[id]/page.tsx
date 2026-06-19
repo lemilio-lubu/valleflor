@@ -8,14 +8,10 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ChevronDown, Minus, Search, X, UserPlus, Check, UserMinus, Settings2 } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
-import { CatalogoProductos } from '@/app/components/catalogo/CatalogoProductos';
 
-interface Producto { id: string; nombre: string; }
 interface Responsable { id: string; userId: string; user?: { email: string; nombre?: string }; }
 interface Finca { id: string; nombre: string; ubicacion?: string; responsables?: Responsable[]; }
 interface Usuario { id: string; email: string; role: string; nombre?: string; }
-
-type Tab = 'responsables' | 'productos';
 
 function AsignarModal({ onClose, onConfirm, isPending }: {
   onClose: () => void; onConfirm: (userId: string) => void; isPending: boolean;
@@ -262,7 +258,6 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
 export default function FincaDetallePage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<Tab>('responsables');
   const [showModal, setShowModal] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<{ responsableId: string; nombre: string } | null>(null);
   const [asignarProductos, setAsignarProductos] = useState<{ responsableId: string; nombre: string } | null>(null);
@@ -312,21 +307,7 @@ export default function FincaDetallePage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-surface-border mb-6">
-        {(['responsables', 'productos'] as Tab[]).map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-5 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
-              tab === t ? 'border-verde-600 text-verde-600' : 'border-transparent text-carbon-400 hover:text-carbon-50'
-            }`}>
-            {t === 'responsables' ? 'Responsables' : 'Productos'}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab: Responsables */}
-      {tab === 'responsables' && (
-        <div className="card">
+      <div className="card">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
             <h2 className="card-section-title">Responsables asignados</h2>
             <button
@@ -374,14 +355,6 @@ export default function FincaDetallePage() {
             </table>
           </div>
         </div>
-      )}
-
-      {/* Tab: Productos — catálogo único global */}
-      {tab === 'productos' && id && (
-        <div className="card">
-          <CatalogoProductos />
-        </div>
-      )}
 
       {showModal && <AsignarModal onClose={() => setShowModal(false)} onConfirm={(userId) => assign.mutate(userId)} isPending={assign.isPending} />}
       {confirmRemove && (

@@ -15,7 +15,7 @@ export default function CatalogoPage() {
         </div>
       </div>
 
-      {/* Carga Masiva */}
+      {/* Carga masiva */}
       <BulkUploadCatalog />
 
       {/* Catálogo global */}
