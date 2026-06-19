@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -20,8 +21,8 @@ export class ProductosController {
   constructor(private readonly productosService: ProductosService) {}
 
   @Get()
-  findAll() {
-    return this.productosService.findAll();
+  findAll(@Query('incluirInactivos') incluirInactivos?: string) {
+    return this.productosService.findAll(incluirInactivos === 'true');
   }
 
   @Post()

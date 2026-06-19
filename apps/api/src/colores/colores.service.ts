@@ -28,26 +28,61 @@ export class ColoresService {
     private readonly reconciliationService: SemanaReconciliationService,
   ) {}
 
-  async findAll(variedadId?: string, incluirInactivos = false): Promise<Color[]> {
+  async findAll(
+    variedadId?: string,
+    incluirInactivos = false,
+  ): Promise<(Color & { eliminable: boolean })[]> {
+    let colores: Color[];
     if (variedadId) {
       const where = incluirInactivos
         ? { variedadId }
         : { variedadId, activo: true };
-      return this.colorRepo.find({ where });
-    }
-    return this.colorRepo.find({
-      where: { activo: true },
-      relations: ['variedad', 'variedad.producto'],
-      order: {
-        variedad: {
-          producto: {
+      colores = await this.colorRepo.find({ where });
+    } else {
+      colores = await this.colorRepo.find({
+        where: { activo: true },
+        relations: ['variedad', 'variedad.producto'],
+        order: {
+          variedad: {
+            producto: {
+              nombre: 'ASC'
+            },
             nombre: 'ASC'
           },
           nombre: 'ASC'
-        },
-        nombre: 'ASC'
-      }
-    });
+        }
+      });
+    }
+    return this.attachEliminable(colores);
+  }
+
+  // `eliminable` = el DELETE haría borrado físico: el color NO tiene historial
+  // (ni en base_semanal ni en registros_diarios). Mismo criterio que remove().
+  private async attachEliminable(
+    colores: Color[],
+  ): Promise<(Color & { eliminable: boolean })[]> {
+    if (colores.length === 0) return [];
+    const ids = colores.map((c) => c.id);
+    const [baseRows, regRows] = await Promise.all([
+      this.baseSemanalRepo
+        .createQueryBuilder('b')
+        .select('b.color_id', 'colorId')
+        .where('b.color_id IN (:...ids)', { ids })
+        .groupBy('b.color_id')
+        .getRawMany<{ colorId: string }>(),
+      this.registroRepo
+        .createQueryBuilder('r')
+        .select('r.color_id', 'colorId')
+        .where('r.color_id IN (:...ids)', { ids })
+        .groupBy('r.color_id')
+        .getRawMany<{ colorId: string }>(),
+    ]);
+    const conDatos = new Set(
+      [...baseRows, ...regRows].map((x) => x.colorId),
+    );
+    return colores.map((c) =>
+      Object.assign(c, { eliminable: !conDatos.has(c.id) }),
+    );
   }
 
   async create(dto: CreateColorDto): Promise<Color> {

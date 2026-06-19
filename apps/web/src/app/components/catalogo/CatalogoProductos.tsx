@@ -18,9 +18,10 @@ interface Producto {
   tallosPorCaja: number;
   activo?: boolean;
   motivoBaja?: string | null;
+  eliminable?: boolean;
 }
-interface Variedad { id: string; nombre: string; productoId: string; activo?: boolean; motivoBaja?: string | null; }
-interface Color { id: string; nombre: string; variedadId: string; activo?: boolean; motivoBaja?: string | null; }
+interface Variedad { id: string; nombre: string; productoId: string; activo?: boolean; motivoBaja?: string | null; eliminable?: boolean; }
+interface Color { id: string; nombre: string; variedadId: string; activo?: boolean; motivoBaja?: string | null; eliminable?: boolean; }
 type CatalogItem = Producto | Variedad | Color;
 type ConfirmItem = { type: 'producto' | 'variedad' | 'color'; item: CatalogItem };
 
@@ -217,7 +218,7 @@ function BajaModal({ tipo, nombre, onConfirm, onCancel, isPending }: {
 }
 
 // ─── Column ────────────────────────────────────────────────────────────────
-function Column<T extends { id: string; nombre: string; activo?: boolean }>({
+function Column<T extends { id: string; nombre: string; activo?: boolean; eliminable?: boolean }>({
   title, subtitle, items, isLoading, selectedId, onSelect,
   onAdd, onEdit, onDelete, onDarBaja, onDarAlta,
   addingNew, editingId, addPlaceholder,
@@ -273,7 +274,7 @@ function Column<T extends { id: string; nombre: string; activo?: boolean }>({
             <div key={item.id} onClick={() => !isEditing && onSelect(item)}
               className={`group flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-surface-border/30 last:border-0 transition-colors ${
                 isSelected ? 'bg-verde-50' : 'hover:bg-surface-overlay'
-              } ${inactivo ? 'opacity-70' : ''}`}>
+              } ${inactivo ? 'opacity-50' : ''}`}>
               {isEditing ? (
                 <div className="flex-1 min-w-0">
                   <InlineInput initialValue={item.nombre} placeholder={addPlaceholder}
@@ -310,10 +311,14 @@ function Column<T extends { id: string; nombre: string; activo?: boolean }>({
                           className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-dorado-500 hover:bg-dorado-400/10 transition-colors">
                           <Archive className="w-3 h-3" />
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); onDelete(item); }} title="Eliminar"
-                          className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        {/* "Eliminar" (borrado físico) solo cuando no hay datos asociados.
+                            Si los hay, la única opción es "Dar de baja" (reversible). */}
+                        {item.eliminable === true && (
+                          <button onClick={(e) => { e.stopPropagation(); onDelete(item); }} title="Eliminar definitivamente"
+                            className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
@@ -747,7 +752,9 @@ export function CatalogoProductos() {
 
       {confirmDelete && (
         <ConfirmModal
-          message={`¿Eliminar ${TIPO_LABEL[confirmDelete.type]} "${confirmDelete.item.nombre}"?`}
+          message={`¿Eliminar definitivamente ${TIPO_LABEL[confirmDelete.type]} "${confirmDelete.item.nombre}"?`}
+          description="Se borrará permanentemente de la base de datos. Esta acción no se puede deshacer."
+          confirmLabel="Eliminar definitivamente"
           onConfirm={handleDeleteConfirm}
           onCancel={() => setConfirmDelete(null)}
           isPending={removeProducto.isPending || removeVariedad.isPending || removeColor.isPending}

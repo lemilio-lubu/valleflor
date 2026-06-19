@@ -24,11 +24,30 @@ export class ProductosService {
     private readonly reconciliationService: SemanaReconciliationService,
   ) {}
 
-  async findAll(): Promise<Producto[]> {
-    return this.productoRepo.find({
-      where: { activo: true },
+  async findAll(
+    incluirInactivos = false,
+  ): Promise<(Producto & { eliminable: boolean })[]> {
+    const productos = await this.productoRepo.find({
+      where: incluirInactivos ? {} : { activo: true },
       order: { nombre: 'ASC' },
     });
+    if (productos.length === 0) return [];
+
+    // `eliminable` = el DELETE haría borrado físico (sin datos asociados).
+    // Mismo criterio que remove(): el producto NO tiene colores colgando.
+    const ids = productos.map((p) => p.id);
+    const rows = await this.variedadRepo
+      .createQueryBuilder('v')
+      .innerJoin('v.colores', 'c')
+      .select('v.producto_id', 'productoId')
+      .where('v.producto_id IN (:...ids)', { ids })
+      .groupBy('v.producto_id')
+      .getRawMany<{ productoId: string }>();
+    const conDatos = new Set(rows.map((r) => r.productoId));
+
+    return productos.map((p) =>
+      Object.assign(p, { eliminable: !conDatos.has(p.id) }),
+    );
   }
 
   async create(dto: CreateProductoDto): Promise<Producto> {

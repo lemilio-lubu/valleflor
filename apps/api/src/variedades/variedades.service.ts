@@ -28,11 +28,26 @@ export class VariedadesService {
   async findAll(
     productoId: string,
     incluirInactivos = false,
-  ): Promise<Variedad[]> {
+  ): Promise<(Variedad & { eliminable: boolean })[]> {
     const where = incluirInactivos
       ? { productoId }
       : { productoId, activo: true };
-    return this.variedadRepo.find({ where });
+    const variedades = await this.variedadRepo.find({ where });
+    if (variedades.length === 0) return [];
+
+    // `eliminable` = sin colores colgando (mismo criterio que remove()).
+    const ids = variedades.map((v) => v.id);
+    const rows = await this.colorRepo
+      .createQueryBuilder('c')
+      .select('c.variedad_id', 'variedadId')
+      .where('c.variedad_id IN (:...ids)', { ids })
+      .groupBy('c.variedad_id')
+      .getRawMany<{ variedadId: string }>();
+    const conDatos = new Set(rows.map((r) => r.variedadId));
+
+    return variedades.map((v) =>
+      Object.assign(v, { eliminable: !conDatos.has(v.id) }),
+    );
   }
 
   private async getProductoOrFail(productoId: string): Promise<Producto> {
