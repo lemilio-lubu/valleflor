@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import {
   Plus, Pencil, Trash2, Check, X, ChevronRight, ChevronLeft,
-  Archive, ArchiveRestore, Info,
+  Archive, ArchiveRestore, Info, Search,
 } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 
@@ -237,18 +237,37 @@ function Column<T extends { id: string; nombre: string; activo?: boolean; elimin
   isSavingNew: boolean; isSavingEdit: boolean; emptyText: string; hasArrow?: boolean;
   inline?: boolean; metaOf?: (item: T) => string | null;
 }) {
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const filtered = q ? items.filter((i) => i.nombre.toLowerCase().includes(q)) : items;
   return (
     <div className="flex flex-col h-full border border-surface-border rounded-lg overflow-hidden bg-white">
       {/* Header */}
-      <div className="px-3 py-2.5 border-b border-surface-border bg-surface-overlay flex-shrink-0">
+      <div className="px-3 py-2.5 border-b border-surface-border bg-surface-overlay flex-shrink-0 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <h3 className="text-xs font-semibold text-carbon-50 uppercase tracking-wider">{title}</h3>
             {subtitle && <p className="text-[11px] text-carbon-400 mt-0.5 truncate">{subtitle}</p>}
           </div>
           <span className="text-[11px] text-carbon-400 tabular-nums flex-shrink-0">
-            {items.length}
+            {filtered.length}
           </span>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-carbon-400 pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar..."
+            className="w-full bg-white border border-surface-border rounded-md pl-7 pr-7 py-1 text-xs text-carbon-50 placeholder:text-carbon-400 focus:outline-none focus:ring-1 focus:ring-verde-600 focus:border-verde-600"
+          />
+          {query && (
+            <button type="button" onClick={() => setQuery('')} title="Limpiar búsqueda"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-carbon-400 hover:text-carbon-50 hover:bg-surface-overlay transition-colors">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -266,7 +285,12 @@ function Column<T extends { id: string; nombre: string; activo?: boolean; elimin
             <p className="text-carbon-400 text-xs text-center">{emptyText}</p>
           </div>
         )}
-        {!isLoading && items.map((item) => {
+        {!isLoading && items.length > 0 && filtered.length === 0 && (
+          <div className="flex items-center justify-center h-full py-10 px-4">
+            <p className="text-carbon-400 text-xs text-center">Sin coincidencias</p>
+          </div>
+        )}
+        {!isLoading && filtered.map((item) => {
           const isSelected = selectedId === item.id;
           const isEditing = inline && editingId === item.id;
           const meta = metaOf?.(item);

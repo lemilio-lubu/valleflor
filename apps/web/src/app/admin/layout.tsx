@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { MapPin, Users, Settings, BookOpen, BarChart2 } from 'lucide-react';
+import { MapPin, Users, BookOpen, BarChart2 } from 'lucide-react';
 import { AppShell, type AppShellNavItem } from '../components/AppShell';
 
 function Spinner() {
@@ -19,7 +19,6 @@ const navItems: AppShellNavItem[] = [
   { href: '/admin/usuarios', label: 'Usuarios', Icon: Users },
   { href: '/admin/catalogo', label: 'Catálogo', Icon: BookOpen },
   { href: '/admin/consolidado', label: 'Consolidado', Icon: BarChart2 },
-  { href: '/admin/configuracion', label: 'Configuración', Icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
