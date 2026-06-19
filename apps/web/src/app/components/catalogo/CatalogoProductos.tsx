@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import {
   Plus, Pencil, Trash2, Check, X, ChevronRight, ChevronLeft,
-  Archive, ArchiveRestore,
+  Archive, ArchiveRestore, Info,
 } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 
@@ -191,7 +191,7 @@ function BajaModal({ tipo, nombre, onConfirm, onCancel, isPending }: {
       <div className="bg-surface-raised rounded-xl border border-surface-border w-full max-w-md p-5"
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 mb-3">
-          <h3 className="text-lg font-semibold text-carbon-50">Dar de baja {tipo}</h3>
+          <h3 className="text-lg font-semibold text-carbon-50">Desactivar {tipo}</h3>
           <button onClick={onCancel}
             className="w-7 h-7 rounded-md hover:bg-surface-overlay flex items-center justify-center text-carbon-400">
             <X className="w-4 h-4" />
@@ -199,7 +199,7 @@ function BajaModal({ tipo, nombre, onConfirm, onCancel, isPending }: {
         </div>
         <p className="text-sm text-carbon-300 mb-3">
           &quot;{nombre}&quot; quedará oculto del catálogo y se quitará de las semanas
-          actual y futuras. Podés darlo de alta más adelante.
+          actual y futuras. Podés activarlo más adelante.
         </p>
         <label className="form-label" htmlFor="motivo-baja">Motivo (opcional)</label>
         <textarea id="motivo-baja" className="input-field w-full text-sm" rows={3}
@@ -209,7 +209,7 @@ function BajaModal({ tipo, nombre, onConfirm, onCancel, isPending }: {
           <button onClick={onCancel} className="btn-ghost text-sm px-4 py-2">Cancelar</button>
           <button onClick={() => onConfirm(motivo.trim())} disabled={isPending}
             className="btn-danger text-sm px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">
-            Dar de baja
+            Desactivar
           </button>
         </div>
       </div>
@@ -218,9 +218,9 @@ function BajaModal({ tipo, nombre, onConfirm, onCancel, isPending }: {
 }
 
 // ─── Column ────────────────────────────────────────────────────────────────
-function Column<T extends { id: string; nombre: string; activo?: boolean; eliminable?: boolean }>({
+function Column<T extends { id: string; nombre: string; activo?: boolean; eliminable?: boolean; motivoBaja?: string | null }>({
   title, subtitle, items, isLoading, selectedId, onSelect,
-  onAdd, onEdit, onDelete, onDarBaja, onDarAlta,
+  onAdd, onEdit, onDelete, onDarBaja, onDarAlta, onVerMotivo,
   addingNew, editingId, addPlaceholder,
   onSaveNew, onCancelNew, onSaveEdit, onCancelEdit,
   isSavingNew, isSavingEdit, emptyText, hasArrow = false,
@@ -230,6 +230,7 @@ function Column<T extends { id: string; nombre: string; activo?: boolean; elimin
   selectedId: string | null; onSelect: (item: T) => void;
   onAdd: () => void; onEdit: (item: T) => void; onDelete: (item: T) => void;
   onDarBaja: (item: T) => void; onDarAlta: (item: T) => void;
+  onVerMotivo: (item: T) => void;
   addingNew: boolean; editingId: string | null; addPlaceholder: string;
   onSaveNew: (n: string) => void; onCancelNew: () => void;
   onSaveEdit: (n: string) => void; onCancelEdit: () => void;
@@ -289,7 +290,7 @@ function Column<T extends { id: string; nombre: string; activo?: boolean; elimin
                       <span className="truncate">{item.nombre}</span>
                       {inactivo && (
                         <span className="text-[10px] uppercase tracking-wide text-dorado-500 border border-dorado-400/50 rounded-sm px-1 py-0.5 flex-shrink-0">
-                          Baja
+                          Inactivo
                         </span>
                       )}
                     </span>
@@ -297,22 +298,28 @@ function Column<T extends { id: string; nombre: string; activo?: boolean; elimin
                   </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     {inactivo ? (
-                      <button onClick={(e) => { e.stopPropagation(); onDarAlta(item); }} title="Dar de alta"
-                        className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-agro-600 hover:bg-agro-50 transition-colors">
-                        <ArchiveRestore className="w-3 h-3" />
-                      </button>
+                      <>
+                        <button onClick={(e) => { e.stopPropagation(); onVerMotivo(item); }} title="Ver motivo de desactivación"
+                          className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-verde-600 hover:bg-verde-50 transition-colors">
+                          <Info className="w-3 h-3" />
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); onDarAlta(item); }} title="Activar"
+                          className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-agro-600 hover:bg-agro-50 transition-colors">
+                          <ArchiveRestore className="w-3 h-3" />
+                        </button>
+                      </>
                     ) : (
                       <>
                         <button onClick={(e) => { e.stopPropagation(); onEdit(item); }} title="Editar"
                           className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-verde-600 hover:bg-verde-50 transition-colors">
                           <Pencil className="w-3 h-3" />
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); onDarBaja(item); }} title="Dar de baja"
+                        <button onClick={(e) => { e.stopPropagation(); onDarBaja(item); }} title="Desactivar"
                           className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-dorado-500 hover:bg-dorado-400/10 transition-colors">
                           <Archive className="w-3 h-3" />
                         </button>
                         {/* "Eliminar" (borrado físico) solo cuando no hay datos asociados.
-                            Si los hay, la única opción es "Dar de baja" (reversible). */}
+                            Si los hay, la única opción es "Desactivar" (reversible). */}
                         {item.eliminable === true && (
                           <button onClick={(e) => { e.stopPropagation(); onDelete(item); }} title="Eliminar definitivamente"
                             className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-red-600 hover:bg-red-50 transition-colors">
@@ -355,7 +362,14 @@ export function CatalogoProductos() {
   const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null);
   const [selectedVariedad, setSelectedVariedad] = useState<Variedad | null>(null);
   const [mobileLevel, setMobileLevel] = useState<'productos' | 'variedades' | 'colores'>('productos');
-  const [mostrarInactivos, setMostrarInactivos] = useState(false);
+  // Preferencia recordada en este navegador (localStorage). Lazy init seguro para SSR.
+  const [mostrarInactivos, setMostrarInactivos] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('catalogo:mostrarInactivos') === 'true';
+  });
+  useEffect(() => {
+    window.localStorage.setItem('catalogo:mostrarInactivos', String(mostrarInactivos));
+  }, [mostrarInactivos]);
 
   const [productoModal, setProductoModal] = useState<{ open: boolean; edit: Producto | null }>({ open: false, edit: null });
   const [addingVariedad, setAddingVariedad] = useState(false);
@@ -364,6 +378,7 @@ export function CatalogoProductos() {
   const [editingColor, setEditingColor] = useState<Color | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ConfirmItem | null>(null);
   const [bajaItem, setBajaItem] = useState<ConfirmItem | null>(null);
+  const [motivoItem, setMotivoItem] = useState<{ nombre: string; motivoBaja?: string | null } | null>(null);
 
   const showCol2 = !!selectedProducto;
   const showCol3 = !!selectedVariedad;
@@ -475,7 +490,7 @@ export function CatalogoProductos() {
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'No se puede eliminar'),
   });
 
-  // ── Dar de baja / dar de alta ───────────────────────────────────────────────
+  // ── Desactivar / activar ─────────────────────────────────────────────────────
   const endpointFor = (type: ConfirmItem['type']) =>
     type === 'producto' ? 'productos' : type === 'variedad' ? 'variedades' : 'colores';
 
@@ -484,10 +499,10 @@ export function CatalogoProductos() {
       api.patch(`/${endpointFor(type)}/${id}/baja`, { motivoBaja }),
     onSuccess: () => {
       invalidateAfterCatalogChange();
-      toast.success(`"${bajaItem?.item.nombre}" dado de baja`);
+      toast.success(`"${bajaItem?.item.nombre}" desactivado`);
       setBajaItem(null);
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'No se pudo dar de baja'),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'No se pudo desactivar'),
   });
 
   const darAlta = useMutation({
@@ -495,10 +510,10 @@ export function CatalogoProductos() {
       api.patch(`/${endpointFor(type)}/${id}/alta`),
     onSuccess: (_, vars) => {
       invalidateAfterCatalogChange();
-      toast.success('Dado de alta');
+      toast.success('Activado');
       void vars;
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'No se pudo dar de alta'),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'No se pudo activar'),
   });
 
   function handleDeleteConfirm() {
@@ -513,13 +528,13 @@ export function CatalogoProductos() {
 
   return (
     <>
-      {/* Toggle: mostrar dados de baja */}
+      {/* Toggle: mostrar inactivos */}
       <div className="flex items-center justify-end mb-3">
         <label className="flex items-center gap-2 text-xs text-carbon-300 cursor-pointer select-none">
           <input type="checkbox" checked={mostrarInactivos}
             onChange={(e) => setMostrarInactivos(e.target.checked)}
             className="accent-verde-600 w-3.5 h-3.5" />
-          Mostrar dados de baja
+          Mostrar inactivos
         </label>
       </div>
 
@@ -590,6 +605,7 @@ export function CatalogoProductos() {
               onDelete={(p) => setConfirmDelete({ type: 'producto', item: p })}
               onDarBaja={(p) => setBajaItem({ type: 'producto', item: p })}
               onDarAlta={(p) => darAlta.mutate({ type: 'producto', id: p.id })}
+              onVerMotivo={(p) => setMotivoItem(p)}
               addingNew={false} editingId={null}
               addPlaceholder="Producto"
               onSaveNew={() => {}} onCancelNew={() => {}}
@@ -614,6 +630,7 @@ export function CatalogoProductos() {
               onDelete={(v) => setConfirmDelete({ type: 'variedad', item: v })}
               onDarBaja={(v) => setBajaItem({ type: 'variedad', item: v })}
               onDarAlta={(v) => darAlta.mutate({ type: 'variedad', id: v.id })}
+              onVerMotivo={(v) => setMotivoItem(v)}
               addingNew={addingVariedad} editingId={editingVariedad?.id ?? null}
               addPlaceholder="Ej: FREEDOM"
               onSaveNew={(n) => saveVariedad.mutate(n)} onCancelNew={() => setAddingVariedad(false)}
@@ -633,6 +650,7 @@ export function CatalogoProductos() {
               onDelete={(c) => setConfirmDelete({ type: 'color', item: c })}
               onDarBaja={(c) => setBajaItem({ type: 'color', item: c })}
               onDarAlta={(c) => darAlta.mutate({ type: 'color', id: c.id })}
+              onVerMotivo={(c) => setMotivoItem(c)}
               addingNew={addingColor} editingId={editingColor?.id ?? null}
               addPlaceholder="Ej: ROJO OSCURO"
               onSaveNew={(n) => saveColor.mutate(n)} onCancelNew={() => setAddingColor(false)}
@@ -660,6 +678,7 @@ export function CatalogoProductos() {
               onDelete={(p) => setConfirmDelete({ type: 'producto', item: p })}
               onDarBaja={(p) => setBajaItem({ type: 'producto', item: p })}
               onDarAlta={(p) => darAlta.mutate({ type: 'producto', id: p.id })}
+              onVerMotivo={(p) => setMotivoItem(p)}
               addingNew={false} editingId={null}
               addPlaceholder="Producto"
               onSaveNew={() => {}} onCancelNew={() => {}}
@@ -696,6 +715,7 @@ export function CatalogoProductos() {
               onDelete={(v) => setConfirmDelete({ type: 'variedad', item: v })}
               onDarBaja={(v) => setBajaItem({ type: 'variedad', item: v })}
               onDarAlta={(v) => darAlta.mutate({ type: 'variedad', id: v.id })}
+              onVerMotivo={(v) => setMotivoItem(v)}
               addingNew={addingVariedad} editingId={editingVariedad?.id ?? null}
               addPlaceholder="Ej: FREEDOM"
               onSaveNew={(n) => saveVariedad.mutate(n)} onCancelNew={() => setAddingVariedad(false)}
@@ -730,6 +750,7 @@ export function CatalogoProductos() {
             onDelete={(c) => setConfirmDelete({ type: 'color', item: c })}
             onDarBaja={(c) => setBajaItem({ type: 'color', item: c })}
             onDarAlta={(c) => darAlta.mutate({ type: 'color', id: c.id })}
+              onVerMotivo={(c) => setMotivoItem(c)}
             addingNew={addingColor} editingId={editingColor?.id ?? null}
             addPlaceholder="Ej: ROJO OSCURO"
             onSaveNew={(n) => saveColor.mutate(n)} onCancelNew={() => setAddingColor(false)}
@@ -769,6 +790,31 @@ export function CatalogoProductos() {
           onCancel={() => setBajaItem(null)}
           isPending={darBaja.isPending}
         />
+      )}
+
+      {motivoItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(16,24,40,0.5)' }} onClick={() => setMotivoItem(null)}>
+          <div className="bg-surface-raised rounded-xl border border-surface-border w-full max-w-md p-5"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <h3 className="text-lg font-semibold text-carbon-50">Motivo de desactivación</h3>
+              <button onClick={() => setMotivoItem(null)}
+                className="w-7 h-7 rounded-md hover:bg-surface-overlay flex items-center justify-center text-carbon-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-carbon-400 mb-1.5">&quot;{motivoItem.nombre}&quot;</p>
+            {motivoItem.motivoBaja ? (
+              <p className="text-sm text-carbon-200 whitespace-pre-wrap">{motivoItem.motivoBaja}</p>
+            ) : (
+              <p className="text-sm text-carbon-400 italic">No se registró un motivo.</p>
+            )}
+            <div className="flex justify-end mt-5">
+              <button onClick={() => setMotivoItem(null)} className="btn-ghost text-sm px-4 py-2">Cerrar</button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
