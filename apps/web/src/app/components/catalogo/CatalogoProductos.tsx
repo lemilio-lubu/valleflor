@@ -1,18 +1,148 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Plus, Pencil, Trash2, Check, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 
-interface Producto { id: string; nombre: string; }
+interface Producto {
+  id: string;
+  codigo: string;
+  nombre: string;
+  longitud: number | null;
+  tallosPorCaja: number;
+}
 interface Variedad { id: string; nombre: string; productoId: string; }
 interface Color { id: string; nombre: string; variedadId: string; }
 type ConfirmItem = { type: 'producto' | 'variedad' | 'color'; item: Producto | Variedad | Color };
 
-// ─── Inline input ──────────────────────────────────────────────────────────
+interface ProductoFormValues {
+  codigo: string;
+  nombre: string;
+  longitud: string;
+  tallosPorCaja: string;
+}
+
+// ─── Producto modal (código / nombre / longitud / caja) ──────────────────────
+function ProductoModal({ initial, onSave, onCancel, isPending }: {
+  initial: Producto | null;
+  onSave: (values: { codigo: string; nombre: string; longitud: number | null; tallosPorCaja: number }) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  const [values, setValues] = useState<ProductoFormValues>({
+    codigo: initial?.codigo ?? '',
+    nombre: initial?.nombre ?? '',
+    longitud: initial?.longitud != null ? String(initial.longitud) : '',
+    tallosPorCaja: initial?.tallosPorCaja != null ? String(initial.tallosPorCaja) : '400',
+  });
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+
+  const canSave = values.codigo.trim() !== '' && values.nombre.trim() !== '';
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSave) return;
+    onSave({
+      codigo: values.codigo.trim().toUpperCase(),
+      nombre: values.nombre.trim().toUpperCase(),
+      longitud: values.longitud.trim() !== '' ? Number(values.longitud) : null,
+      tallosPorCaja: values.tallosPorCaja.trim() !== '' ? Number(values.tallosPorCaja) : 400,
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(16,24,40,0.5)' }}
+      onClick={onCancel}
+    >
+      <div
+        className="bg-surface-raised rounded-xl border border-surface-border w-full max-w-md p-6 relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onCancel}
+          className="absolute top-4 right-4 w-7 h-7 rounded-md hover:bg-surface-overlay flex items-center justify-center transition-colors"
+          aria-label="Cerrar"
+        >
+          <X className="w-4 h-4 text-carbon-400" />
+        </button>
+
+        <h3 className="text-lg font-semibold text-carbon-50 mb-5">
+          {initial ? 'Editar producto' : 'Nuevo producto'}
+        </h3>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Código</label>
+              <input
+                autoFocus
+                className="input-field"
+                placeholder="Ej: ROS001"
+                value={values.codigo}
+                onChange={(e) => setValues((v) => ({ ...v, codigo: e.target.value.toUpperCase() }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="form-label">Nombre</label>
+              <input
+                className="input-field"
+                placeholder="Ej: ROSAS"
+                value={values.nombre}
+                onChange={(e) => setValues((v) => ({ ...v, nombre: e.target.value.toUpperCase() }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="form-label">Longitud (cm)</label>
+              <input
+                type="number"
+                min={1}
+                className="input-field"
+                placeholder="Ej: 60"
+                value={values.longitud}
+                onChange={(e) => setValues((v) => ({ ...v, longitud: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="form-label">Tallos por caja</label>
+              <input
+                type="number"
+                min={1}
+                className="input-field"
+                placeholder="400"
+                value={values.tallosPorCaja}
+                onChange={(e) => setValues((v) => ({ ...v, tallosPorCaja: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button type="button" onClick={onCancel} className="btn-ghost">
+              Cancelar
+            </button>
+            <button type="submit" disabled={!canSave || isPending} className="btn-primary">
+              {isPending ? 'Guardando…' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Inline input (variedad / color) ─────────────────────────────────────────
 function InlineInput({ placeholder, initialValue = '', onSave, onCancel, isPending }: {
   placeholder: string; initialValue?: string;
   onSave: (v: string) => void; onCancel: () => void; isPending: boolean;
@@ -42,6 +172,7 @@ function Column<T extends { id: string; nombre: string }>({
   onAdd, onEdit, onDelete, addingNew, editingId, addPlaceholder,
   onSaveNew, onCancelNew, onSaveEdit, onCancelEdit,
   isSavingNew, isSavingEdit, emptyText, hasArrow = false,
+  inline = true, metaOf,
 }: {
   title: string; subtitle?: string; items: T[]; isLoading?: boolean;
   selectedId: string | null; onSelect: (item: T) => void;
@@ -50,6 +181,7 @@ function Column<T extends { id: string; nombre: string }>({
   onSaveNew: (n: string) => void; onCancelNew: () => void;
   onSaveEdit: (n: string) => void; onCancelEdit: () => void;
   isSavingNew: boolean; isSavingEdit: boolean; emptyText: string; hasArrow?: boolean;
+  inline?: boolean; metaOf?: (item: T) => string | null;
 }) {
   return (
     <div className="flex flex-col h-full border border-surface-border rounded-lg overflow-hidden bg-white">
@@ -82,7 +214,8 @@ function Column<T extends { id: string; nombre: string }>({
         )}
         {!isLoading && items.map((item) => {
           const isSelected = selectedId === item.id;
-          const isEditing = editingId === item.id;
+          const isEditing = inline && editingId === item.id;
+          const meta = metaOf?.(item);
           return (
             <div key={item.id} onClick={() => !isEditing && onSelect(item)}
               className={`group flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-surface-border/30 last:border-0 transition-colors ${
@@ -95,9 +228,12 @@ function Column<T extends { id: string; nombre: string }>({
                 </div>
               ) : (
                 <>
-                  <span className={`flex-1 text-sm truncate ${isSelected ? 'text-verde-700 font-medium' : 'text-carbon-50'}`}>
-                    {item.nombre}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className={`block text-sm truncate ${isSelected ? 'text-verde-700 font-medium' : 'text-carbon-50'}`}>
+                      {item.nombre}
+                    </span>
+                    {meta && <span className="block text-[11px] text-carbon-400 truncate">{meta}</span>}
+                  </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={(e) => { e.stopPropagation(); onEdit(item); }}
                       className="w-6 h-6 rounded flex items-center justify-center text-carbon-400 hover:text-verde-600 hover:bg-verde-50 transition-colors">
@@ -120,7 +256,7 @@ function Column<T extends { id: string; nombre: string }>({
 
       {/* Add area */}
       <div className="px-3 py-2 border-t border-surface-border bg-surface-raised flex-shrink-0">
-        {addingNew ? (
+        {inline && addingNew ? (
           <InlineInput placeholder={addPlaceholder} onSave={onSaveNew}
             onCancel={onCancelNew} isPending={isSavingNew} />
         ) : (
@@ -135,15 +271,14 @@ function Column<T extends { id: string; nombre: string }>({
 }
 
 // ─── Main ──────────────────────────────────────────────────────────────────
-export function CatalogoProductos({ fincaId }: { fincaId: string }) {
+export function CatalogoProductos() {
   const qc = useQueryClient();
 
   const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null);
   const [selectedVariedad, setSelectedVariedad] = useState<Variedad | null>(null);
   const [mobileLevel, setMobileLevel] = useState<'productos' | 'variedades' | 'colores'>('productos');
 
-  const [addingProducto, setAddingProducto] = useState(false);
-  const [editingProducto, setEditingProducto] = useState<Producto | null>(null);
+  const [productoModal, setProductoModal] = useState<{ open: boolean; edit: Producto | null }>({ open: false, edit: null });
   const [addingVariedad, setAddingVariedad] = useState(false);
   const [editingVariedad, setEditingVariedad] = useState<Variedad | null>(null);
   const [addingColor, setAddingColor] = useState(false);
@@ -158,8 +293,8 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
   const col3W = showCol3 ? 'calc(33.33% - 16px)' : '0%';
 
   const { data: productos = [], isLoading: loadingProductos } = useQuery<Producto[]>({
-    queryKey: ['productos', fincaId],
-    queryFn: () => api.get('/productos', { params: { fincaId } }).then((r) => r.data),
+    queryKey: ['productos'],
+    queryFn: () => api.get('/productos').then((r) => r.data),
   });
   const { data: variedades = [], isLoading: loadingVariedades } = useQuery<Variedad[]>({
     queryKey: ['variedades', selectedProducto?.id],
@@ -172,21 +307,32 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     enabled: !!selectedVariedad,
   });
 
+  const productoMeta = (p: Producto) => {
+    const parts = [`Cód: ${p.codigo}`];
+    if (p.longitud != null) parts.push(`${p.longitud} cm`);
+    parts.push(`${p.tallosPorCaja} t/caja`);
+    return parts.join(' · ');
+  };
+
   const saveProducto = useMutation({
-    mutationFn: (nombre: string) =>
-      editingProducto ? api.patch(`/productos/${editingProducto.id}`, { nombre }) : api.post('/productos', { nombre, fincaId }),
-    onSuccess: (res, nombre) => {
-      qc.invalidateQueries({ queryKey: ['productos', fincaId] });
-      toast.success(editingProducto ? `Producto "${nombre}" actualizado` : `Producto "${nombre}" creado`);
-      if (!editingProducto) setSelectedProducto(res.data);
-      setAddingProducto(false); setEditingProducto(null);
+    mutationFn: (values: { codigo: string; nombre: string; longitud: number | null; tallosPorCaja: number }) =>
+      productoModal.edit
+        ? api.patch(`/productos/${productoModal.edit.id}`, values)
+        : api.post('/productos', values),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['productos'] });
+      qc.invalidateQueries({ queryKey: ['consolidado-diario'] });
+      qc.invalidateQueries({ queryKey: ['consolidado-semanal'] });
+      toast.success(productoModal.edit ? 'Producto actualizado' : 'Producto creado');
+      if (!productoModal.edit) setSelectedProducto(res.data);
+      setProductoModal({ open: false, edit: null });
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al guardar'),
   });
   const removeProducto = useMutation({
     mutationFn: (id: string) => api.delete(`/productos/${id}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['productos', fincaId] });
+      qc.invalidateQueries({ queryKey: ['productos'] });
       qc.invalidateQueries({ queryKey: ['consolidado-diario'] });
       qc.invalidateQueries({ queryKey: ['consolidado-semanal'] });
       toast.success(`Producto "${confirmDelete?.item.nombre}" eliminado`);
@@ -248,6 +394,9 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     else if (confirmDelete.type === 'variedad') removeVariedad.mutate(confirmDelete.item.id);
     else removeColor.mutate(confirmDelete.item.id);
   }
+
+  const openNewProducto = () => setProductoModal({ open: true, edit: null });
+  const openEditProducto = (p: Producto) => setProductoModal({ open: true, edit: p });
 
   return (
     <>
@@ -313,16 +462,16 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
                 setAddingVariedad(false); setEditingVariedad(null);
                 setMobileLevel('variedades');
               }}
-              onAdd={() => { setEditingProducto(null); setAddingProducto(true); }}
-              onEdit={(p) => { setEditingProducto(p as Producto); setAddingProducto(false); }}
+              onAdd={openNewProducto}
+              onEdit={(p) => openEditProducto(p as Producto)}
               onDelete={(p) => setConfirmDelete({ type: 'producto', item: p })}
-              addingNew={addingProducto} editingId={editingProducto?.id ?? null}
-              addPlaceholder="Ej: ROSAS"
-              onSaveNew={(n) => saveProducto.mutate(n)} onCancelNew={() => setAddingProducto(false)}
-              onSaveEdit={(n) => saveProducto.mutate(n)} onCancelEdit={() => setEditingProducto(null)}
-              isSavingNew={saveProducto.isPending && !editingProducto}
-              isSavingEdit={saveProducto.isPending && !!editingProducto}
+              addingNew={false} editingId={null}
+              addPlaceholder="Producto"
+              onSaveNew={() => {}} onCancelNew={() => {}}
+              onSaveEdit={() => {}} onCancelEdit={() => {}}
+              isSavingNew={false} isSavingEdit={false}
               emptyText="Sin productos. Agrega el primero." hasArrow
+              inline={false} metaOf={(p) => productoMeta(p as Producto)}
             />
           )}
           {mobileLevel === 'variedades' && selectedProducto && (
@@ -377,16 +526,16 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
             <Column title="Productos" items={productos} isLoading={loadingProductos}
               selectedId={selectedProducto?.id ?? null}
               onSelect={(p) => { setSelectedProducto(p); setSelectedVariedad(null); setAddingVariedad(false); setEditingVariedad(null); }}
-              onAdd={() => { setEditingProducto(null); setAddingProducto(true); }}
-              onEdit={(p) => { setEditingProducto(p as Producto); setAddingProducto(false); }}
+              onAdd={openNewProducto}
+              onEdit={(p) => openEditProducto(p as Producto)}
               onDelete={(p) => setConfirmDelete({ type: 'producto', item: p })}
-              addingNew={addingProducto} editingId={editingProducto?.id ?? null}
-              addPlaceholder="Ej: ROSAS"
-              onSaveNew={(n) => saveProducto.mutate(n)} onCancelNew={() => setAddingProducto(false)}
-              onSaveEdit={(n) => saveProducto.mutate(n)} onCancelEdit={() => setEditingProducto(null)}
-              isSavingNew={saveProducto.isPending && !editingProducto}
-              isSavingEdit={saveProducto.isPending && !!editingProducto}
-              emptyText="Sin productos. Agrega el primero." hasArrow />
+              addingNew={false} editingId={null}
+              addPlaceholder="Producto"
+              onSaveNew={() => {}} onCancelNew={() => {}}
+              onSaveEdit={() => {}} onCancelEdit={() => {}}
+              isSavingNew={false} isSavingEdit={false}
+              emptyText="Sin productos. Agrega el primero." hasArrow
+              inline={false} metaOf={(p) => productoMeta(p as Producto)} />
           </div>
         </div>
 
@@ -456,6 +605,15 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
         </div>
 
       </div>
+
+      {productoModal.open && (
+        <ProductoModal
+          initial={productoModal.edit}
+          onSave={(values) => saveProducto.mutate(values)}
+          onCancel={() => setProductoModal({ open: false, edit: null })}
+          isPending={saveProducto.isPending}
+        />
+      )}
 
       {confirmDelete && (
         <ConfirmModal

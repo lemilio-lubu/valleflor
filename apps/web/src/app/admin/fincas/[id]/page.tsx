@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Search, X, UserPlus, Check, UserMinus, Settings2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Minus, Search, X, UserPlus, Check, UserMinus, Settings2 } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 import { CatalogoProductos } from '@/app/components/catalogo/CatalogoProductos';
 
@@ -78,60 +78,170 @@ function AsignarModal({ onClose, onConfirm, isPending }: {
   );
 }
 
+interface ColorTree {
+  id: string;
+  nombre: string;
+  variedad: { id: string; nombre: string; producto: { id: string; codigo: string; nombre: string } };
+}
+type TriState = 'none' | 'some' | 'all';
+
+// Casilla tri-estado reutilizable
+function TriCheckbox({ state }: { state: TriState }) {
+  const active = state !== 'none';
+  return (
+    <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${active ? 'bg-verde-600 border-verde-600' : 'border-carbon-400'}`}>
+      {state === 'all' && <Check className="w-2.5 h-2.5 text-white" />}
+      {state === 'some' && <Minus className="w-2.5 h-2.5 text-white" />}
+    </span>
+  );
+}
+
 function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onClose }: {
   fincaId: string; responsableId: string; responsableNombre: string; onClose: () => void;
 }) {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<string> | null>(null);
+  const [expandedProd, setExpandedProd] = useState<Set<string>>(new Set());
+  const [expandedVar, setExpandedVar] = useState<Set<string>>(new Set());
 
-  const { data: productosDisponibles = [], isLoading: loadingProductos } = useQuery<Producto[]>({
-    queryKey: ['productos', fincaId],
-    queryFn: () => api.get('/productos', { params: { fincaId } }).then((r) => r.data),
+  const { data: colores = [], isLoading: loadingColores } = useQuery<ColorTree[]>({
+    queryKey: ['catalogo-arbol'],
+    queryFn: () => api.get('/colores').then((r) => r.data),
   });
 
-  const { data: productosAsignados = [], isLoading: loadingAsignados } = useQuery<Producto[]>({
-    queryKey: ['responsable-productos', fincaId, responsableId],
-    queryFn: () => api.get(`/fincas/${fincaId}/responsables/${responsableId}/productos`).then((r) => r.data),
+  const { data: coloresAsignados = [], isLoading: loadingAsignados } = useQuery<string[]>({
+    queryKey: ['responsable-colores', fincaId, responsableId],
+    queryFn: () => api.get(`/fincas/${fincaId}/responsables/${responsableId}/colores`).then((r) => r.data),
   });
 
-  const currentSelected = selected ?? new Set(productosAsignados.map((p) => p.id));
-  const toggle = (id: string) => { const next = new Set(currentSelected); next.has(id) ? next.delete(id) : next.add(id); setSelected(next); };
+  const currentSelected = selected ?? new Set(coloresAsignados);
+
+  // Agrupar colores en árbol producto → variedad → color
+  const arbol = useMemo(() => {
+    const prodMap = new Map<string, {
+      producto: { id: string; codigo: string; nombre: string };
+      variedades: Map<string, { variedad: { id: string; nombre: string }; colores: ColorTree[] }>;
+    }>();
+    for (const c of colores) {
+      const p = c.variedad?.producto;
+      const v = c.variedad;
+      if (!p || !v) continue;
+      if (!prodMap.has(p.id)) prodMap.set(p.id, { producto: p, variedades: new Map() });
+      const pe = prodMap.get(p.id)!;
+      if (!pe.variedades.has(v.id)) pe.variedades.set(v.id, { variedad: { id: v.id, nombre: v.nombre }, colores: [] });
+      pe.variedades.get(v.id)!.colores.push(c);
+    }
+    return prodMap;
+  }, [colores]);
+
+  function triState(ids: string[]): TriState {
+    if (ids.length === 0) return 'none';
+    const sel = ids.filter((id) => currentSelected.has(id)).length;
+    return sel === 0 ? 'none' : sel === ids.length ? 'all' : 'some';
+  }
+
+  function setMany(ids: string[], value: boolean) {
+    const next = new Set(currentSelected);
+    for (const id of ids) value ? next.add(id) : next.delete(id);
+    setSelected(next);
+  }
+
+  function toggleColor(id: string) {
+    const next = new Set(currentSelected);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelected(next);
+  }
+
+  const toggleExpand = (set: Set<string>, setter: (s: Set<string>) => void, id: string) => {
+    const next = new Set(set);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setter(next);
+  };
 
   const save = useMutation({
-    mutationFn: () => api.post(`/fincas/${fincaId}/responsables/${responsableId}/productos`, { productoIds: [...currentSelected] }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['responsable-productos', fincaId, responsableId] }); toast.success('Productos asignados'); onClose(); },
-    onError: () => toast.error('Error al asignar productos'),
+    mutationFn: () => api.post(`/fincas/${fincaId}/responsables/${responsableId}/productos`, { colorIds: [...currentSelected] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['responsable-colores', fincaId, responsableId] });
+      qc.invalidateQueries({ queryKey: ['responsable-productos', fincaId, responsableId] });
+      toast.success('Asignaciones guardadas');
+      onClose();
+    },
+    onError: () => toast.error('Error al guardar asignaciones'),
   });
 
-  const isLoading = loadingProductos || loadingAsignados;
+  const isLoading = loadingColores || loadingAsignados;
 
   return (
     <div className="modal-overlay">
-      <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-md mx-4 shadow-lg animate-slide-up">
+      <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-lg mx-4 shadow-lg animate-slide-up">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
           <div>
-            <h3 className="modal-title">Productos asignados</h3>
+            <h3 className="modal-title">Asignar productos, variedades y colores</h3>
             <p className="text-xs text-carbon-400 mt-0.5">{responsableNombre}</p>
           </div>
           <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6">
           {isLoading && <div className="py-8 text-center text-carbon-400 text-sm">Cargando...</div>}
-          {!isLoading && productosDisponibles.length === 0 && (
-            <div className="empty-state py-8">Sin productos en esta finca. Agrégalos desde el tab Productos.</div>
+          {!isLoading && arbol.size === 0 && (
+            <div className="empty-state py-8">Sin colores en el catálogo. Agrégalos desde el catálogo.</div>
           )}
-          {!isLoading && productosDisponibles.length > 0 && (
-            <div className="space-y-1 mb-6 max-h-72 overflow-y-auto">
-              {productosDisponibles.map((p) => {
-                const checked = currentSelected.has(p.id);
+          {!isLoading && arbol.size > 0 && (
+            <div className="mb-6 max-h-80 overflow-y-auto rounded-lg border border-surface-border divide-y divide-surface-border/50">
+              {[...arbol.values()].map(({ producto, variedades }) => {
+                const prodColorIds = [...variedades.values()].flatMap((v) => v.colores.map((c) => c.id));
+                const prodState = triState(prodColorIds);
+                const prodOpen = expandedProd.has(producto.id);
                 return (
-                  <button key={p.id} type="button" onClick={() => toggle(p.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors ${checked ? 'bg-verde-50 text-verde-700' : 'hover:bg-surface-overlay text-carbon-50'}`}>
-                    <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${checked ? 'bg-verde-600 border-verde-600' : 'border-carbon-400'}`}>
-                      {checked && <Check className="w-2.5 h-2.5 text-white" />}
-                    </span>
-                    <span className="text-sm font-medium">{p.nombre}</span>
-                  </button>
+                  <div key={producto.id}>
+                    {/* Producto */}
+                    <div className="flex items-center gap-2 px-3 py-2.5 hover:bg-surface-overlay">
+                      <button type="button" onClick={() => toggleExpand(expandedProd, setExpandedProd, producto.id)}
+                        className="text-carbon-400 hover:text-carbon-50 flex-shrink-0" aria-label="Expandir">
+                        {prodOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                      </button>
+                      <button type="button" onClick={() => setMany(prodColorIds, prodState !== 'all')}
+                        className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                        <TriCheckbox state={prodState} />
+                        <span className="text-sm font-medium text-carbon-50 truncate">{producto.nombre}</span>
+                        <span className="text-[11px] text-carbon-400 flex-shrink-0">{producto.codigo}</span>
+                      </button>
+                    </div>
+
+                    {/* Variedades */}
+                    {prodOpen && [...variedades.values()].map(({ variedad, colores: cols }) => {
+                      const varColorIds = cols.map((c) => c.id);
+                      const varState = triState(varColorIds);
+                      const varOpen = expandedVar.has(variedad.id);
+                      return (
+                        <div key={variedad.id}>
+                          <div className="flex items-center gap-2 pl-8 pr-3 py-2 hover:bg-surface-overlay">
+                            <button type="button" onClick={() => toggleExpand(expandedVar, setExpandedVar, variedad.id)}
+                              className="text-carbon-400 hover:text-carbon-50 flex-shrink-0" aria-label="Expandir">
+                              {varOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                            </button>
+                            <button type="button" onClick={() => setMany(varColorIds, varState !== 'all')}
+                              className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                              <TriCheckbox state={varState} />
+                              <span className="text-sm text-carbon-200 truncate">{variedad.nombre}</span>
+                            </button>
+                          </div>
+
+                          {/* Colores */}
+                          {varOpen && cols.map((c) => {
+                            const checked = currentSelected.has(c.id);
+                            return (
+                              <button key={c.id} type="button" onClick={() => toggleColor(c.id)}
+                                className={`w-full flex items-center gap-2 pl-[60px] pr-3 py-1.5 text-left transition-colors ${checked ? 'bg-verde-50' : 'hover:bg-surface-overlay'}`}>
+                                <TriCheckbox state={checked ? 'all' : 'none'} />
+                                <span className={`text-sm truncate ${checked ? 'text-verde-700' : 'text-carbon-300'}`}>{c.nombre}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
                 );
               })}
             </div>
@@ -266,10 +376,10 @@ export default function FincaDetallePage() {
         </div>
       )}
 
-      {/* Tab: Productos */}
+      {/* Tab: Productos — catálogo único global */}
       {tab === 'productos' && id && (
         <div className="card">
-          <CatalogoProductos fincaId={id} />
+          <CatalogoProductos />
         </div>
       )}
 

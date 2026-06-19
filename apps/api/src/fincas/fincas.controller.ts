@@ -21,6 +21,7 @@ import { JwtUser } from '../auth/types/jwt-user.type';
 import { FincasService } from './fincas.service';
 import { CreateFincaDto } from './dto/create-finca.dto';
 import { UpdateFincaDto } from './dto/update-finca.dto';
+import { SetAsignacionesDto } from './dto/set-asignaciones.dto';
 import { AssignResponsableDto } from './dto/assign-responsable.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -97,14 +98,22 @@ export class FincasController {
     return this.fincasService.getProductosResponsable(fincaId, responsableId);
   }
 
+  @Get(':fincaId/responsables/:responsableId/colores')
+  getColoresResponsable(
+    @Param('fincaId', ParseUUIDPipe) fincaId: string,
+    @Param('responsableId', ParseUUIDPipe) responsableId: string,
+  ) {
+    return this.fincasService.getColorIdsResponsable(fincaId, responsableId);
+  }
+
   @Post(':fincaId/responsables/:responsableId/productos')
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)
-  setProductosResponsable(
+  setAsignacionesResponsable(
     @Param('fincaId', ParseUUIDPipe) fincaId: string,
     @Param('responsableId', ParseUUIDPipe) responsableId: string,
-    @Body() body: { productoIds: string[] },
+    @Body() body: SetAsignacionesDto,
   ) {
-    return this.fincasService.setProductosResponsable(fincaId, responsableId, body.productoIds);
+    return this.fincasService.setAsignacionesResponsable(fincaId, responsableId, body);
   }
 }

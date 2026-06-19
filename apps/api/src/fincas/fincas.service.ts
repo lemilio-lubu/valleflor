@@ -159,17 +159,60 @@ export class FincasService {
     return Array.from(productosMap.values());
   }
 
-  async setProductosResponsable(fincaId: string, responsableId: string, productoIds: string[]): Promise<Producto[]> {
+  async getColorIdsResponsable(fincaId: string, responsableId: string): Promise<string[]> {
     const responsable = await this.responsableRepo.findOne({ where: { id: responsableId, fincaId } });
     if (!responsable) throw new NotFoundException('Responsable no encontrado en esta finca');
+    const assignments = await this.respColorRepo.find({ where: { responsableId } });
+    return assignments.map((a) => a.colorId);
+  }
+
+  /**
+   * Asignación granular (F4): expande productos / variedades / colores a los
+   * color_id activos correspondientes y reemplaza las asignaciones del responsable.
+   */
+  async setAsignacionesResponsable(
+    fincaId: string,
+    responsableId: string,
+    seleccion: {
+      productoIds?: string[];
+      variedadIds?: string[];
+      colorIds?: string[];
+    },
+  ): Promise<Producto[]> {
+    const responsable = await this.responsableRepo.findOne({ where: { id: responsableId, fincaId } });
+    if (!responsable) throw new NotFoundException('Responsable no encontrado en esta finca');
+
+    const colorIdSet = new Set<string>();
+
+    if (seleccion.colorIds?.length) {
+      const colores = await this.colorRepo.find({
+        where: { id: In(seleccion.colorIds), activo: true },
+      });
+      colores.forEach((c) => colorIdSet.add(c.id));
+    }
+    if (seleccion.variedadIds?.length) {
+      const colores = await this.colorRepo.find({
+        where: { variedadId: In(seleccion.variedadIds), activo: true },
+      });
+      colores.forEach((c) => colorIdSet.add(c.id));
+    }
+    if (seleccion.productoIds?.length) {
+      const colores = await this.colorRepo
+        .createQueryBuilder('color')
+        .innerJoin('color.variedad', 'variedad')
+        .where('variedad.productoId IN (:...productoIds)', {
+          productoIds: seleccion.productoIds,
+        })
+        .andWhere('color.activo = true')
+        .getMany();
+      colores.forEach((c) => colorIdSet.add(c.id));
+    }
+
     await this.respColorRepo.delete({ responsableId });
-    if (productoIds.length > 0) {
-      const colores = await this.colorRepo.createQueryBuilder('color')
-          .innerJoin('color.variedad', 'variedad')
-          .where('variedad.productoId IN (:...productoIds)', { productoIds })
-          .andWhere('color.activo = true')
-          .getMany();
-      const records = colores.map((c) => this.respColorRepo.create({ responsableId, colorId: c.id }));
+    if (colorIdSet.size > 0) {
+      const records = [...colorIdSet].map((colorId) =>
+        this.respColorRepo.create({ responsableId, colorId }),
+      );
       await this.respColorRepo.save(records);
     }
 
