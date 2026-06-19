@@ -109,16 +109,15 @@ export class ColoresService {
   async darDeAlta(id: string): Promise<Color> {
     const color = await this.colorRepo.findOne({
       where: { id },
-      relations: ['variedad', 'variedad.producto', 'variedad.producto.finca'],
+      relations: ['variedad', 'variedad.producto'],
     });
     if (!color) throw new NotFoundException(`Color ${id} no encontrado`);
 
     const variedad = color.variedad;
     const producto = variedad?.producto;
-    const finca = producto?.finca;
-    if (!variedad?.activo || !producto?.activo || !finca?.activo) {
+    if (!variedad?.activo || !producto?.activo) {
       throw new BadRequestException(
-        'La variedad, el producto o la finca está dada de baja; reactívala primero',
+        'La variedad o el producto está dado de baja; reactívalo primero',
       );
     }
 

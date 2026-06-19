@@ -88,7 +88,16 @@
       "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/web && npx tsc --noEmit && echo \"===WEB TSC OK===\")",
       "mcp__plugin_claude-mem_mcp-search__get_observations",
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\)\")",
-      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./package.json'\\).scripts,null,2\\)\\)\")"
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./package.json'\\).scripts,null,2\\)\\)\")",
+      "Bash(curl -s -o /dev/null -w \"WEB:%{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(curl -s -o /dev/null -w \"OFFLINE:%{http_code}\\\\n\" http://localhost:3000/offline)",
+      "Bash(curl -s -o /dev/null -w \"API:%{http_code}\\\\n\" http://localhost:3001/api/v1/colores)",
+      "Bash(cd /Users/miguelmendosa/Documents/GitLab/valleflor; echo \"=== registro-diario.entity ===\"; cat apps/api/src/registros/registro-diario.entity.ts; echo \"=== grep finca en entidades ===\"; grep -rn \"finca\" apps/api/src --include=\"*.entity.ts\" | grep -v node_modules; echo \"=== semana entity \\(head\\) ===\"; sed -n '1,60p' apps/api/src/semanas/*.entity.ts 2>/dev/null)",
+      "Bash(curl -s -o /dev/null -w \"API colores: %{http_code}\\\\n\" http://localhost:3001/api/v1/colores)",
+      "Bash(curl -s -o /dev/null -w \"WEB: %{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(pkill -f \"nest start\")",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(curl -s -o /dev/null -w \"API productos: %{http_code}\\\\n\" http://localhost:3001/api/v1/productos)"
     ]
   }
 }
