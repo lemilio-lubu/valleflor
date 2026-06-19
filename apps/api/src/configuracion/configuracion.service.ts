@@ -28,7 +28,7 @@ export class ConfiguracionService {
   }
 
   async update(tallosPorCaja: number): Promise<Configuracion> {
-    let config = await this.get();
+    const config = await this.get();
     config.tallosPorCaja = tallosPorCaja;
     const savedConfig = await this.repo.save(config);
 

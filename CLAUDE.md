@@ -16,6 +16,7 @@ La skill **`valleflor-stack-best-practices`** está instalada en `.claude/skills
 | Componentes Next.js, fetching, Tailwind | `.claude/commands/references/nextjs-frontend.md` |
 | Docker, docker-compose, variables de entorno | `.claude/commands/references/infra-docker.md` |
 | Tests unitarios, integración, e2e | `.claude/commands/references/testing.md` |
+| Pruebas BDD con .feature de Gherkin (Cucumber.js) | `.claude/commands/references/bdd-cucumber.md` |
 
 ---
 

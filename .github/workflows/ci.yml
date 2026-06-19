@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Cancela corridas previas de la misma rama/PR si llega un push nuevo.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Calidad de código: lint + type-check ────────────────────────────────
+  quality:
+    name: Lint y type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type-check
+        run: pnpm typecheck
+
+  # ── Pruebas BDD (Gherkin/Cucumber) contra Postgres real ─────────────────
+  test:
+    name: Pruebas BDD
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: floricultura_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: development
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5432
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: floricultura_test
+      JWT_SECRET: ci-test-secret
+      JWT_EXPIRES_IN: 7d
+      SWAGGER_ENABLED: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # El esquema usa uuid_generate_v4() como default; el código no crea la
+      # extensión, así que la habilitamos antes de que TypeORM sincronice.
+      - name: Habilitar extensión uuid-ossp
+        run: PGPASSWORD=postgres psql -h localhost -U postgres -d floricultura_test -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'
+
+      - name: Ejecutar pruebas BDD
+        run: pnpm --filter @floricultura/api test
+
+  # ── Build de API y web ──────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    # Placeholders de build (igual que apps/web/Dockerfile). next build no
+    # necesita valores reales; estas vars solo evitan fallos por env ausente.
+    env:
+      NEXTAUTH_SECRET: build-placeholder
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (API + web)
+        run: pnpm build

@@ -54,7 +54,6 @@ export class AdminService {
 
     // Cache entities to avoid excessive DB queries for every row
     const fincasMap = new Map<string, Finca>();
-    const usersMap = new Map<string, User>();
     const responsablesMap = new Map<string, Responsable>();
     const productosMap = new Map<string, Producto>();
     const variedadesMap = new Map<string, Variedad>();

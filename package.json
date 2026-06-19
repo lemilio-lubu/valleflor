@@ -15,6 +15,7 @@
     "start:api": "pnpm --filter @floricultura/api start:prod",
     "start:web": "pnpm --filter @floricultura/web start",
     "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean"
   },
