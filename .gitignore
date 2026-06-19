@@ -41,3 +41,4 @@ yarn-error.log*
 .idea
 *docs/
 scripts/.env.local
+.claude/settings.local.json
