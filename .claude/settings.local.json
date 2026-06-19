@@ -85,7 +85,10 @@
       "Bash(npx nest *)",
       "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/web && npx tsc --noEmit 2>&1 | head -60)",
       "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/api && npx tsc --noEmit -p tsconfig.json && echo \"===API TSC OK===\" && npx nest build && echo \"===API BUILD OK===\" && npx tsc --noEmit && echo \"===WEB TSC OK===\")",
-      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/web && npx tsc --noEmit && echo \"===WEB TSC OK===\")"
+      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/web && npx tsc --noEmit && echo \"===WEB TSC OK===\")",
+      "mcp__plugin_claude-mem_mcp-search__get_observations",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\)\")",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./package.json'\\).scripts,null,2\\)\\)\")"
     ]
   }
 }

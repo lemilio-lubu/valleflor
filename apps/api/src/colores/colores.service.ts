@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -11,6 +12,7 @@ import { BaseSemanal } from '../base-semanal/base-semanal.entity';
 import { RegistroDiario } from '../registros/registro-diario.entity';
 import { CreateColorDto } from './dto/create-color.dto';
 import { UpdateColorDto } from './dto/update-color.dto';
+import { SemanaReconciliationService } from '../base-semanal/semana-reconciliation.service';
 
 @Injectable()
 export class ColoresService {
@@ -23,11 +25,15 @@ export class ColoresService {
     private readonly baseSemanalRepo: Repository<BaseSemanal>,
     @InjectRepository(RegistroDiario)
     private readonly registroRepo: Repository<RegistroDiario>,
+    private readonly reconciliationService: SemanaReconciliationService,
   ) {}
 
-  async findAll(variedadId?: string): Promise<Color[]> {
+  async findAll(variedadId?: string, incluirInactivos = false): Promise<Color[]> {
     if (variedadId) {
-      return this.colorRepo.find({ where: { variedadId, activo: true } });
+      const where = incluirInactivos
+        ? { variedadId }
+        : { variedadId, activo: true };
+      return this.colorRepo.find({ where });
     }
     return this.colorRepo.find({
       where: { activo: true },
@@ -88,6 +94,42 @@ export class ColoresService {
     return this.colorRepo.save(color);
   }
 
+  async darDeBaja(id: string, motivoBaja: string): Promise<Color> {
+    const color = await this.colorRepo.findOne({ where: { id } });
+    if (!color) throw new NotFoundException(`Color ${id} no encontrado`);
+
+    color.activo = false;
+    color.motivoBaja = motivoBaja ?? null;
+    await this.colorRepo.save(color);
+
+    await this.reconciliationService.reconcileColores([color.id]);
+    return color;
+  }
+
+  async darDeAlta(id: string): Promise<Color> {
+    const color = await this.colorRepo.findOne({
+      where: { id },
+      relations: ['variedad', 'variedad.producto', 'variedad.producto.finca'],
+    });
+    if (!color) throw new NotFoundException(`Color ${id} no encontrado`);
+
+    const variedad = color.variedad;
+    const producto = variedad?.producto;
+    const finca = producto?.finca;
+    if (!variedad?.activo || !producto?.activo || !finca?.activo) {
+      throw new BadRequestException(
+        'La variedad, el producto o la finca está dada de baja; reactívala primero',
+      );
+    }
+
+    color.activo = true;
+    color.motivoBaja = null;
+    await this.colorRepo.save(color);
+
+    await this.reconciliationService.reconcileColores([color.id]);
+    return color;
+  }
+
   async remove(id: string): Promise<void> {
     const color = await this.colorRepo.findOne({ where: { id } });
     if (!color) throw new NotFoundException(`Color ${id} no encontrado`);
@@ -102,6 +144,8 @@ export class ColoresService {
       // Has historical data — soft delete
       color.activo = false;
       await this.colorRepo.save(color);
+      // Reflejar la baja en las semanas actual y futuras de los responsables.
+      await this.reconciliationService.reconcileColoresDadosDeBaja([color.id]);
     } else {
       // No data — safe to hard delete
       await this.colorRepo.remove(color);

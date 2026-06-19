@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -10,6 +11,7 @@ import { Variedad } from '../variedades/variedad.entity';
 import { Color } from '../colores/color.entity';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
+import { SemanaReconciliationService } from '../base-semanal/semana-reconciliation.service';
 
 @Injectable()
 export class ProductosService {
@@ -20,6 +22,7 @@ export class ProductosService {
     private readonly variedadRepo: Repository<Variedad>,
     @InjectRepository(Color)
     private readonly colorRepo: Repository<Color>,
+    private readonly reconciliationService: SemanaReconciliationService,
   ) {}
 
   async findAll(): Promise<Producto[]> {
@@ -81,6 +84,59 @@ export class ProductosService {
     return this.productoRepo.save(producto);
   }
 
+  async darDeBaja(id: string, motivoBaja: string): Promise<Producto> {
+    const producto = await this.productoRepo.findOne({
+      where: { id },
+      relations: ['variedades', 'variedades.colores'],
+    });
+    if (!producto) throw new NotFoundException(`Producto ${id} no encontrado`);
+
+    const colorIds = producto.variedades
+      .flatMap((v) => v.colores ?? [])
+      .map((c) => c.id);
+    const variedadIds = producto.variedades.map((v) => v.id);
+
+    if (colorIds.length > 0) {
+      await this.colorRepo.update(colorIds, { activo: false });
+    }
+    if (variedadIds.length > 0) {
+      await this.variedadRepo.update(variedadIds, { activo: false });
+    }
+    producto.activo = false;
+    producto.motivoBaja = motivoBaja ?? null;
+    await this.productoRepo.save(producto);
+
+    // Reversible: conserva las asignaciones, solo limpia las semanas vivas.
+    await this.reconciliationService.reconcileColores(colorIds);
+    return producto;
+  }
+
+  async darDeAlta(id: string): Promise<Producto> {
+    const producto = await this.productoRepo.findOne({
+      where: { id },
+      relations: ['variedades', 'variedades.colores'],
+    });
+    if (!producto) throw new NotFoundException(`Producto ${id} no encontrado`);
+
+    const colorIds = producto.variedades
+      .flatMap((v) => v.colores ?? [])
+      .map((c) => c.id);
+    const variedadIds = producto.variedades.map((v) => v.id);
+
+    if (colorIds.length > 0) {
+      await this.colorRepo.update(colorIds, { activo: true });
+    }
+    if (variedadIds.length > 0) {
+      await this.variedadRepo.update(variedadIds, { activo: true });
+    }
+    producto.activo = true;
+    producto.motivoBaja = null;
+    await this.productoRepo.save(producto);
+
+    await this.reconciliationService.reconcileColores(colorIds);
+    return producto;
+  }
+
   async remove(id: string): Promise<void> {
     const producto = await this.productoRepo.findOne({
       where: { id },
@@ -93,16 +149,16 @@ export class ProductosService {
 
     if (hasData) {
       // Cascade soft-delete: producto → variedades → colores
-      await this.colorRepo.update(
-        colores.map((c) => c.id),
-        { activo: false },
-      );
+      const colorIds = colores.map((c) => c.id);
+      await this.colorRepo.update(colorIds, { activo: false });
       const variedadIds = producto.variedades.map((v) => v.id);
       if (variedadIds.length > 0) {
         await this.variedadRepo.update(variedadIds, { activo: false });
       }
       producto.activo = false;
       await this.productoRepo.save(producto);
+      // Reflejar la baja en las semanas actual y futuras de los responsables.
+      await this.reconciliationService.reconcileColoresDadosDeBaja(colorIds);
     } else {
       await this.productoRepo.remove(producto);
     }

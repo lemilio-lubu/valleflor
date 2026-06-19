@@ -33,6 +33,9 @@ export class Producto {
   @Column({ type: 'boolean', default: true })
   activo: boolean;
 
+  @Column({ name: 'motivo_baja', type: 'text', nullable: true })
+  motivoBaja: string | null;
+
   @OneToMany(() => Variedad, (variedad) => variedad.producto)
   variedades: Variedad[];
 

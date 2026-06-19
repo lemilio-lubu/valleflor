@@ -37,6 +37,19 @@ export class ProductosController {
     return this.productosService.update(id, dto);
   }
 
+  @Patch(':id/baja')
+  darDeBaja(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('motivoBaja') motivoBaja: string,
+  ) {
+    return this.productosService.darDeBaja(id, motivoBaja);
+  }
+
+  @Patch(':id/alta')
+  darDeAlta(@Param('id', ParseUUIDPipe) id: string) {
+    return this.productosService.darDeAlta(id);
+  }
+
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.productosService.remove(id);

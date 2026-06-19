@@ -38,6 +38,15 @@ export class Color {
   @Column({ type: 'boolean', default: true })
   activo: boolean;
 
+  @Column({ name: 'motivo_baja', type: 'text', nullable: true })
+  motivoBaja: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true, name: 'codigo' })
+  codigo: string | null;
+
+  @Column({ type: 'varchar', length: 200, nullable: true, name: 'nombre_original' })
+  nombreOriginal: string | null;
+
   @OneToMany(() => RegistroDiario, (registro) => registro.color)
   registros: RegistroDiario[];
 

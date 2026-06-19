@@ -6,9 +6,13 @@ import { BaseSemanal } from '../base-semanal/base-semanal.entity';
 import { RegistroDiario } from '../registros/registro-diario.entity';
 import { ColoresService } from './colores.service';
 import { ColoresController } from './colores.controller';
+import { BaseSemanalModule } from '../base-semanal/base-semanal.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Color, Variedad, BaseSemanal, RegistroDiario])],
+  imports: [
+    TypeOrmModule.forFeature([Color, Variedad, BaseSemanal, RegistroDiario]),
+    BaseSemanalModule,
+  ],
   providers: [ColoresService],
   controllers: [ColoresController],
   exports: [ColoresService],

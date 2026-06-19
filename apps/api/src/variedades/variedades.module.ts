@@ -6,9 +6,13 @@ import { Color } from '../colores/color.entity';
 import { Responsable } from '../responsables/responsable.entity';
 import { VariedadesService } from './variedades.service';
 import { VariedadesController } from './variedades.controller';
+import { BaseSemanalModule } from '../base-semanal/base-semanal.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Variedad, Producto, Color, Responsable])],
+  imports: [
+    TypeOrmModule.forFeature([Variedad, Producto, Color, Responsable]),
+    BaseSemanalModule,
+  ],
   providers: [VariedadesService],
   controllers: [VariedadesController],
   exports: [VariedadesService],

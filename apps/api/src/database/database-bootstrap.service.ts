@@ -11,6 +11,28 @@ export class DatabaseBootstrapService implements OnApplicationBootstrap {
     await this.ensureConfiguracionTable();
     await this.migrateResponsableNombre();
     await this.ensureSoftDeleteColumns();
+    await this.ensureMotivoBajaColumns();
+  }
+
+  private async ensureMotivoBajaColumns() {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    try {
+      const tables = ['productos', 'variedades', 'colores'];
+      for (const table of tables) {
+        const exists = await queryRunner.hasColumn(table, 'motivo_baja');
+        if (!exists) {
+          await queryRunner.query(
+            `ALTER TABLE "${table}" ADD COLUMN "motivo_baja" TEXT NULL`,
+          );
+          this.logger.log(`Columna ${table}.motivo_baja agregada`);
+        }
+      }
+    } catch (err) {
+      this.logger.error('Error agregando columnas motivo_baja', err);
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   private async ensureConfiguracionTable() {
