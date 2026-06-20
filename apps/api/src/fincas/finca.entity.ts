@@ -7,11 +7,13 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  Unique,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Responsable } from '../responsables/responsable.entity';
 
 @Entity('fincas')
+@Unique('uq_finca_nombre', ['nombre'])
 export class Finca {
   @PrimaryGeneratedColumn('uuid')
   id: string;

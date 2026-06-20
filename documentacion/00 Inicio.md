@@ -8,7 +8,7 @@ tags: [moc, inicio]
 Página de entrada del vault. Documentación del producto para la floricultora **Valleflor**.
 
 ## Producto
-- [[Pilar 1|Pilar 1 — Estructuración productiva]]
+- [[Pilar 1|Pilar 1 — Configuración de la operación]]
   - [[F1 Definición de Fincas]]
   - [[F2 Definición de Responsabilidades]]
   - [[F3 Catalogación de Productos]]
@@ -16,7 +16,7 @@ Página de entrada del vault. Documentación del producto para la floricultora *
   - [[Consolidación de estimados]] · [[Trazabilidad operativa]]
 
 ## Conceptos clave (glosario)
-**Entidades:** [[Finca]] · [[Responsable]] · [[Administrador]] · [[Definición productiva]] ([[Producto]] · [[Variedad]] · [[Color]]) · [[Código de producto]] · [[Nombre comercial]]
+**Entidades:** [[Finca]] · [[Responsable]] · [[Administrador]] · [[Ítem de catálogo]] ([[Producto]] · [[Variedad]] · [[Color]]) · [[Código de producto]] · [[Nombre comercial]]
 
 **Medidas:** [[Tallo]] · [[Caja]] · [[Tallos por caja]]
 

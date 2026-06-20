@@ -6,6 +6,6 @@ aliases: [Nombre]
 
 # Nombre comercial
 
-Nombre con el que se conoce una [[Definición productiva]] (p. ej. *Nelandes Astassus*). Acompaña al [[Código de producto]].
+Nombre con el que se conoce una [[Ítem de catálogo]] (p. ej. *Nelandes Astassus*). Acompaña al [[Código de producto]].
 
-Relacionado: [[Definición productiva]] · [[Código de producto]]
+Relacionado: [[Ítem de catálogo]] · [[Código de producto]]

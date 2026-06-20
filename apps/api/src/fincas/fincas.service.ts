@@ -57,6 +57,11 @@ export class FincasService {
   }
 
   async create(dto: CreateFincaDto, user: JwtUser): Promise<Finca> {
+    const exists = await this.fincaRepo.findOne({ where: { nombre: dto.nombre } });
+    if (exists) {
+      throw new ConflictException(`Ya existe la finca "${dto.nombre}"`);
+    }
+
     const finca = this.fincaRepo.create({ nombre: dto.nombre, ubicacion: dto.ubicacion ?? null, adminId: user.id });
     return this.fincaRepo.save(finca);
   }

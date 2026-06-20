@@ -8,7 +8,7 @@ tags: [hu]
 
 # F4 — Vinculación de Productos
 
-**Descripción:** [[Asignación productiva]] de [[Definición productiva|definiciones productivas]] a los [[Responsable]]s dentro de una [[Finca]].
+**Descripción:** [[Asignación productiva]] de [[Ítem de catálogo|ítems de catálogo]] a los [[Responsable]]s dentro de una [[Finca]].
 
 > Como [[Administrador]]
 > quiero asociar [[Producto]]s y [[Variedad]]es a las [[Finca]]s y [[Responsable]]s correspondientes

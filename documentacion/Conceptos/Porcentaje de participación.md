@@ -7,7 +7,7 @@ estado: en-definición
 
 # Porcentaje de participación
 
-Indicador que mide qué proporción aporta una unidad (p. ej. una [[Definición productiva]] o [[Finca]]) sobre el total del [[Consolidado]].
+Indicador que mide qué proporción aporta una unidad (p. ej. una [[Ítem de catálogo]] o [[Finca]]) sobre el total del [[Consolidado]].
 
 Preguntas abiertas por resolver:
 
@@ -17,4 +17,4 @@ Preguntas abiertas por resolver:
 > - ¿A qué [[Responsable|rol]] afecta?
 > - ¿Cuál es el flujo completo que comprende el porcentaje?
 
-Relacionado: [[Consolidado]] · [[Definición productiva]]
+Relacionado: [[Consolidado]] · [[Ítem de catálogo]]

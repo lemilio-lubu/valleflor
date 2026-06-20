@@ -6,6 +6,6 @@ aliases: [Variedades]
 
 # Variedad
 
-Cualidad que diferencia ejemplares dentro de un mismo [[Producto]] (p. ej. *Dark*, *White*). Forma parte de la [[Definición productiva]].
+Cualidad que diferencia ejemplares dentro de un mismo [[Producto]] (p. ej. *Dark*, *White*). Forma parte de la [[Ítem de catálogo]].
 
-Relacionado: [[Producto]] · [[Color]] · [[Definición productiva]]
+Relacionado: [[Producto]] · [[Color]] · [[Ítem de catálogo]]

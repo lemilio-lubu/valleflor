@@ -6,7 +6,7 @@ aliases: [Consolidados, Módulo Consolidado]
 
 # Consolidado
 
-Suma de los [[Estimado]]s asociados a cada [[Definición productiva]], a través de todas las [[Finca]]s y [[Responsable]]s. Es un módulo que ve el [[Administrador]].
+Suma de los [[Estimado]]s asociados a cada [[Ítem de catálogo]], a través de todas las [[Finca]]s y [[Responsable]]s. Es un módulo que ve el [[Administrador]].
 
 Se divide en:
 - [[Consolidado diario]]

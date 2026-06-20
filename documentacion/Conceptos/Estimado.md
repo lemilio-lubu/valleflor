@@ -6,7 +6,7 @@ aliases: [Estimados, Estimación]
 
 # Estimado
 
-Proyección de producción que registra un [[Responsable]] para sus [[Definición productiva|definiciones productivas]], expresada en [[Caja]]s y [[Tallo]]s.
+Proyección de producción que registra un [[Responsable]] para sus [[Ítem de catálogo|ítems de catálogo]], expresada en [[Caja]]s y [[Tallo]]s.
 
 Se captura en dos plantillas:
 - [[Plantilla diaria]] → [[Estimado diario]]

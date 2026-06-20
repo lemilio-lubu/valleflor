@@ -6,6 +6,6 @@ aliases: [Código, Codigo]
 
 # Código de producto
 
-Identificador único de una [[Definición productiva]] (p. ej. `6554`). Permite trabajar con códigos en lugar de nombres largos en carga, filtros y reportes.
+Identificador único de una [[Ítem de catálogo]] (p. ej. `6554`). Permite trabajar con códigos en lugar de nombres largos en carga, filtros y reportes.
 
-Relacionado: [[Definición productiva]] · [[Nombre comercial]]
+Relacionado: [[Ítem de catálogo]] · [[Nombre comercial]]

@@ -8,7 +8,7 @@ tags: [hu]
 
 # F3 — Catalogación de Productos
 
-**Descripción:** administración de un catálogo único y estandarizado de [[Definición productiva|definiciones productivas]] usadas en las estimaciones.
+**Descripción:** administración de un catálogo único y estandarizado de [[Ítem de catálogo|ítems de catálogo]] usados en las estimaciones.
 
 > Como [[Administrador]]
 > quiero mantener un catálogo estandarizado de [[Producto]]s y [[Variedad]]es

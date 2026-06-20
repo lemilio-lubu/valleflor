@@ -10,4 +10,4 @@ tags: [backlog]
 
 Usar el [[Código de producto]] como identificador en carga, filtros y reportes, en vez de nombres largos.
 
-Relacionado: [[Código de producto]] · [[Definición productiva]]
+Relacionado: [[Código de producto]] · [[Ítem de catálogo]]

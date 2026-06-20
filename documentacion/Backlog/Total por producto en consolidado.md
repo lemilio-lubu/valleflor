@@ -8,6 +8,6 @@ tags: [backlog]
 
 # Mostrar la totalidad de cada producto
 
-En el [[Consolidado]], mostrar cuál es la totalidad de cada [[Definición productiva]] (suma total por producto/variedad/color).
+En el [[Consolidado]], mostrar cuál es la totalidad de cada [[Ítem de catálogo]] (suma total por producto/variedad/color).
 
-Relacionado: [[Consolidado]] · [[Definición productiva]]
+Relacionado: [[Consolidado]] · [[Ítem de catálogo]]

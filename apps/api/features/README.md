@@ -12,28 +12,32 @@ Todo vive bajo `apps/api/features/`:
 
 ```
 apps/api/features/
-├── *.feature              # ① Los escenarios en Gherkin (español)
+├── <capacidad>/           # ① Features agrupadas POR CAPACIDAD de negocio
+│   └── *.feature          #    los escenarios en Gherkin (español)
 ├── steps/                 # ② Las implementaciones de cada paso (Given/When/Then)
 │   └── *.steps.ts
 └── support/               # ③ Infraestructura compartida (NO tocar para features nuevas)
     ├── env.ts             #    fija el entorno de test (BD floricultura_test)
     ├── test-app.ts        #    arranca la app Nest en memoria
     ├── app-holder.ts      #    singleton de la app + DataSource
-    ├── world.ts           #    estado por escenario (app, token, response)
+    ├── world.ts           #    estado por escenario (app, token, response, ids)
     ├── db.ts              #    truncateAll + seedAdmin
-    └── hooks.ts           #    BeforeAll/Before/AfterAll
+    └── hooks.ts           #    BeforeAll/Before/AfterAll (login admin automático)
 ```
+
+Ejemplo real: `apps/api/features/configuracion-de-la-operacion/fincas.feature`.
 
 ### ¿Dónde coloco un `.feature` nuevo?
 
-- **Directamente en `apps/api/features/`** (ej. `apps/api/features/semanas.feature`).
-- Nombre en `kebab-case` y por **dominio/recurso**: `productos.feature`, `colores.feature`, `estimaciones.feature`.
+- **Organízalos por capacidad de negocio**: `features/<capacidad>/<nombre>.feature` (ej. `configuracion-de-la-operacion/fincas.feature`). **Nunca** por historia de usuario ni por release.
+- Nombre en `kebab-case` por **dominio/recurso**: `fincas.feature`, `catalogo.feature`, `responsables.feature`.
 - Un `.feature` por área funcional. No mezclar dominios distintos en el mismo archivo.
+- El glob de Cucumber (`features/**/*.feature`) los descubre en cualquier subcarpeta; los steps viven siempre en `features/steps/` (planos, compartidos).
 
 ### ¿Dónde van los steps?
 
-- En `apps/api/features/steps/`, normalmente un archivo por feature: `productos.feature` → `steps/productos.steps.ts`.
-- Los steps **se comparten entre todos los features**: un step `Cuando consulto los productos sin token` definido en cualquier archivo sirve para todos. Por eso conviene tener pasos reutilizables (ej. `auth.steps.ts` con la autenticación).
+- En `apps/api/features/steps/`, normalmente un archivo por feature: `fincas.feature` → `steps/fincas.steps.ts`.
+- Los steps **se comparten entre todos los features**: un step definido en cualquier archivo sirve para todos. Por eso conviene tener pasos reutilizables (ej. `fincas.steps.ts` define `Dado que la finca "..." está registrada`, que reutilizan responsables y vinculación).
 
 ---
 
@@ -41,7 +45,7 @@ apps/api/features/
 
 ### Paso 1 — Escribe el `.feature`
 
-Crea `apps/api/features/<dominio>.feature`. Empieza **siempre** con `# language: es` para usar `Característica/Escenario/Dado/Cuando/Entonces/Y`.
+Crea `apps/api/features/<capacidad>/<dominio>.feature`. Empieza **siempre** con `# language: es` para usar `Característica/Escenario/Dado/Cuando/Entonces/Y`.
 
 ```gherkin
 # language: es
@@ -50,14 +54,13 @@ Característica: Gestión de semanas
   Quiero crear semanas de estimación
   Para registrar la producción
 
-  Antecedentes:
-    Dado que estoy autenticado como admin
-
   Escenario: Crear una semana
-    Cuando creo una semana número 23 del año 2026
-    Entonces la respuesta tiene estado 201
+    Cuando el administrador crea la semana número 23 del año 2026
+    Entonces la semana 23 de 2026 queda disponible
 ```
 
+- La autenticación como **admin es automática**: el hook `Before` (`support/hooks.ts`) hace login y deja el JWT en `this.token`. No escribas un paso de login (es incidental); úsalo directo en tus steps con `.set('Authorization', \`Bearer ${this.token}\`)`.
+- Escribe los pasos en **lenguaje de negocio** (declarativo): el `.feature` describe el comportamiento; las aserciones técnicas (status HTTP, etc.) viven en los step definitions.
 - `Antecedentes` (Background) corre antes de cada escenario del archivo.
 - Usa `Esquema del escenario` + `Ejemplos` si quieres parametrizar con una tabla.
 
@@ -72,10 +75,10 @@ pnpm --filter @floricultura/api test
 Verás algo como:
 
 ```
-? Cuando creo una semana número 23 del año 2026
+? Cuando el administrador crea la semana número 23 del año 2026
   Undefined. Implement with the following snippet:
 
-    When('creo una semana número {int} del año {int}', async function (numero, anio) {
+    When('el administrador crea la semana número {int} del año {int}', async function (numero, anio) {
       // Write code here that turns the phrase above into concrete actions
       return 'pending';
     });
@@ -94,18 +97,22 @@ import request from 'supertest';
 import { VfWorld } from '../support/world';
 
 When(
-  'creo una semana número {int} del año {int}',
+  'el administrador crea la semana número {int} del año {int}',
   async function (this: VfWorld, numero: number, anio: number) {
     this.response = await request(this.app.getHttpServer())
       .post('/api/v1/semanas')
-      .set('Authorization', `Bearer ${this.token}`) // token lo deja auth.steps.ts
+      .set('Authorization', `Bearer ${this.token}`) // el hook Before deja el JWT
       .send({ numeroSemana: numero, anio });
   },
 );
 
-Then('la respuesta tiene estado {int}', function (this: VfWorld, status: number) {
-  expect(this.response!.status).toBe(status);
-});
+// Declarativo: el Then expresa el resultado de negocio; la aserción HTTP vive aquí.
+Then(
+  'la semana {int} de {int} queda disponible',
+  function (this: VfWorld, _numero: number, _anio: number) {
+    expect(this.response!.status).toBe(201);
+  },
+);
 ```
 
 Cosas clave que ya te da la infraestructura (no las reimplementes):
@@ -113,7 +120,7 @@ Cosas clave que ya te da la infraestructura (no las reimplementes):
 | Necesitas… | Cómo |
 |------------|------|
 | La app HTTP | `this.app.getHttpServer()` (supertest) |
-| Estar autenticado | `Dado que estoy autenticado como admin` → deja el JWT en `this.token` |
+| Estar autenticado | **automático**: el hook `Before` hace login admin y deja el JWT en `this.token` |
 | BD limpia por escenario | automático (`hooks.ts` hace TRUNCATE + seed admin antes de cada escenario) |
 | Recordar la respuesta entre steps | guárdala en `this.response` |
 | Aserciones | `import { expect } from 'expect'` (matchers tipo Jest) |
@@ -151,7 +158,7 @@ Salida esperada: `N scenarios (N passed)`. Si un step queda en `pending` o `unde
 |---------|------------------|
 | `Undefined step` | El texto del `.feature` no coincide con ningún step. Copia el snippet sugerido. |
 | Cuelga / `database "floricultura_test" does not exist` | Falta crear la BD: `createdb ... floricultura_test`. |
-| `401` inesperado | Falta `Dado que estoy autenticado como admin` o el `.set('Authorization', ...)`. |
+| `401` inesperado | Falta el `.set('Authorization', \`Bearer ${this.token}\`)` en el step (el `Before` ya deja `this.token`). |
 | `relation ... does not exist` | La entidad no está en el glob de TypeORM o la BD de test quedó en mal estado: bórrala y deja que synchronize la recree. |
 | Quiero ver el detalle del fallo | Abre `cucumber-report.html` o corre con `test:bdd`. |
 

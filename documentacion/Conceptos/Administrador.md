@@ -10,11 +10,11 @@ Rol encargado de mantener la estructura productiva. Es el dueño del catálogo y
 
 Responsabilidades:
 - Crear, modificar, eliminar y actualizar [[Finca]]s.
-- Catalogar [[Definición productiva|definiciones productivas]] ([[Producto]] + [[Variedad]] + [[Color]]).
+- Catalogar [[Ítem de catálogo|ítems de catálogo]] ([[Producto]] + [[Variedad]] + [[Color]]).
 - Asignar [[Responsable]]s a fincas y asociarles productos ([[Asignación productiva]]).
 - Realizar la [[Carga masiva]] desde Excel.
 - Ver el módulo [[Consolidado]].
 
 Convención: toda la información se registra en **mayúsculas**.
 
-Relacionado: [[Finca]] · [[Definición productiva]] · [[Carga masiva]]
+Relacionado: [[Finca]] · [[Ítem de catálogo]] · [[Carga masiva]]
