@@ -32,10 +32,5 @@ export class UpdateColorDto {
   @IsInt()
   @Min(1)
   @IsOptional()
-  longitud?: number;
-
-  @IsInt()
-  @Min(1)
-  @IsOptional()
   tallosPorCaja?: number;
 }

@@ -24,7 +24,6 @@ interface Color {
   variedadId: string;
   codigo: string;
   nombreComercial: string | null;
-  longitud: number | null;
   tallosPorCaja: number;
   activo?: boolean;
   motivoBaja?: string | null;
@@ -43,7 +42,6 @@ interface ColorFormValues {
   nombre: string;
   codigo: string;
   nombreComercial: string;
-  longitud: string;
   tallosPorCaja: string;
 }
 
@@ -51,11 +49,10 @@ export interface ColorSaveValues {
   nombre: string;
   codigo: string;
   nombreComercial: string | null;
-  longitud: number | null;
   tallosPorCaja: number;
 }
 
-// ─── Color modal (definición productiva: color / código / nombre / longitud / caja) ──
+// ─── Color modal (definición productiva: color / código / nombre comercial / caja) ──
 function ColorModal({ initial, onSave, onCancel, isPending }: {
   initial: Color | null;
   onSave: (values: ColorSaveValues) => void;
@@ -66,7 +63,6 @@ function ColorModal({ initial, onSave, onCancel, isPending }: {
     nombre: initial?.nombre ?? '',
     codigo: initial?.codigo ?? '',
     nombreComercial: initial?.nombreComercial ?? '',
-    longitud: initial?.longitud != null ? String(initial.longitud) : '',
     tallosPorCaja: initial?.tallosPorCaja != null ? String(initial.tallosPorCaja) : '400',
   });
 
@@ -85,7 +81,6 @@ function ColorModal({ initial, onSave, onCancel, isPending }: {
       nombre: values.nombre.trim().toUpperCase(),
       codigo: values.codigo.trim().toUpperCase(),
       nombreComercial: values.nombreComercial.trim() !== '' ? values.nombreComercial.trim().toUpperCase() : null,
-      longitud: values.longitud.trim() !== '' ? Number(values.longitud) : null,
       tallosPorCaja: values.tallosPorCaja.trim() !== '' ? Number(values.tallosPorCaja) : 400,
     });
   }
@@ -137,7 +132,7 @@ function ColorModal({ initial, onSave, onCancel, isPending }: {
               />
             </div>
             <div className="col-span-2">
-              <label className="form-label">Nombre</label>
+              <label className="form-label">Nombre comercial</label>
               <input
                 className="input-field"
                 placeholder="Ej: NELANDES ASTASSUS"
@@ -145,18 +140,7 @@ function ColorModal({ initial, onSave, onCancel, isPending }: {
                 onChange={(e) => setValues((v) => ({ ...v, nombreComercial: e.target.value.toUpperCase() }))}
               />
             </div>
-            <div>
-              <label className="form-label">Longitud (cm)</label>
-              <input
-                type="number"
-                min={1}
-                className="input-field"
-                placeholder="Ej: 60"
-                value={values.longitud}
-                onChange={(e) => setValues((v) => ({ ...v, longitud: e.target.value }))}
-              />
-            </div>
-            <div>
+            <div className="col-span-2">
               <label className="form-label">Tallos por caja</label>
               <input
                 type="number"
@@ -459,7 +443,6 @@ export function CatalogoProductos() {
   const colorMeta = (c: Color) => {
     const parts = [`Cód: ${c.codigo}`];
     if (c.nombreComercial) parts.push(c.nombreComercial);
-    if (c.longitud != null) parts.push(`${c.longitud} cm`);
     parts.push(`${c.tallosPorCaja} t/caja`);
     return parts.join(' · ');
   };

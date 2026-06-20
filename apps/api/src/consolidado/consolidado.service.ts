@@ -14,7 +14,7 @@ export interface ConsolidadoDiarioRow {
   variedad: string;
   color: string;
   codigo: string | null;
-  nombreOriginal: string | null;
+  nombreComercial: string | null;
   dias: Partial<Record<DiaSemana, DiaData>>;
   totalCajas: number;
   totalTallos: number;
@@ -26,7 +26,7 @@ export interface ConsolidadoSemanalRow {
   variedad: string;
   color: string;
   codigo: string | null;
-  nombreOriginal: string | null;
+  nombreComercial: string | null;
   numeroSemana: number;
   cajasEstimadas: number;
   tallosEstimados: number;
@@ -57,7 +57,7 @@ export class ConsolidadoService {
       variedad: string;
       color: string;
       codigo: string | null;
-      nombre_original: string | null;
+      nombre_comercial: string | null;
       dia: string | null;
       cajas: string;
       tallos: string;
@@ -70,7 +70,7 @@ export class ConsolidadoService {
         v.nombre  AS variedad,
         c.nombre  AS color,
         c.codigo  AS codigo,
-        c.nombre_comercial AS nombre_original,
+        c.nombre_comercial AS nombre_comercial,
         rd.dia    AS dia,
         COALESCE(SUM(rd.cajas), 0)  AS cajas,
         COALESCE(SUM(rd.cajas * c.tallos_por_caja), 0) AS tallos
@@ -102,7 +102,7 @@ export class ConsolidadoService {
           variedad: row.variedad,
           color: row.color,
           codigo: row.codigo,
-          nombreOriginal: row.nombre_original,
+          nombreComercial: row.nombre_comercial,
           dias: {},
           totalCajas: 0,
           totalTallos: 0,
@@ -138,7 +138,7 @@ export class ConsolidadoService {
       variedad: string;
       color: string;
       codigo: string | null;
-      nombre_original: string | null;
+      nombre_comercial: string | null;
       numero_semana: string | null;
       cajas_estimadas: string;
       tallos_estimados: string;
@@ -153,7 +153,7 @@ export class ConsolidadoService {
         v.nombre AS variedad,
         c.nombre AS color,
         c.codigo AS codigo,
-        c.nombre_comercial AS nombre_original,
+        c.nombre_comercial AS nombre_comercial,
         bs.numero_semana,
         COALESCE(SUM(bs.cajas_estimadas), 0)  AS cajas_estimadas,
         COALESCE(SUM(bs.cajas_estimadas * c.tallos_por_caja), 0) AS tallos_estimados,
@@ -184,7 +184,7 @@ export class ConsolidadoService {
       variedad: row.variedad,
       color: row.color,
       codigo: row.codigo,
-      nombreOriginal: row.nombre_original,
+      nombreComercial: row.nombre_comercial,
       numeroSemana: row.numero_semana !== null ? Number(row.numero_semana) : 0,
       cajasEstimadas: Math.round(Number(row.cajas_estimadas) * 100) / 100,
       tallosEstimados: Math.round(Number(row.tallos_estimados) * 100) / 100,

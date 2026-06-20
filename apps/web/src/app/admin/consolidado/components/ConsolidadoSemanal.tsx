@@ -17,7 +17,7 @@ interface FlatRow {
   variedad: string;
   color: string;
   codigo: string | null;
-  nombreOriginal: string | null;
+  nombreComercial: string | null;
   numeroSemana: number;
   cajasEstimadas: number;
   tallosEstimados: number;
@@ -37,7 +37,7 @@ interface PivotRow {
   variedad: string;
   color: string;
   codigo: string | null;
-  nombreOriginal: string | null;
+  nombreComercial: string | null;
   semanas: Record<number, SemanaData>;
   totalCajasEstimadas: number;
   totalTallosEstimados: number;
@@ -70,7 +70,7 @@ function pivotRows(flat: FlatRow[]): PivotRow[] {
         variedad: row.variedad,
         color: row.color,
         codigo: row.codigo,
-        nombreOriginal: row.nombreOriginal,
+        nombreComercial: row.nombreComercial,
         semanas: {},
         totalCajasEstimadas: 0,
         totalTallosEstimados: 0,
@@ -199,7 +199,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
       const alternateSet        = new Set<number>();
       const groupSet            = new Set<number>();
 
-      const h1: (string | number)[] = ['Código', 'Producto', 'Nombre Original', 'Variedad', 'Color'];
+      const h1: (string | number)[] = ['Código', 'Producto', 'Nombre comercial', 'Variedad', 'Color'];
       const h2: (string | number)[] = ['', '', '', '', ''];
       weekCols.forEach((w) => { h1.push(`Sem ${w}`, ''); h2.push('Est.', 'Real'); });
       h1.push('Total', '');
@@ -228,7 +228,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
 
         group.rows.forEach((r, i) => {
           const row: (string | number)[] = [
-            r.codigo || '—', r.producto, r.nombreOriginal || '—', r.variedad, r.color,
+            r.codigo || '—', r.producto, r.nombreComercial || '—', r.variedad, r.color,
           ];
           weekCols.forEach((w) => {
             const s = r.semanas[w];
@@ -484,7 +484,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
               <th className="table-th md:sticky md:left-[130px] z-20 bg-surface-overlay min-w-[120px]" rowSpan={2}>Variedad</th>
               <th className={`table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`} rowSpan={2}>Color</th>
               <th className="table-th min-w-[90px] border-r border-surface-border/40 text-carbon-200" rowSpan={2}>Código</th>
-              <th className="table-th min-w-[150px] border-r border-surface-border/40 text-carbon-200" rowSpan={2}>Nombre Original</th>
+              <th className="table-th min-w-[150px] border-r border-surface-border/40 text-carbon-200" rowSpan={2}>Nombre comercial</th>
               {weekCols.map((w) => (
                 <th
                   key={w}
@@ -572,7 +572,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
                         <td className="px-3 py-2 text-carbon-200 whitespace-nowrap md:sticky md:left-[130px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
                         <td className={`px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>{row.color}</td>
                         <td className="px-3 py-2 text-carbon-300 font-mono text-[11px] whitespace-nowrap border-r border-surface-border/20">{row.codigo || <span className="text-carbon-600">—</span>}</td>
-                        <td className="px-3 py-2 text-carbon-300 text-[11px] whitespace-nowrap italic border-r border-surface-border/20">{row.nombreOriginal || <span className="text-carbon-600">—</span>}</td>
+                        <td className="px-3 py-2 text-carbon-300 text-[11px] whitespace-nowrap italic border-r border-surface-border/20">{row.nombreComercial || <span className="text-carbon-600">—</span>}</td>
                         {weekCols.map((w) => {
                           const s = row.semanas[w];
                           const est = s ? (isCajas ? s.cajasEstimadas : s.tallosEstimados) : null;

@@ -115,7 +115,6 @@ export class ColoresService {
       variedadId: dto.variedadId,
       codigo,
       nombreComercial: dto.nombreComercial ?? null,
-      longitud: dto.longitud ?? null,
       tallosPorCaja: dto.tallosPorCaja ?? 400,
     });
     return this.colorRepo.save(color);

@@ -1,7 +1,7 @@
 /**
  * Script: assign-codigos-produccion.mjs
  * Autentica contra la API de producción, recorre todos los colores
- * y actualiza codigo + nombreOriginal según la tabla de asignación.
+ * y actualiza codigo + nombreComercial según la tabla de asignación.
  *
  * Uso:
  *   node assign-codigos-produccion.mjs <email> <password>
@@ -10,8 +10,8 @@
 const BASE = 'https://valleflor-production.up.railway.app/api/v1';
 
 // ── Tabla de asignación ─────────────────────────────────────────────────────
-// formato: [producto, variedad, color, codigo, nombreOriginal]
-// codigo '0' → null  |  nombreOriginal '' → null
+// formato: [producto, variedad, color, codigo, nombreComercial]
+// codigo '0' → null  |  nombreComercial '' → null
 const ASIGNACIONES = [
   // A STAR CARNIVAL CLASSIC
   ['A STAR CARNIVAL CLASSIC','CALIPSO','CALIPSO','002750','Carnival Calipso'],
@@ -330,7 +330,7 @@ let skipped = 0;
 let notFound = 0;
 const notFoundList = [];
 
-for (const [prod, vari, col, codigoRaw, nombreOriginalRaw] of ASIGNACIONES) {
+for (const [prod, vari, col, codigoRaw, nombreComercialRaw] of ASIGNACIONES) {
   const key = `${norm(prod)}||${norm(vari)}||${norm(col)}`;
   const colorId = colorMap.get(key);
 
@@ -341,16 +341,16 @@ for (const [prod, vari, col, codigoRaw, nombreOriginalRaw] of ASIGNACIONES) {
   }
 
   const codigo = codigoRaw === '0' ? null : codigoRaw.trim() || null;
-  const nombreOriginal = nombreOriginalRaw?.trim() || null;
+  const nombreComercial = nombreComercialRaw?.trim() || null;
 
-  if (!codigo && !nombreOriginal) {
+  if (!codigo && !nombreComercial) {
     skipped++;
     continue;
   }
 
   try {
-    await req('PATCH', `/colores/${colorId}`, { codigo, nombreOriginal }, token);
-    console.log(`  ✓ ${prod} / ${vari} / ${col} → ${codigo ?? '—'} | ${nombreOriginal ?? '—'}`);
+    await req('PATCH', `/colores/${colorId}`, { codigo, nombreComercial }, token);
+    console.log(`  ✓ ${prod} / ${vari} / ${col} → ${codigo ?? '—'} | ${nombreComercial ?? '—'}`);
     updated++;
   } catch (e) {
     console.error(`  ✗ Error actualizando ${key}:`, e.message);

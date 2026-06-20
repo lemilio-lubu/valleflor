@@ -62,7 +62,7 @@ interface ConsolidadoDiarioRow {
   variedad: string;
   color: string;
   codigo: string | null;
-  nombreOriginal: string | null;
+  nombreComercial: string | null;
   dias: Partial<Record<DiaKey, DiaData>>;
   totalCajas: number;
   totalTallos: number;
@@ -149,7 +149,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
         [`${semLabel}   |   Vista: ${tipo}`],
         [`Exportado: ${fechaStr} ${horaStr}`],
         [],
-        ['Código', 'Producto', 'Nombre Original', 'Variedad', 'Color', ...dayHeaders, `Total ${tipo}`],
+        ['Código', 'Producto', 'Nombre comercial', 'Variedad', 'Color', ...dayHeaders, `Total ${tipo}`],
       ];
       rowKinds.push('title', 'subtitle', 'meta', 'empty', 'header');
 
@@ -166,7 +166,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
 
         group.rows.forEach((r, i) => {
           aoa.push([
-            r.codigo || '—', r.producto, r.nombreOriginal || '—', r.variedad, r.color,
+            r.codigo || '—', r.producto, r.nombreComercial || '—', r.variedad, r.color,
             ...DIAS.map((d) => { const v = r.dias[d]; return v ? (forCajas ? v.cajas : v.tallos) : 0; }),
             forCajas ? r.totalCajas : r.totalTallos,
           ]);
@@ -370,7 +370,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
               <th className="table-th md:sticky md:left-[130px] z-20 bg-surface-overlay min-w-[120px]">Variedad</th>
               <th className={`table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>Color</th>
               <th className="table-th min-w-[90px] border-r border-surface-border/40 text-carbon-200">Código</th>
-              <th className="table-th min-w-[150px] border-r border-surface-border/40 text-carbon-200">Nombre Original</th>
+              <th className="table-th min-w-[150px] border-r border-surface-border/40 text-carbon-200">Nombre comercial</th>
               {DIAS.map((d) => (
                 <th key={d} className="table-th text-center min-w-[72px]">
                   <div className="flex flex-col items-center gap-0.5">
@@ -436,7 +436,7 @@ export function ConsolidadoDiario({ semana, anio }: Props) {
                         <td className="px-3 py-2 text-carbon-200 whitespace-nowrap md:sticky md:left-[130px] z-10 bg-white min-w-[120px]">{row.variedad}</td>
                         <td className={`px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[110px] border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>{row.color}</td>
                         <td className="px-3 py-2 text-carbon-300 font-mono text-[11px] whitespace-nowrap border-r border-surface-border/20">{row.codigo || <span className="text-carbon-600">—</span>}</td>
-                        <td className="px-3 py-2 text-carbon-300 text-[11px] whitespace-nowrap italic border-r border-surface-border/20">{row.nombreOriginal || <span className="text-carbon-600">—</span>}</td>
+                        <td className="px-3 py-2 text-carbon-300 text-[11px] whitespace-nowrap italic border-r border-surface-border/20">{row.nombreComercial || <span className="text-carbon-600">—</span>}</td>
                         {DIAS.map((d) => {
                           const v = row.dias[d];
                           const val = v ? (isCajas ? v.cajas : v.tallos) : null;

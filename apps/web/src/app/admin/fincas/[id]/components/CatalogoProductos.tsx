@@ -9,7 +9,7 @@ import { ConfirmModal } from '@/app/components/ConfirmModal';
 
 interface Producto { id: string; nombre: string; }
 interface Variedad { id: string; nombre: string; productoId: string; }
-interface Color { id: string; nombre: string; variedadId: string; codigo: string | null; nombreOriginal: string | null; }
+interface Color { id: string; nombre: string; variedadId: string; codigo: string | null; nombreComercial: string | null; }
 type ConfirmItem = { type: 'producto' | 'variedad' | 'color'; item: Producto | Variedad | Color };
 
 // ─── Inline input ──────────────────────────────────────────────────────────
@@ -39,15 +39,15 @@ function InlineInput({ placeholder, initialValue = '', onSave, onCancel, isPendi
 // ─── Color code/name editor ─────────────────────────────────────────────────
 function ColorMetaEditor({ color, onSave, onCancel, isPending }: {
   color: Color;
-  onSave: (codigo: string, nombreOriginal: string) => void;
+  onSave: (codigo: string, nombreComercial: string) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
   const [codigo, setCodigo] = useState(color.codigo ?? '');
-  const [nombreOriginal, setNombreOriginal] = useState(color.nombreOriginal ?? '');
+  const [nombreComercial, setNombreOriginal] = useState(color.nombreComercial ?? '');
   return (
     <form
-      onSubmit={(e) => { e.preventDefault(); onSave(codigo.trim(), nombreOriginal.trim()); }}
+      onSubmit={(e) => { e.preventDefault(); onSave(codigo.trim(), nombreComercial.trim()); }}
       onClick={(e) => e.stopPropagation()}
       className="flex flex-col gap-1.5 py-1"
     >
@@ -63,8 +63,8 @@ function ColorMetaEditor({ color, onSave, onCancel, isPending }: {
         <Tag className="w-3 h-3 text-carbon-400 flex-shrink-0" />
         <input
           className="input-field text-xs py-1 h-6 flex-1 min-w-0"
-          placeholder="Nombre original"
-          value={nombreOriginal}
+          placeholder="Nombre comercial"
+          value={nombreComercial}
           onChange={(e) => setNombreOriginal(e.target.value)}
         />
         <button type="submit" disabled={isPending}
@@ -286,8 +286,8 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al guardar'),
   });
   const saveColorMeta = useMutation({
-    mutationFn: ({ id, codigo, nombreOriginal }: { id: string; codigo: string; nombreOriginal: string }) =>
-      api.patch(`/colores/${id}`, { codigo: codigo || null, nombreOriginal: nombreOriginal || null }),
+    mutationFn: ({ id, codigo, nombreComercial }: { id: string; codigo: string; nombreComercial: string }) =>
+      api.patch(`/colores/${id}`, { codigo: codigo || null, nombreComercial: nombreComercial || null }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['colores', selectedVariedad?.id] });
       toast.success('Código y nombre actualizados');
@@ -407,7 +407,7 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
                 return (
                   <ColorMetaEditor
                     color={color}
-                    onSave={(codigo, nombreOriginal) => saveColorMeta.mutate({ id: color.id, codigo, nombreOriginal })}
+                    onSave={(codigo, nombreComercial) => saveColorMeta.mutate({ id: color.id, codigo, nombreComercial })}
                     onCancel={() => setEditingColorMeta(null)}
                     isPending={saveColorMeta.isPending}
                   />
@@ -426,8 +426,8 @@ export function CatalogoProductos({ fincaId }: { fincaId: string }) {
                   ) : (
                     <span className="text-[10px] text-carbon-600 italic group-hover/meta:text-carbon-400">+ código</span>
                   )}
-                  {color.nombreOriginal && (
-                    <span className="text-[10px] text-carbon-500 truncate">{color.nombreOriginal}</span>
+                  {color.nombreComercial && (
+                    <span className="text-[10px] text-carbon-500 truncate">{color.nombreComercial}</span>
                   )}
                 </div>
               );

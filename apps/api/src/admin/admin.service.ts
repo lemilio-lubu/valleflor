@@ -76,8 +76,6 @@ export class AdminService {
       const rVariedad = String(normalizedRow['VARIEDAD'] || '').trim().toUpperCase();
       const rColor = String(normalizedRow['COLOR'] || '').trim().toUpperCase();
       const rNombre = String(normalizedRow['NOMBRE'] || '').trim().toUpperCase();
-      const rawLongitud = String(normalizedRow['LONGITUD'] || '').trim();
-      const rLongitud = rawLongitud ? parseInt(rawLongitud, 10) : undefined;
       const rawCaja = String(normalizedRow['CAJA'] || '').trim();
       const rCaja = rawCaja ? parseInt(rawCaja, 10) : undefined;
 
@@ -165,7 +163,6 @@ export class AdminService {
             variedadId: variedad.id,
             codigo: rCodigo,
             nombreComercial: rNombre || null,
-            longitud: rLongitud ?? null,
             tallosPorCaja: rCaja ?? 400,
           });
           if (isPreview) {
@@ -178,7 +175,6 @@ export class AdminService {
           // Actualizar atributos de la definición si cambiaron
           let cambio = false;
           if (rNombre && color.nombreComercial !== rNombre) { color.nombreComercial = rNombre; cambio = true; }
-          if (rLongitud !== undefined && color.longitud !== rLongitud) { color.longitud = rLongitud; cambio = true; }
           if (rCaja !== undefined && color.tallosPorCaja !== rCaja) { color.tallosPorCaja = rCaja; cambio = true; }
           if (cambio) {
             if (!isPreview) await this.colorRepo.save(color);

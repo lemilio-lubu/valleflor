@@ -45,9 +45,6 @@ export class Color {
   @Column({ type: 'varchar', length: 200, nullable: true, name: 'nombre_comercial' })
   nombreComercial: string | null;
 
-  @Column({ type: 'int', nullable: true })
-  longitud: number | null;
-
   @Column({ type: 'int', default: 400, name: 'tallos_por_caja' })
   tallosPorCaja: number;
 
