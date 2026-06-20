@@ -20,7 +20,7 @@ When(
 
     this.response = await request(this.app.getHttpServer())
       .post(`/api/v1/fincas/${fincaId}/responsables/${responsableId}/productos`)
-      .set('Authorization', `Bearer ${this.token}`)
+      .set('Authorization', `Bearer ${this.adminToken}`)
       .send(seleccion);
   },
 );
@@ -33,7 +33,7 @@ When(
     const responsableInexistente = '11111111-1111-4111-8111-111111111111';
     this.response = await request(this.app.getHttpServer())
       .post(`/api/v1/fincas/${fincaId}/responsables/${responsableInexistente}/productos`)
-      .set('Authorization', `Bearer ${this.token}`)
+      .set('Authorization', `Bearer ${this.adminToken}`)
       .send({ productoIds: [this.ids.producto] });
   },
 );
@@ -50,7 +50,7 @@ Then(
     const responsableId = this.ids[`responsable:${persona}`];
     const res = await request(this.app.getHttpServer())
       .get(`/api/v1/fincas/${fincaId}/responsables/${responsableId}/colores`)
-      .set('Authorization', `Bearer ${this.token}`);
+      .set('Authorization', `Bearer ${this.adminToken}`);
     expect(res.status).toBe(200);
     expect((res.body as string[]).length).toBeGreaterThan(0);
   },

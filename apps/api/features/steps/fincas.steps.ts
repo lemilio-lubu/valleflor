@@ -8,7 +8,7 @@ import { VfWorld } from '../support/world';
 async function registrarFinca(world: VfWorld, nombre: string) {
   world.response = await request(world.app.getHttpServer())
     .post('/api/v1/fincas')
-    .set('Authorization', `Bearer ${world.token}`)
+    .set('Authorization', `Bearer ${world.adminToken}`)
     .send({ nombre });
 }
 
@@ -39,7 +39,7 @@ When(
 async function fincasConNombre(world: VfWorld, nombre: string) {
   const res = await request(world.app.getHttpServer())
     .get('/api/v1/fincas')
-    .set('Authorization', `Bearer ${world.token}`);
+    .set('Authorization', `Bearer ${world.adminToken}`);
   expect(res.status).toBe(200);
   return (res.body as Array<{ nombre: string }>).filter((f) => f.nombre === nombre);
 }

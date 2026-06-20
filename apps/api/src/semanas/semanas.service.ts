@@ -194,8 +194,13 @@ export class SemanasService {
       colorId: registro.colorId,
       registroId: registro.id,
       cajas: Number(registro.cajas),
-      divisorTallos: registro.color.variedad.producto.tallosPorCaja,
-      tallos: Number(registro.cajas) * registro.color.variedad.producto.tallosPorCaja,
+      // Valores propios del registro: respetan el divisor ajustado por registro
+      // (PATCH /registros/:id/divisor). POST /registros/recalcular-todos reaplica
+      // ese mismo divisor almacenado (no el del producto). Un cambio de
+      // tallosPorCaja del producto se propaga al re-guardar cajas (updateCajas
+      // resetea el divisor al del producto) o en registros nuevos (seeds).
+      divisorTallos: registro.divisorTallos,
+      tallos: Number(registro.tallos),
     }));
 
     return rows.sort((a, b) => {

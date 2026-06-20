@@ -20,10 +20,14 @@ apps/api/features/
     ├── env.ts             #    fija el entorno de test (BD floricultura_test)
     ├── test-app.ts        #    arranca la app Nest en memoria
     ├── app-holder.ts      #    singleton de la app + DataSource
-    ├── world.ts           #    estado por escenario (app, token, response, ids)
+    ├── world.ts           #    estado por escenario (app, token, adminToken, tokens, response, ids)
     ├── db.ts              #    truncateAll + seedAdmin
-    └── hooks.ts           #    BeforeAll/Before/AfterAll (login admin automático)
+    └── hooks.ts           #    BeforeAll/Before/AfterAll (login admin + reloj congelado)
 ```
+
+Capacidades actuales: `configuracion-de-la-operacion/` (fincas, responsables, catálogo, asignación
+productiva, semanas, carga masiva), `produccion-diaria/` (registros) y `produccion-semanal/`
+(base semanal/estimados, consolidado).
 
 Ejemplo real: `apps/api/features/configuracion-de-la-operacion/fincas.feature`.
 
@@ -120,8 +124,11 @@ Cosas clave que ya te da la infraestructura (no las reimplementes):
 | Necesitas… | Cómo |
 |------------|------|
 | La app HTTP | `this.app.getHttpServer()` (supertest) |
-| Estar autenticado | **automático**: el hook `Before` hace login admin y deja el JWT en `this.token` |
+| Estar autenticado | **automático**: el hook `Before` hace login admin y deja el JWT en `this.token` (también en `this.adminToken`) |
+| Actuar como un responsable | usa el step `Dado que {word} ha iniciado sesión` (`steps/auth.steps.ts`): hace login con `<persona>@valleflor.com` y deja su token en `this.tokens[persona]`. Helper `tokenDe(world, persona)`. Necesario para crear semanas y estimar (esas acciones exigen ser responsable, no admin) |
 | BD limpia por escenario | automático (`hooks.ts` hace TRUNCATE + seed admin antes de cada escenario) |
+| Tiempo determinista | el `hooks.ts` fija el reloj de la app en la **semana ISO 25 de 2026** vía `setNowProvider` (seam `src/common/clock.ts`, usado por `getCurrentISOWeek`). Así "semana actual" es estable y puedes probar bordes (semana 40 = futura, 20 = pasada). NO se fakea el `Date` global (eso da flakiness en este harness in-process) |
+| Recordar recursos entre steps | guárdalos en `this.ids` por clave lógica. Convenciones útiles para el core: `finca:<nombre>`, `responsable:<persona>`, `fincaDe:<persona>`, `semana:<persona>`, `producto`/`variedad`/`color` del último ítem de catálogo |
 | Recordar la respuesta entre steps | guárdala en `this.response` |
 | Aserciones | `import { expect } from 'expect'` (matchers tipo Jest) |
 
@@ -149,6 +156,8 @@ Salida esperada: `N scenarios (N passed)`. Si un step queda en `pending` o `unde
 - **Datos propios del escenario**: si una prueba necesita una finca/semana/responsable, créalos en un step `Dado` (vía la API o el `DataSource`), no dependas de seeds globales.
 - **Steps reutilizables**: antes de escribir un step nuevo, revisa si ya existe uno equivalente en `steps/`.
 - **Parámetros**: usa `{string}`, `{int}`, `{float}` en el texto del step para capturar valores.
+- **Reloj fijo**: el tiempo está congelado en la semana ISO 25 de 2026. Para escenarios que dependan de la semana actual, deriva el número con `getCurrentISOWeek()` en el step (no lo hardcodees); para semanas pasadas/futuras usa números explícitos relativos a la 25.
+- **Una corrida a la vez**: las pruebas comparten la BD `floricultura_test` y la truncan por escenario. NO ejecutes dos corridas (`test`/`test:bdd`) en paralelo: se pisan los TRUNCATE y verás fallos intermitentes (carrera de datos), no bugs reales.
 
 ---
 
@@ -160,6 +169,8 @@ Salida esperada: `N scenarios (N passed)`. Si un step queda en `pending` o `unde
 | Cuelga / `database "floricultura_test" does not exist` | Falta crear la BD: `createdb ... floricultura_test`. |
 | `401` inesperado | Falta el `.set('Authorization', \`Bearer ${this.token}\`)` en el step (el `Before` ya deja `this.token`). |
 | `relation ... does not exist` | La entidad no está en el glob de TypeORM o la BD de test quedó en mal estado: bórrala y deja que synchronize la recree. |
+| Fallos intermitentes que cambian de escenario | Casi siempre hay **otra corrida de pruebas activa** (o un proceso `cucumber` huérfano) compartiendo la BD. Mátalos (`pkill -f cucumber`) y vuelve a correr una sola vez. |
+| Un escenario depende de la fecha real y rompe en otra semana | No uses `new Date()`/números de semana hardcodeados; el reloj está fijo (semana 25/2026) vía `src/common/clock.ts`. Deriva con `getCurrentISOWeek()`. |
 | Quiero ver el detalle del fallo | Abre `cucumber-report.html` o corre con `test:bdd`. |
 
 Referencia completa de la infraestructura: `.claude/commands/references/bdd-cucumber.md`.

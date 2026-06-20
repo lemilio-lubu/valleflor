@@ -22,7 +22,7 @@ async function incorporarItem(
   world: VfWorld,
   def: ItemCatalogo,
 ): Promise<void> {
-  const auth = `Bearer ${world.token}`;
+  const auth = `Bearer ${world.adminToken}`;
 
   const pRes = await request(world.app.getHttpServer())
     .post('/api/v1/productos')
@@ -85,7 +85,7 @@ Given(
 Then(
   'el ítem {string} queda registrado con su producto, variedad y color',
   async function (this: VfWorld, _nombre: string) {
-    const auth = `Bearer ${this.token}`;
+    const auth = `Bearer ${this.adminToken}`;
 
     const prod = await request(this.app.getHttpServer())
       .get('/api/v1/productos')

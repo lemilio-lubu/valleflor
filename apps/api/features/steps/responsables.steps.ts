@@ -11,7 +11,7 @@ Given(
     const email = `${persona.toLowerCase()}@valleflor.com`;
     const res = await request(this.app.getHttpServer())
       .post('/api/v1/users')
-      .set('Authorization', `Bearer ${this.token}`)
+      .set('Authorization', `Bearer ${this.adminToken}`)
       .send({ email, password: 'responsable1234', role: 'responsable' });
     expect(res.status).toBe(201);
     this.ids[`user:${persona}`] = res.body.id;
@@ -26,7 +26,7 @@ Given(
     const email = `${persona.toLowerCase()}@valleflor.com`;
     const res = await request(this.app.getHttpServer())
       .post('/api/v1/users')
-      .set('Authorization', `Bearer ${this.token}`)
+      .set('Authorization', `Bearer ${this.adminToken}`)
       .send({ email, password: 'usuario1234', role: 'admin' });
     expect(res.status).toBe(201);
     this.ids[`user:${persona}`] = res.body.id;
@@ -41,10 +41,11 @@ async function asignarResponsable(world: VfWorld, persona: string, fincaNombre: 
   const userId = world.ids[`user:${persona}`];
   world.response = await request(world.app.getHttpServer())
     .post(`/api/v1/fincas/${fincaId}/responsables`)
-    .set('Authorization', `Bearer ${world.token}`)
+    .set('Authorization', `Bearer ${world.adminToken}`)
     .send({ userId });
   if (world.response.status === 201) {
     world.ids[`responsable:${persona}`] = world.response.body.id;
+    world.ids[`fincaDe:${persona}`] = fincaId;
   }
 }
 
@@ -74,7 +75,7 @@ async function responsablesDeFinca(world: VfWorld, fincaNombre: string) {
   const fincaId = world.ids[`finca:${fincaNombre}`];
   const res = await request(world.app.getHttpServer())
     .get(`/api/v1/fincas/${fincaId}/responsables`)
-    .set('Authorization', `Bearer ${world.token}`);
+    .set('Authorization', `Bearer ${world.adminToken}`);
   expect(res.status).toBe(200);
   return res.body as Array<{ userId: string }>;
 }
