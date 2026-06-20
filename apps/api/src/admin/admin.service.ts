@@ -84,10 +84,14 @@ export class AdminService {
         continue;
       }
 
-      // 1. Validate Finca
+      // 1. Validate Finca — comparación case-insensitive: el alta de fincas
+      // guarda el nombre tal cual (mixed-case) y la carga llega en mayúsculas.
       let finca = fincasMap.get(rFinca);
       if (!finca) {
-        finca = await this.fincaRepo.findOne({ where: { nombre: rFinca } });
+        finca = await this.fincaRepo
+          .createQueryBuilder('finca')
+          .where('UPPER(finca.nombre) = :nombre', { nombre: rFinca })
+          .getOne();
         if (finca) fincasMap.set(rFinca, finca);
       }
       if (!finca) {

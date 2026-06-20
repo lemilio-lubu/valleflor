@@ -46,7 +46,7 @@ When('creo un producto con código {string} y nombre {string}',
   async function (this: VfWorld, codigo: string, nombre: string) {
     this.response = await request(this.app.getHttpServer())
       .post('/api/v1/productos')                       // SIEMPRE prefijo /api/v1
-      .set('Authorization', `Bearer ${this.token}`)    // token lo deja auth.steps.ts
+      .set('Authorization', `Bearer ${this.token}`)    // el hook Before deja el JWT
       .send({ codigo, nombre });
   });
 
@@ -60,7 +60,7 @@ Then('la respuesta tiene estado {int}', function (this: VfWorld, status: number)
 - **Tipar `this` como `VfWorld`** en cada callback (`function (this: VfWorld, ...)`, nunca arrow function — Cucumber liga el World a `this`).
 - **Prefijo `/api/v1`** en todas las rutas (por `setGlobalPrefix`).
 - **Aserciones con `expect` de `'expect'`**, no de Jest ni `node:assert` (consistencia).
-- **Autenticación**: reusar el step `Dado que estoy autenticado como admin` (en `auth.steps.ts`), que hace login y guarda el JWT en `this.token`. No reimplementar login en cada feature.
+- **Autenticación**: es **automática**. El hook `Before` (`support/hooks.ts`) hace login como admin y deja el JWT en `this.token`. No escribir un paso de login (es incidental); solo usar `.set('Authorization', \`Bearer ${this.token}\`)` en los steps que lo necesiten.
 - **Aislamiento garantizado**: `hooks.ts` hace `truncateAll` + `seedAdmin` en `Before` de cada escenario. No escribir lógica de limpieza en los steps. No asumir estado entre escenarios.
 - **Datos del escenario** (fincas, semanas, responsables): crearlos dentro de un step `Dado`, vía la API o `getDataSource().query(...)`.
 - **BD**: siempre `floricultura_test`. `env.ts` aborta si `DATABASE_NAME !== 'floricultura_test'`. No tocar `floricultura_db`.

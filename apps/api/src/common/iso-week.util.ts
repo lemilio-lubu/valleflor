@@ -1,9 +1,11 @@
+import { now as clockNow } from './clock';
+
 /**
  * Devuelve la semana ISO 8601 (1-53) y el año al que pertenece la fecha actual.
  * El jueves de la semana determina el año ISO.
  */
 export function getCurrentISOWeek(): { numeroSemana: number; anio: number } {
-  const now = new Date();
+  const now = clockNow();
   const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));

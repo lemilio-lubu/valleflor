@@ -1,0 +1,14 @@
+filters:
+  and:
+    - type == "hu"
+views:
+  - type: table
+    name: Por estado
+    order:
+      - file.name
+      - feature
+      - estado
+    sort:
+      - property: feature
+        direction: ASC
+    group_by: estado
