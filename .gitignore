@@ -46,3 +46,8 @@ yarn-error.log*
 *docs/
 scripts/.env.local
 .claude/settings.local.json
+
+# Obsidian — estado local de la ventana (no compartir); el resto de .obsidian sí se versiona
+documentacion/.obsidian/workspace.json
+documentacion/.obsidian/workspace-mobile.json
+documentacion/.obsidian/cache

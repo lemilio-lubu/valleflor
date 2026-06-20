@@ -1,0 +1,15 @@
+filters:
+  and:
+    - type == "backlog"
+views:
+  - type: table
+    name: Por estado
+    order:
+      - file.name
+      - area
+      - prioridad
+      - estado
+    sort:
+      - property: prioridad
+        direction: ASC
+    group_by: estado
