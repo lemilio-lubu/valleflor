@@ -1,12 +1,12 @@
 ---
 type: hu
-pilar: "[[Pilar 1]]"
-feature: F4
+capacidad: "[[Asignación productiva]]"
+feature: Vinculación de Productos
 estado: aprobada
 tags: [hu]
 ---
 
-# F4 — Vinculación de Productos
+# Vinculación de Productos
 
 **Descripción:** [[Asignación productiva]] de [[Ítem de catálogo|ítems de catálogo]] a los [[Responsable]]s dentro de una [[Finca]].
 

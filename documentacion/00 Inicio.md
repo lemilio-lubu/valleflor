@@ -8,12 +8,14 @@ tags: [moc, inicio]
 Página de entrada del vault. Documentación del producto para la floricultora **Valleflor**.
 
 ## Producto
-- [[Pilar 1|Pilar 1 — Configuración de la operación]]
-  - [[F1 Definición de Fincas]]
-  - [[F2 Definición de Responsabilidades]]
-  - [[F3 Catalogación de Productos]]
-  - [[F4 Vinculación de Productos]]
-  - [[Consolidación de estimados]] · [[Trazabilidad operativa]]
+El producto se organiza por **capabilities** de negocio → [[Capacidades]].
+- [[Fincas y responsables]] — [[Definición de Fincas]] · [[Definición de Responsabilidades]]
+- [[Catalogación de productos]] — [[Catálogo de productos]]
+- [[Asignación productiva]] — [[Vinculación de Productos]]
+- [[Carga masiva del catálogo]] — [[Carga masiva desde Excel]]
+- [[Captura de producción]] — [[Gestión de semanas]] · [[Registro de plantilla diaria]]
+- [[Estimación y consolidación]] — [[Estimación semanal]] · [[Consolidado de producción]]
+- [[Trazabilidad operativa]] _(pendiente)_
 
 ## Conceptos clave (glosario)
 **Entidades:** [[Finca]] · [[Responsable]] · [[Administrador]] · [[Ítem de catálogo]] ([[Producto]] · [[Variedad]] · [[Color]]) · [[Código de producto]] · [[Nombre comercial]]

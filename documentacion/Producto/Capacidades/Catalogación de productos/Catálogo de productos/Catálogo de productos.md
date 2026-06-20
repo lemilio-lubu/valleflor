@@ -1,12 +1,12 @@
 ---
 type: hu
-pilar: "[[Pilar 1]]"
-feature: F3
+capacidad: "[[Catalogación de productos]]"
+feature: Catálogo de productos
 estado: aprobada
 tags: [hu]
 ---
 
-# F3 — Catalogación de Productos
+# Catálogo de productos
 
 **Descripción:** administración de un catálogo único y estandarizado de [[Ítem de catálogo|ítems de catálogo]] usados en las estimaciones.
 

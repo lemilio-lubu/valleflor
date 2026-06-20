@@ -1,12 +1,12 @@
 ---
 type: hu
-pilar: "[[Pilar 1]]"
-feature: F1
+capacidad: "[[Fincas y responsables]]"
+feature: Definición de Fincas
 estado: aprobada
 tags: [hu]
 ---
 
-# F1 — Definición de Fincas
+# Definición de Fincas
 
 **Descripción:** creación y mantenimiento de las [[Finca]]s que forman parte de la operación.
 

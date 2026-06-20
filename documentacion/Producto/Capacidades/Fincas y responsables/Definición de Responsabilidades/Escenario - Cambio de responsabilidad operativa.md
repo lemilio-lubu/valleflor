@@ -1,6 +1,6 @@
 ---
 type: escenario
-hu: "[[F2 Definición de Responsabilidades]]"
+hu: "[[Definición de Responsabilidades]]"
 estado: aprobada
 tags: [escenario]
 ---

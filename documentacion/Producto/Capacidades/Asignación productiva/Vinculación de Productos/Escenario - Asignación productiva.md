@@ -1,6 +1,6 @@
 ---
 type: escenario
-hu: "[[F4 Vinculación de Productos]]"
+hu: "[[Vinculación de Productos]]"
 estado: aprobada
 tags: [escenario]
 ---

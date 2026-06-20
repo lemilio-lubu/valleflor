@@ -10,4 +10,4 @@ tags: [backlog]
 
 Quitar el parámetro *longitud* de la [[Ítem de catálogo]] (ya no se usa).
 
-Relacionado: [[Ítem de catálogo]] · [[F3 Catalogación de Productos]]
+Relacionado: [[Ítem de catálogo]] · [[Catálogo de productos]]

@@ -1,6 +1,6 @@
 ---
 type: escenario
-hu: "[[F3 Catalogación de Productos]]"
+hu: "[[Catálogo de productos]]"
 estado: aprobada
 tags: [escenario]
 ---

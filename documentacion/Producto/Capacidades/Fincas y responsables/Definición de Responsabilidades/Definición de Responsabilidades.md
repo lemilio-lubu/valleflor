@@ -1,12 +1,12 @@
 ---
 type: hu
-pilar: "[[Pilar 1]]"
-feature: F2
+capacidad: "[[Fincas y responsables]]"
+feature: Definición de Responsabilidades
 estado: aprobada
 tags: [hu]
 ---
 
-# F2 — Definición de Responsabilidades
+# Definición de Responsabilidades
 
 **Descripción:** asignación de [[Responsable]]s a las [[Finca]]s.
 

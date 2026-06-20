@@ -1,6 +1,6 @@
 ---
 type: escenario
-hu: "[[F1 Definición de Fincas]]"
+hu: "[[Definición de Fincas]]"
 estado: aprobada
 tags: [escenario]
 ---
