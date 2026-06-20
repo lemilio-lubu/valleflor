@@ -62,7 +62,7 @@ export function BulkUploadCatalog() {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ['CODIGO', 'PRODUCTO', 'LONGITUD', 'CAJA', 'VARIEDAD', 'COLOR', 'FINCA', 'RESPONSABLE'];
+    const headers = ['PRODUCTO', 'VARIEDAD', 'COLOR', 'CODIGO', 'NOMBRE', 'LONGITUD', 'CAJA', 'FINCA', 'RESPONSABLE'];
     const csvContent = "data:text/csv;charset=utf-8," + headers.join(",");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");

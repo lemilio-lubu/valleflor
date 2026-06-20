@@ -94,6 +94,7 @@ export class ColoresService {
     }
 
     const nombre = dto.nombre.toUpperCase().trim();
+    const codigo = dto.codigo.toUpperCase().trim();
 
     const exists = await this.colorRepo.findOne({
       where: { nombre, variedadId: dto.variedadId },
@@ -104,7 +105,19 @@ export class ColoresService {
       );
     }
 
-    const color = this.colorRepo.create({ nombre, variedadId: dto.variedadId });
+    const codigoExists = await this.colorRepo.findOne({ where: { codigo } });
+    if (codigoExists) {
+      throw new ConflictException(`Ya existe una definición con el código "${codigo}"`);
+    }
+
+    const color = this.colorRepo.create({
+      nombre,
+      variedadId: dto.variedadId,
+      codigo,
+      nombreComercial: dto.nombreComercial ?? null,
+      longitud: dto.longitud ?? null,
+      tallosPorCaja: dto.tallosPorCaja ?? 400,
+    });
     return this.colorRepo.save(color);
   }
 
@@ -123,6 +136,15 @@ export class ColoresService {
         );
       }
       dto.nombre = nombre;
+    }
+
+    if (dto.codigo) {
+      const codigo = dto.codigo.toUpperCase().trim();
+      const exists = await this.colorRepo.findOne({ where: { codigo } });
+      if (exists && exists.id !== id) {
+        throw new ConflictException(`Ya existe una definición con el código "${codigo}"`);
+      }
+      dto.codigo = codigo;
     }
 
     Object.assign(color, dto);

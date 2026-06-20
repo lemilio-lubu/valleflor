@@ -12,16 +12,24 @@ import { ConfirmModal } from '@/app/components/ConfirmModal';
 
 interface Producto {
   id: string;
-  codigo: string;
   nombre: string;
+  activo?: boolean;
+  motivoBaja?: string | null;
+  eliminable?: boolean;
+}
+interface Variedad { id: string; nombre: string; productoId: string; activo?: boolean; motivoBaja?: string | null; eliminable?: boolean; }
+interface Color {
+  id: string;
+  nombre: string;
+  variedadId: string;
+  codigo: string;
+  nombreComercial: string | null;
   longitud: number | null;
   tallosPorCaja: number;
   activo?: boolean;
   motivoBaja?: string | null;
   eliminable?: boolean;
 }
-interface Variedad { id: string; nombre: string; productoId: string; activo?: boolean; motivoBaja?: string | null; eliminable?: boolean; }
-interface Color { id: string; nombre: string; variedadId: string; activo?: boolean; motivoBaja?: string | null; eliminable?: boolean; }
 type CatalogItem = Producto | Variedad | Color;
 type ConfirmItem = { type: 'producto' | 'variedad' | 'color'; item: CatalogItem };
 
@@ -31,23 +39,33 @@ const TIPO_LABEL: Record<ConfirmItem['type'], string> = {
   color: 'el color',
 };
 
-interface ProductoFormValues {
-  codigo: string;
+interface ColorFormValues {
   nombre: string;
+  codigo: string;
+  nombreComercial: string;
   longitud: string;
   tallosPorCaja: string;
 }
 
-// ─── Producto modal (código / nombre / longitud / caja) ──────────────────────
-function ProductoModal({ initial, onSave, onCancel, isPending }: {
-  initial: Producto | null;
-  onSave: (values: { codigo: string; nombre: string; longitud: number | null; tallosPorCaja: number }) => void;
+export interface ColorSaveValues {
+  nombre: string;
+  codigo: string;
+  nombreComercial: string | null;
+  longitud: number | null;
+  tallosPorCaja: number;
+}
+
+// ─── Color modal (definición productiva: color / código / nombre / longitud / caja) ──
+function ColorModal({ initial, onSave, onCancel, isPending }: {
+  initial: Color | null;
+  onSave: (values: ColorSaveValues) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
-  const [values, setValues] = useState<ProductoFormValues>({
-    codigo: initial?.codigo ?? '',
+  const [values, setValues] = useState<ColorFormValues>({
     nombre: initial?.nombre ?? '',
+    codigo: initial?.codigo ?? '',
+    nombreComercial: initial?.nombreComercial ?? '',
     longitud: initial?.longitud != null ? String(initial.longitud) : '',
     tallosPorCaja: initial?.tallosPorCaja != null ? String(initial.tallosPorCaja) : '400',
   });
@@ -58,14 +76,15 @@ function ProductoModal({ initial, onSave, onCancel, isPending }: {
     return () => window.removeEventListener('keydown', onKey);
   }, [onCancel]);
 
-  const canSave = values.codigo.trim() !== '' && values.nombre.trim() !== '';
+  const canSave = values.nombre.trim() !== '' && values.codigo.trim() !== '';
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSave) return;
     onSave({
-      codigo: values.codigo.trim().toUpperCase(),
       nombre: values.nombre.trim().toUpperCase(),
+      codigo: values.codigo.trim().toUpperCase(),
+      nombreComercial: values.nombreComercial.trim() !== '' ? values.nombreComercial.trim().toUpperCase() : null,
       longitud: values.longitud.trim() !== '' ? Number(values.longitud) : null,
       tallosPorCaja: values.tallosPorCaja.trim() !== '' ? Number(values.tallosPorCaja) : 400,
     });
@@ -91,30 +110,39 @@ function ProductoModal({ initial, onSave, onCancel, isPending }: {
         </button>
 
         <h3 className="text-lg font-semibold text-carbon-50 mb-5">
-          {initial ? 'Editar producto' : 'Nuevo producto'}
+          {initial ? 'Editar definición' : 'Nueva definición'}
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Código</label>
+              <label className="form-label">Color</label>
               <input
                 autoFocus
                 className="input-field"
-                placeholder="Ej: ROS001"
+                placeholder="Ej: DARK"
+                value={values.nombre}
+                onChange={(e) => setValues((v) => ({ ...v, nombre: e.target.value.toUpperCase() }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="form-label">Código</label>
+              <input
+                className="input-field"
+                placeholder="Ej: 6554"
                 value={values.codigo}
                 onChange={(e) => setValues((v) => ({ ...v, codigo: e.target.value.toUpperCase() }))}
                 required
               />
             </div>
-            <div>
+            <div className="col-span-2">
               <label className="form-label">Nombre</label>
               <input
                 className="input-field"
-                placeholder="Ej: ROSAS"
-                value={values.nombre}
-                onChange={(e) => setValues((v) => ({ ...v, nombre: e.target.value.toUpperCase() }))}
-                required
+                placeholder="Ej: NELANDES ASTASSUS"
+                value={values.nombreComercial}
+                onChange={(e) => setValues((v) => ({ ...v, nombreComercial: e.target.value.toUpperCase() }))}
               />
             </div>
             <div>
@@ -155,7 +183,7 @@ function ProductoModal({ initial, onSave, onCancel, isPending }: {
   );
 }
 
-// ─── Inline input (variedad / color) ─────────────────────────────────────────
+// ─── Inline input (producto / variedad) ──────────────────────────────────────
 function InlineInput({ placeholder, initialValue = '', onSave, onCancel, isPending }: {
   placeholder: string; initialValue?: string;
   onSave: (v: string) => void; onCancel: () => void; isPending: boolean;
@@ -395,11 +423,11 @@ export function CatalogoProductos() {
     window.localStorage.setItem('catalogo:mostrarInactivos', String(mostrarInactivos));
   }, [mostrarInactivos]);
 
-  const [productoModal, setProductoModal] = useState<{ open: boolean; edit: Producto | null }>({ open: false, edit: null });
+  const [addingProducto, setAddingProducto] = useState(false);
+  const [editingProducto, setEditingProducto] = useState<Producto | null>(null);
   const [addingVariedad, setAddingVariedad] = useState(false);
   const [editingVariedad, setEditingVariedad] = useState<Variedad | null>(null);
-  const [addingColor, setAddingColor] = useState(false);
-  const [editingColor, setEditingColor] = useState<Color | null>(null);
+  const [colorModal, setColorModal] = useState<{ open: boolean; edit: Color | null }>({ open: false, edit: null });
   const [confirmDelete, setConfirmDelete] = useState<ConfirmItem | null>(null);
   const [bajaItem, setBajaItem] = useState<ConfirmItem | null>(null);
   const [motivoItem, setMotivoItem] = useState<{ nombre: string; motivoBaja?: string | null } | null>(null);
@@ -428,10 +456,11 @@ export function CatalogoProductos() {
     enabled: !!selectedVariedad,
   });
 
-  const productoMeta = (p: Producto) => {
-    const parts = [`Cód: ${p.codigo}`];
-    if (p.longitud != null) parts.push(`${p.longitud} cm`);
-    parts.push(`${p.tallosPorCaja} t/caja`);
+  const colorMeta = (c: Color) => {
+    const parts = [`Cód: ${c.codigo}`];
+    if (c.nombreComercial) parts.push(c.nombreComercial);
+    if (c.longitud != null) parts.push(`${c.longitud} cm`);
+    parts.push(`${c.tallosPorCaja} t/caja`);
     return parts.join(' · ');
   };
 
@@ -447,17 +476,17 @@ export function CatalogoProductos() {
   }
 
   const saveProducto = useMutation({
-    mutationFn: (values: { codigo: string; nombre: string; longitud: number | null; tallosPorCaja: number }) =>
-      productoModal.edit
-        ? api.patch(`/productos/${productoModal.edit.id}`, values)
-        : api.post('/productos', values),
-    onSuccess: (res) => {
+    mutationFn: (nombre: string) =>
+      editingProducto
+        ? api.patch(`/productos/${editingProducto.id}`, { nombre })
+        : api.post('/productos', { nombre }),
+    onSuccess: (res, nombre) => {
       qc.invalidateQueries({ queryKey: ['productos'] });
       qc.invalidateQueries({ queryKey: ['consolidado-diario'] });
       qc.invalidateQueries({ queryKey: ['consolidado-semanal'] });
-      toast.success(productoModal.edit ? 'Producto actualizado' : 'Producto creado');
-      if (!productoModal.edit) setSelectedProducto(res.data);
-      setProductoModal({ open: false, edit: null });
+      toast.success(editingProducto ? `Producto "${nombre}" actualizado` : `Producto "${nombre}" creado`);
+      if (!editingProducto) setSelectedProducto(res.data);
+      setAddingProducto(false); setEditingProducto(null);
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al guardar'),
   });
@@ -495,12 +524,16 @@ export function CatalogoProductos() {
   });
 
   const saveColor = useMutation({
-    mutationFn: (nombre: string) =>
-      editingColor ? api.patch(`/colores/${editingColor.id}`, { nombre }) : api.post('/colores', { nombre, variedadId: selectedVariedad!.id }),
-    onSuccess: (_, nombre) => {
+    mutationFn: (values: ColorSaveValues) =>
+      colorModal.edit
+        ? api.patch(`/colores/${colorModal.edit.id}`, values)
+        : api.post('/colores', { ...values, variedadId: selectedVariedad!.id }),
+    onSuccess: (_, values) => {
       qc.invalidateQueries({ queryKey: ['colores', selectedVariedad?.id] });
-      toast.success(editingColor ? `Color "${nombre}" actualizado` : `Color "${nombre}" creado`);
-      setAddingColor(false); setEditingColor(null);
+      qc.invalidateQueries({ queryKey: ['consolidado-diario'] });
+      qc.invalidateQueries({ queryKey: ['consolidado-semanal'] });
+      toast.success(colorModal.edit ? `Color "${values.nombre}" actualizado` : `Color "${values.nombre}" creado`);
+      setColorModal({ open: false, edit: null });
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al guardar'),
   });
@@ -547,8 +580,8 @@ export function CatalogoProductos() {
     else removeColor.mutate(confirmDelete.item.id);
   }
 
-  const openNewProducto = () => setProductoModal({ open: true, edit: null });
-  const openEditProducto = (p: Producto) => setProductoModal({ open: true, edit: p });
+  const openNewColor = () => setColorModal({ open: true, edit: null });
+  const openEditColor = (c: Color) => setColorModal({ open: true, edit: c });
 
   return (
     <>
@@ -624,19 +657,19 @@ export function CatalogoProductos() {
                 setAddingVariedad(false); setEditingVariedad(null);
                 setMobileLevel('variedades');
               }}
-              onAdd={openNewProducto}
-              onEdit={(p) => openEditProducto(p as Producto)}
+              onAdd={() => { setEditingProducto(null); setAddingProducto(true); }}
+              onEdit={(p) => { setEditingProducto(p as Producto); setAddingProducto(false); }}
               onDelete={(p) => setConfirmDelete({ type: 'producto', item: p })}
               onDarBaja={(p) => setBajaItem({ type: 'producto', item: p })}
               onDarAlta={(p) => darAlta.mutate({ type: 'producto', id: p.id })}
               onVerMotivo={(p) => setMotivoItem(p)}
-              addingNew={false} editingId={null}
-              addPlaceholder="Producto"
-              onSaveNew={() => {}} onCancelNew={() => {}}
-              onSaveEdit={() => {}} onCancelEdit={() => {}}
-              isSavingNew={false} isSavingEdit={false}
+              addingNew={addingProducto} editingId={editingProducto?.id ?? null}
+              addPlaceholder="Ej: BELLANDES"
+              onSaveNew={(n) => saveProducto.mutate(n)} onCancelNew={() => setAddingProducto(false)}
+              onSaveEdit={(n) => saveProducto.mutate(n)} onCancelEdit={() => setEditingProducto(null)}
+              isSavingNew={saveProducto.isPending && !editingProducto}
+              isSavingEdit={saveProducto.isPending && !!editingProducto}
               emptyText="Sin productos. Agrega el primero." hasArrow
-              inline={false} metaOf={(p) => productoMeta(p as Producto)}
             />
           )}
           {mobileLevel === 'variedades' && selectedProducto && (
@@ -646,7 +679,7 @@ export function CatalogoProductos() {
               selectedId={selectedVariedad?.id ?? null}
               onSelect={(v) => {
                 setSelectedVariedad(v as Variedad);
-                setAddingColor(false); setEditingColor(null);
+                setColorModal({ open: false, edit: null });
                 setMobileLevel('colores');
               }}
               onAdd={() => { setEditingVariedad(null); setAddingVariedad(true); }}
@@ -669,19 +702,19 @@ export function CatalogoProductos() {
               title="Colores" subtitle={`de ${selectedVariedad.nombre}`}
               items={colores} isLoading={loadingColores}
               selectedId={null} onSelect={() => {}}
-              onAdd={() => { setEditingColor(null); setAddingColor(true); }}
-              onEdit={(c) => { setEditingColor(c as Color); setAddingColor(false); }}
+              onAdd={openNewColor}
+              onEdit={(c) => openEditColor(c as Color)}
               onDelete={(c) => setConfirmDelete({ type: 'color', item: c })}
               onDarBaja={(c) => setBajaItem({ type: 'color', item: c })}
               onDarAlta={(c) => darAlta.mutate({ type: 'color', id: c.id })}
               onVerMotivo={(c) => setMotivoItem(c)}
-              addingNew={addingColor} editingId={editingColor?.id ?? null}
-              addPlaceholder="Ej: ROJO OSCURO"
-              onSaveNew={(n) => saveColor.mutate(n)} onCancelNew={() => setAddingColor(false)}
-              onSaveEdit={(n) => saveColor.mutate(n)} onCancelEdit={() => setEditingColor(null)}
-              isSavingNew={saveColor.isPending && !editingColor}
-              isSavingEdit={saveColor.isPending && !!editingColor}
+              addingNew={false} editingId={null}
+              addPlaceholder="Color"
+              onSaveNew={() => {}} onCancelNew={() => {}}
+              onSaveEdit={() => {}} onCancelEdit={() => {}}
+              isSavingNew={false} isSavingEdit={false}
               emptyText="Sin colores. Agrega el primero."
+              inline={false} metaOf={(c) => colorMeta(c as Color)}
             />
           )}
         </div>
@@ -697,19 +730,19 @@ export function CatalogoProductos() {
             <Column title="Productos" items={productos} isLoading={loadingProductos}
               selectedId={selectedProducto?.id ?? null}
               onSelect={(p) => { setSelectedProducto(p); setSelectedVariedad(null); setAddingVariedad(false); setEditingVariedad(null); }}
-              onAdd={openNewProducto}
-              onEdit={(p) => openEditProducto(p as Producto)}
+              onAdd={() => { setEditingProducto(null); setAddingProducto(true); }}
+              onEdit={(p) => { setEditingProducto(p as Producto); setAddingProducto(false); }}
               onDelete={(p) => setConfirmDelete({ type: 'producto', item: p })}
               onDarBaja={(p) => setBajaItem({ type: 'producto', item: p })}
               onDarAlta={(p) => darAlta.mutate({ type: 'producto', id: p.id })}
               onVerMotivo={(p) => setMotivoItem(p)}
-              addingNew={false} editingId={null}
-              addPlaceholder="Producto"
-              onSaveNew={() => {}} onCancelNew={() => {}}
-              onSaveEdit={() => {}} onCancelEdit={() => {}}
-              isSavingNew={false} isSavingEdit={false}
-              emptyText="Sin productos. Agrega el primero." hasArrow
-              inline={false} metaOf={(p) => productoMeta(p as Producto)} />
+              addingNew={addingProducto} editingId={editingProducto?.id ?? null}
+              addPlaceholder="Ej: BELLANDES"
+              onSaveNew={(n) => saveProducto.mutate(n)} onCancelNew={() => setAddingProducto(false)}
+              onSaveEdit={(n) => saveProducto.mutate(n)} onCancelEdit={() => setEditingProducto(null)}
+              isSavingNew={saveProducto.isPending && !editingProducto}
+              isSavingEdit={saveProducto.isPending && !!editingProducto}
+              emptyText="Sin productos. Agrega el primero." hasArrow />
           </div>
         </div>
 
@@ -733,7 +766,7 @@ export function CatalogoProductos() {
               subtitle={selectedProducto ? `de ${selectedProducto.nombre}` : undefined}
               items={selectedProducto ? variedades : []} isLoading={!!selectedProducto && loadingVariedades}
               selectedId={selectedVariedad?.id ?? null}
-              onSelect={(v) => { setSelectedVariedad(v as Variedad); setAddingColor(false); setEditingColor(null); }}
+              onSelect={(v) => { setSelectedVariedad(v as Variedad); setColorModal({ open: false, edit: null }); }}
               onAdd={() => { setEditingVariedad(null); setAddingVariedad(true); }}
               onEdit={(v) => { setEditingVariedad(v as Variedad); setAddingVariedad(false); }}
               onDelete={(v) => setConfirmDelete({ type: 'variedad', item: v })}
@@ -760,7 +793,7 @@ export function CatalogoProductos() {
           <ChevronRight className="w-4 h-4 text-carbon-400" />
         </div>
 
-        {/* Columna 3 — Colores */}
+        {/* Columna 3 — Colores (definiciones productivas) */}
         <div style={{
           width: col3W, transition: 'width 0.25s ease, opacity 0.2s ease',
           opacity: showCol3 ? 1 : 0, overflow: 'hidden', flexShrink: 0,
@@ -769,29 +802,29 @@ export function CatalogoProductos() {
             subtitle={selectedVariedad ? `de ${selectedVariedad.nombre}` : undefined}
             items={selectedVariedad ? colores : []} isLoading={!!selectedVariedad && loadingColores}
             selectedId={null} onSelect={() => {}}
-            onAdd={() => { setEditingColor(null); setAddingColor(true); }}
-            onEdit={(c) => { setEditingColor(c as Color); setAddingColor(false); }}
+            onAdd={openNewColor}
+            onEdit={(c) => openEditColor(c as Color)}
             onDelete={(c) => setConfirmDelete({ type: 'color', item: c })}
             onDarBaja={(c) => setBajaItem({ type: 'color', item: c })}
             onDarAlta={(c) => darAlta.mutate({ type: 'color', id: c.id })}
-              onVerMotivo={(c) => setMotivoItem(c)}
-            addingNew={addingColor} editingId={editingColor?.id ?? null}
-            addPlaceholder="Ej: ROJO OSCURO"
-            onSaveNew={(n) => saveColor.mutate(n)} onCancelNew={() => setAddingColor(false)}
-            onSaveEdit={(n) => saveColor.mutate(n)} onCancelEdit={() => setEditingColor(null)}
-            isSavingNew={saveColor.isPending && !editingColor}
-            isSavingEdit={saveColor.isPending && !!editingColor}
-            emptyText="Sin colores. Agrega el primero." />
+            onVerMotivo={(c) => setMotivoItem(c)}
+            addingNew={false} editingId={null}
+            addPlaceholder="Color"
+            onSaveNew={() => {}} onCancelNew={() => {}}
+            onSaveEdit={() => {}} onCancelEdit={() => {}}
+            isSavingNew={false} isSavingEdit={false}
+            emptyText="Sin colores. Agrega el primero."
+            inline={false} metaOf={(c) => colorMeta(c as Color)} />
         </div>
 
       </div>
 
-      {productoModal.open && (
-        <ProductoModal
-          initial={productoModal.edit}
-          onSave={(values) => saveProducto.mutate(values)}
-          onCancel={() => setProductoModal({ open: false, edit: null })}
-          isPending={saveProducto.isPending}
+      {colorModal.open && (
+        <ColorModal
+          initial={colorModal.edit}
+          onSave={(values) => saveColor.mutate(values)}
+          onCancel={() => setColorModal({ open: false, edit: null })}
+          isPending={saveColor.isPending}
         />
       )}
 

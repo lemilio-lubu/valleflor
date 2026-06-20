@@ -81,7 +81,7 @@ export class RegistrosService {
 
     // 1. Redondear cajas a máximo 2 decimales
     const cajas = this.round2(dto.cajas);
-    const tallosPorCaja = registro.color.variedad.producto.tallosPorCaja;
+    const tallosPorCaja = registro.color.tallosPorCaja;
 
     // 2. Detección de tipeo (warning, no error)
     let warning: string | undefined;

@@ -107,7 +107,7 @@ export class SemanasService {
         semana.id,
         dto.fechaInicio,
         color.id,
-        color.variedad?.producto?.tallosPorCaja ?? tallosPorCajaGlobal,
+        color.tallosPorCaja ?? tallosPorCajaGlobal,
       );
       registros.push(...seeds.map((s) => this.registroRepo.create(s)));
     }
@@ -194,8 +194,8 @@ export class SemanasService {
       colorId: registro.colorId,
       registroId: registro.id,
       cajas: Number(registro.cajas),
-      divisorTallos: registro.color.variedad.producto.tallosPorCaja,
-      tallos: Number(registro.cajas) * registro.color.variedad.producto.tallosPorCaja,
+      divisorTallos: registro.color.tallosPorCaja,
+      tallos: Number(registro.cajas) * registro.color.tallosPorCaja,
     }));
 
     return rows.sort((a, b) => {

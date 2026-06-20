@@ -6,15 +6,20 @@
 La organización MANTENDRÁ un catálogo único y global de productos, variedades y colores,
 compartido por toda la operación (sin pertenencia a una finca).
 
-#### Scenario: Incorporación de un producto al catálogo
-- **WHEN** el administrador incorpora un producto al catálogo
-- **THEN** el producto pasa a formar parte de las definiciones estandarizadas de la organización
-- **AND** dispone de un código de identificación único
-- **AND** dispone de un nombre
-- **AND** dispone de una longitud
-- **AND** dispone de tallos por caja
-- **AND** dispone de al menos una variedad
-- **AND** dispone de una clasificación por color
+#### Scenario: Incorporación de una definición productiva al catálogo
+La unidad del catálogo es la **definición productiva** = combinación producto + variedad + color.
+El `codigo` y el `nombre` (comercial) identifican la combinación, NO el producto.
+- **GIVEN** una definición productiva compuesta por producto, variedad y color
+- **WHEN** el administrador la incorpora con su `codigo` y su `nombre`
+- **THEN** la definición pasa a formar parte del catálogo oficial
+- **AND** queda identificada por el `codigo` (único en todo el catálogo)
+- **AND** la hoja (color) lleva también `longitud` y `tallos por caja`
+- **AND** un mismo producto puede tener varias definiciones, cada una con su propio código/nombre
+
+  Ejemplos:
+  | producto  | variedad | color | codigo | nombre            |
+  | BELLANDES | DARK     | DARK  | 6554   | NELANDES ASTASSUS |
+  | BELLANDES | WHITE    | WHITE | 6898   | NELABANDES WHITE  |
 
 #### Scenario: Registro de producto existente
 - **GIVEN** un producto que ya forma parte del catálogo (mismo código)

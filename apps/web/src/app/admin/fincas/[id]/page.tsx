@@ -77,7 +77,9 @@ function AsignarModal({ onClose, onConfirm, isPending }: {
 interface ColorTree {
   id: string;
   nombre: string;
-  variedad: { id: string; nombre: string; producto: { id: string; codigo: string; nombre: string } };
+  codigo: string;
+  nombreComercial: string | null;
+  variedad: { id: string; nombre: string; producto: { id: string; nombre: string } };
 }
 type TriState = 'none' | 'some' | 'all';
 
@@ -115,7 +117,7 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
   // Agrupar colores en árbol producto → variedad → color
   const arbol = useMemo(() => {
     const prodMap = new Map<string, {
-      producto: { id: string; codigo: string; nombre: string };
+      producto: { id: string; nombre: string };
       variedades: Map<string, { variedad: { id: string; nombre: string }; colores: ColorTree[] }>;
     }>();
     for (const c of colores) {
@@ -200,7 +202,6 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
                         className="flex items-center gap-2 flex-1 min-w-0 text-left">
                         <TriCheckbox state={prodState} />
                         <span className="text-sm font-medium text-carbon-50 truncate">{producto.nombre}</span>
-                        <span className="text-[11px] text-carbon-400 flex-shrink-0">{producto.codigo}</span>
                       </button>
                     </div>
 
@@ -230,7 +231,10 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
                               <button key={c.id} type="button" onClick={() => toggleColor(c.id)}
                                 className={`w-full flex items-center gap-2 pl-[60px] pr-3 py-1.5 text-left transition-colors ${checked ? 'bg-verde-50' : 'hover:bg-surface-overlay'}`}>
                                 <TriCheckbox state={checked ? 'all' : 'none'} />
-                                <span className={`text-sm truncate ${checked ? 'text-verde-700' : 'text-carbon-300'}`}>{c.nombre}</span>
+                                <span className={`text-sm truncate ${checked ? 'text-verde-700' : 'text-carbon-300'}`}>
+                                  {c.nombre}
+                                  <span className="text-[11px] text-carbon-400"> · {c.codigo}{c.nombreComercial ? ` · ${c.nombreComercial}` : ''}</span>
+                                </span>
                               </button>
                             );
                           })}

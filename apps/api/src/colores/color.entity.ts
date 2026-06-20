@@ -18,6 +18,7 @@ import { ResponsableColor } from '../responsables/responsable-color.entity';
 
 @Entity('colores')
 @Unique('uq_color_nombre_variedad', ['variedadId', 'nombre'])
+@Unique('uq_color_codigo', ['codigo'])
 export class Color {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -32,20 +33,29 @@ export class Color {
   @JoinColumn({ name: 'variedad_id' })
   variedad: Variedad;
 
+  // Nombre del color (clasificación), ej. "DARK"
   @Column({ type: 'varchar', nullable: false })
   nombre: string;
+
+  // Código único de la definición productiva (producto+variedad+color), ej. "6554"
+  @Column({ type: 'varchar', length: 50, nullable: false })
+  codigo: string;
+
+  // Nombre comercial de la definición productiva, ej. "NELANDES ASTASSUS"
+  @Column({ type: 'varchar', length: 200, nullable: true, name: 'nombre_comercial' })
+  nombreComercial: string | null;
+
+  @Column({ type: 'int', nullable: true })
+  longitud: number | null;
+
+  @Column({ type: 'int', default: 400, name: 'tallos_por_caja' })
+  tallosPorCaja: number;
 
   @Column({ type: 'boolean', default: true })
   activo: boolean;
 
   @Column({ name: 'motivo_baja', type: 'text', nullable: true })
   motivoBaja: string | null;
-
-  @Column({ type: 'varchar', length: 20, nullable: true, name: 'codigo' })
-  codigo: string | null;
-
-  @Column({ type: 'varchar', length: 200, nullable: true, name: 'nombre_original' })
-  nombreOriginal: string | null;
 
   @OneToMany(() => RegistroDiario, (registro) => registro.color)
   registros: RegistroDiario[];
@@ -58,8 +68,10 @@ export class Color {
 
   @BeforeInsert()
   @BeforeUpdate()
-  normalizeNombre() {
+  normalize() {
     if (this.nombre) this.nombre = this.nombre.toUpperCase();
+    if (this.codigo) this.codigo = this.codigo.toUpperCase().trim();
+    if (this.nombreComercial) this.nombreComercial = this.nombreComercial.toUpperCase().trim();
   }
 
   @CreateDateColumn({ name: 'created_at' })

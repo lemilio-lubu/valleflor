@@ -43,7 +43,7 @@ export class BaseSemanalService {
 
   /** Tallos por caja del color, leído desde su producto. */
   private tallosPorCajaDe(color?: Color | null): number {
-    return color?.variedad?.producto?.tallosPorCaja ?? 0;
+    return color?.tallosPorCaja ?? 0;
   }
 
   async recalcular(

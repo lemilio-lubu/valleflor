@@ -97,7 +97,10 @@
       "Bash(curl -s -o /dev/null -w \"WEB: %{http_code}\\\\n\" http://localhost:3000)",
       "Bash(pkill -f \"nest start\")",
       "Bash(pkill -f \"next dev\")",
-      "Bash(curl -s -o /dev/null -w \"API productos: %{http_code}\\\\n\" http://localhost:3001/api/v1/productos)"
+      "Bash(curl -s -o /dev/null -w \"API productos: %{http_code}\\\\n\" http://localhost:3001/api/v1/productos)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 3000,3001 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess -Unique | ForEach-Object { $p = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; [PSCustomObject]@{ Port=$_.LocalPort; PID=$_.OwningProcess; Name=$p.ProcessName; Path=$p.Path } } | Format-Table -AutoSize)",
+      "PowerShell(Stop-Process -Id 12124 -Force; Start-Sleep -Milliseconds 500; Get-NetTCPConnection -LocalPort 3000,3001 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess | Format-Table -AutoSize; \"Puertos 3000/3001 libres: $\\(\\(Get-NetTCPConnection -LocalPort 3000,3001 -State Listen -ErrorAction SilentlyContinue | Measure-Object\\).Count -eq 0\\)\")",
+      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/api && npx tsc --noEmit -p tsconfig.json 2>&1 | head -60)"
     ]
   }
 }
