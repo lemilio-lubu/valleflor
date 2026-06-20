@@ -51,20 +51,43 @@ export class ProductosService {
   }
 
   async create(dto: CreateProductoDto): Promise<Producto> {
+    const codigo = dto.codigo.toUpperCase().trim();
     const nombre = dto.nombre.toUpperCase().trim();
 
-    const exists = await this.productoRepo.findOne({ where: { nombre } });
+    const exists = await this.productoRepo.findOne({
+      where: [{ codigo }, { nombre }],
+    });
     if (exists) {
-      throw new ConflictException(`Ya existe el producto "${nombre}"`);
+      throw new ConflictException(
+        exists.codigo === codigo
+          ? `Ya existe un producto con el código "${codigo}"`
+          : `Ya existe el producto "${nombre}"`,
+      );
     }
 
-    const producto = this.productoRepo.create({ nombre });
+    const producto = this.productoRepo.create({
+      codigo,
+      nombre,
+      longitud: dto.longitud ?? null,
+      tallosPorCaja: dto.tallosPorCaja ?? 400,
+    });
     return this.productoRepo.save(producto);
   }
 
   async update(id: string, dto: UpdateProductoDto): Promise<Producto> {
     const producto = await this.productoRepo.findOne({ where: { id } });
     if (!producto) throw new NotFoundException(`Producto ${id} no encontrado`);
+
+    if (dto.codigo) {
+      const codigo = dto.codigo.toUpperCase().trim();
+      const exists = await this.productoRepo.findOne({ where: { codigo } });
+      if (exists && exists.id !== id) {
+        throw new ConflictException(
+          `Ya existe un producto con el código "${codigo}"`,
+        );
+      }
+      dto.codigo = codigo;
+    }
 
     if (dto.nombre) {
       const nombre = dto.nombre.toUpperCase().trim();
