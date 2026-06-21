@@ -84,12 +84,17 @@ export class AuthService {
     await this.usersService.resetPassword(user.id, newPassword);
   }
 
-  async me(userId: string): Promise<Omit<User, 'passwordHash'>> {
-    const user = await this.usersService.findOne(userId);
+  async me(userId: string): Promise<AuthPayload['user']> {
+    const user = await this.usersService.findOneWithFinca(userId);
     if (!user) throw new NotFoundException('Usuario no encontrado');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash: _, ...safe } = user;
-    return safe as Omit<User, 'passwordHash'>;
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      nombre: user.nombre ?? null,
+      ...(user.responsable?.fincaId && { fincaId: user.responsable.fincaId }),
+      ...(user.responsable?.finca?.nombre && { fincaNombre: user.responsable.finca.nombre }),
+    };
   }
 
   async updateProfile(userId: string, dto: { email?: string; password?: string; nombre?: string }) {

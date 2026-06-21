@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BarChart2 } from 'lucide-react';
 import { AppShell, type AppShellNavItem } from '../components/AppShell';
 
@@ -21,6 +21,7 @@ const navItems: AppShellNavItem[] = [
 export default function ResponsableLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status, update } = useSession();
   const router = useRouter();
+  const refreshed = useRef(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -28,18 +29,19 @@ export default function ResponsableLayout({ children }: { children: React.ReactN
     if ((session.user as any)?.role !== 'responsable') router.push('/admin/fincas');
   }, [session, status, router]);
 
-  const fincaNombre = (session?.user as any)?.fincaNombre;
-
-  // Si no hay finca en la sesión, intentar refrescar el JWT: el admin puede
-  // haber asignado la finca después de que el responsable inició sesión.
+  // Refrescar el JWT una vez al montar para garantizar que finca y nombre
+  // reflejan la asignación actual, incluso si el admin cambió la finca
+  // mientras el responsable tenía la sesión abierta.
   useEffect(() => {
-    if (session && !fincaNombre) {
+    if (session && !refreshed.current) {
+      refreshed.current = true;
       update();
     }
-  }, [session, fincaNombre, update]);
+  }, [session, update]);
 
   if (status === 'loading' || !session) return <Spinner />;
 
+  const fincaNombre = (session?.user as any)?.fincaNombre;
   const contextLine = fincaNombre ? `Finca ${fincaNombre}` : 'Sin Finca';
 
   return (

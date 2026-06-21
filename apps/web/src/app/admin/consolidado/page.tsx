@@ -27,7 +27,7 @@ export default function ConsolidadoPage() {
 
   // ── Filtros Semanal ─────────────────────────────────────────────────────────
   const [semanaInicio, setSemanaInicio] = useState<number | ''>(defaults.semana);
-  const [semanaFin, setSemanaFin] = useState<number | ''>(defaults.semana);
+  const [semanaFin, setSemanaFin] = useState<number | ''>(defaults.semana + 9);
   const [anioSemanal, setAnioSemanal] = useState<number | ''>(defaults.anio);
 
   const handleResetDiario = () => {
@@ -37,7 +37,7 @@ export default function ConsolidadoPage() {
 
   const handleResetSemanal = () => {
     setSemanaInicio(defaults.semana);
-    setSemanaFin(defaults.semana);
+    setSemanaFin(defaults.semana + 9);
     setAnioSemanal(defaults.anio);
   };
 
@@ -48,7 +48,7 @@ export default function ConsolidadoPage() {
 
   const semanalActivos = [
     semanaInicio !== defaults.semana,
-    semanaFin !== defaults.semana,
+    semanaFin !== defaults.semana + 9,
     anioSemanal !== defaults.anio,
   ].filter(Boolean).length;
 

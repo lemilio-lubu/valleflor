@@ -84,7 +84,7 @@ export default function EstimacionesPage() {
   const { data: session } = useSession();
   const fincaId = (session?.user as any)?.fincaId ?? '';
   const fincaNombre = (session?.user as any)?.fincaNombre;
-  const responsableNombre = (session?.user as any)?.responsableNombre;
+  const responsableNombre = (session?.user as any)?.nombre ?? session?.user?.email;
 
   const [selectedSemana, setSelectedSemana] = useState<string | null>(null);
   const [selectedSemanaWeek, setSelectedSemanaWeek] = useState<{ numeroSemana: number; anio: number } | null>(null);
@@ -108,11 +108,11 @@ export default function EstimacionesPage() {
         </button>
       </div>
 
-      {fincaNombre && responsableNombre ? (
+      {fincaNombre ? (
         <div className="bg-surface-overlay border border-dorado-500/20 rounded-lg p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
           <div>
             <p className="text-[10px] font-medium text-dorado-500 uppercase tracking-widest mb-1">Responsable Actual</p>
-            <h2 className="text-carbon-50 font-medium text-lg">{responsableNombre}</h2>
+            <h2 className="text-carbon-50 font-medium text-lg">{responsableNombre ?? session?.user?.email}</h2>
           </div>
           <div className="sm:text-right">
             <p className="text-[10px] font-medium text-dorado-500 uppercase tracking-widest mb-1">Finca Asignada</p>

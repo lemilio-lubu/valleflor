@@ -115,11 +115,19 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
   const isCajas = viewMode === 'cajas';
   const { scrollRef, isScrolled, canScrollRight, isVisible, scrollLeft, scrollRight } = useTableScroll(220);
 
+  // Garantizar que el backend siempre devuelve datos para todas las columnas
+  // visibles (WEEK_COUNT semanas desde semanaInicio), aunque el admin ajuste
+  // semanaFin a un valor menor.
+  const effectiveSemanaFin =
+    semanaInicio != null && semanaFin != null
+      ? Math.max(semanaFin, semanaInicio + WEEK_COUNT - 1)
+      : semanaFin;
+
   const { data: flat = [], isLoading } = useQuery<FlatRow[]>({
-    queryKey: ['consolidado-semanal', semanaInicio, semanaFin, anio],
+    queryKey: ['consolidado-semanal', semanaInicio, effectiveSemanaFin, anio],
     queryFn: () =>
       api
-        .get('/consolidado/semanal', { params: { semanaInicio, semanaFin, anio } })
+        .get('/consolidado/semanal', { params: { semanaInicio, semanaFin: effectiveSemanaFin, anio } })
         .then((r) => r.data),
   });
 

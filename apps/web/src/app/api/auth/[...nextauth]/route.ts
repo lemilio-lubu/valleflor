@@ -75,9 +75,21 @@ const authOptions: NextAuthOptions = {
         token.responsableNombre = (user as any).responsableNombre;
         token.accessToken = (user as any).accessToken;
       }
-      if (trigger === 'update' && sessionUpdate) {
-        if (sessionUpdate.nombre !== undefined) token.nombre = sessionUpdate.nombre;
-        if (sessionUpdate.email) token.email = sessionUpdate.email;
+      if (trigger === 'update') {
+        try {
+          const apiBase = resolveAuthApiBaseUrl();
+          const res = await fetch(`${apiBase}/auth/me`, {
+            headers: { Authorization: `Bearer ${token.accessToken}` },
+          });
+          if (res.ok) {
+            const fresh = await res.json();
+            token.nombre = fresh.nombre ?? token.nombre;
+            token.fincaId = fresh.fincaId ?? null;
+            token.fincaNombre = fresh.fincaNombre ?? null;
+          }
+        } catch {
+          // Si falla el refresh, conservar el token actual
+        }
       }
       return token;
     },

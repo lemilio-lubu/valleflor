@@ -36,6 +36,15 @@ export class UsersService {
     return user;
   }
 
+  async findOneWithFinca(id: string): Promise<User | null> {
+    return this.userRepo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.responsable', 'responsable')
+      .leftJoinAndSelect('responsable.finca', 'finca')
+      .where('user.id = :id', { id })
+      .getOne();
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepo
       .createQueryBuilder('user')
