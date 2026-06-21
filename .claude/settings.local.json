@@ -107,7 +107,10 @@
       "Bash(curl -s -o /dev/null -w 'POST /auth/login -> %{http_code}\\\\n' -X POST http://localhost:3001/auth/login -H 'Content-Type: application/json' -d '{}')",
       "Bash(curl -s -o /dev/null -w 'GET /login -> %{http_code}\\\\n' http://localhost:3000/login)",
       "Bash(curl -s -o /dev/null -w 'POST /api/v1/auth/login -> %{http_code}\\\\n' -X POST http://localhost:3001/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"x\",\"password\":\"y\"}')",
-      "Bash(curl -s -o /dev/null -w 'GET / -> %{http_code} -> %{redirect_url}\\\\n' http://localhost:3000/)"
+      "Bash(curl -s -o /dev/null -w 'GET / -> %{http_code} -> %{redirect_url}\\\\n' http://localhost:3000/)",
+      "Bash(npm test *)",
+      "Bash(dropdb floricultura_test)",
+      "Bash(createdb floricultura_test)"
     ]
   }
 }

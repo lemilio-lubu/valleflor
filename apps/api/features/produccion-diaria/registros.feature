@@ -49,9 +49,9 @@ Característica: Registro de la plantilla diaria
     Cuando el administrador recalcula todos los registros
     Entonces el recálculo reporta 7 registros actualizados
 
-  Escenario: Cambiar los tallos por caja del producto aplica a nuevos registros de cajas
+  Escenario: Cambiar los tallos por caja del ítem aplica a nuevos registros de cajas
     Dado que Ana ha registrado 10 cajas el lunes
-    Cuando el administrador cambia los tallos por caja del producto a 50
+    Cuando el administrador cambia los tallos por caja del ítem a 50
     Y Ana registra 10 cajas el martes
     Entonces el registro del martes refleja 10 cajas y 500 tallos
 

@@ -4,20 +4,21 @@ Característica: Catalogación de productos
   Quiero mantener un catálogo de productos estandarizado
   Para garantizar la consistencia de la información en toda la operación
 
-  # Un "producto" es el tipo de flor (Rosa, Clavel) y se identifica por su código.
+  # Un "producto" es el tipo de flor (Rosa, Clavel) y se identifica por su nombre.
+  # El código comercial identifica al ítem (producto + variedad + color), no al producto.
 
   Escenario: Registrar un producto en el catálogo
-    Cuando el administrador registra el producto "Rosa" con código "ROS"
-    Entonces el producto "Rosa" forma parte del catálogo con código "ROS"
+    Cuando el administrador registra el producto "Rosa"
+    Entonces el producto "Rosa" forma parte del catálogo
 
-  Escenario: Un producto necesita un código que lo identifique
-    Cuando el administrador registra el producto "Clavel" sin código
-    Entonces el sistema rechaza el producto por falta de código
+  Escenario: Un producto necesita un nombre que lo identifique
+    Cuando el administrador registra el producto sin nombre
+    Entonces el sistema rechaza el producto por falta de nombre
 
-  Escenario: Dos productos no pueden compartir el mismo código
-    Dado que el catálogo contiene el producto "Freedom Red" con código "7001"
-    Cuando el administrador registra el producto "Freedom Pink" con código "7001"
-    Entonces el sistema rechaza el producto por código duplicado
+  Escenario: Dos productos no pueden compartir el mismo nombre
+    Dado que el catálogo contiene el producto "Freedom"
+    Cuando el administrador registra el producto "Freedom"
+    Entonces el sistema rechaza el producto por nombre duplicado
 
   Escenario: Solo un usuario autenticado puede consultar el catálogo
     Cuando alguien sin autenticación consulta el catálogo de productos

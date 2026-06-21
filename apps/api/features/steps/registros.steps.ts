@@ -178,13 +178,13 @@ Then(
   },
 );
 
-// ── cambio de configuración del producto (tallosPorCaja) ──────────────────────
+// ── cambio de configuración del ítem (tallosPorCaja vive en el color) ──────────
 
 When(
-  'el administrador cambia los tallos por caja del producto a {int}',
+  'el administrador cambia los tallos por caja del ítem a {int}',
   async function (this: VfWorld, tallosPorCaja: number) {
     this.response = await request(this.app.getHttpServer())
-      .patch(`/api/v1/productos/${this.ids.producto}`)
+      .patch(`/api/v1/colores/${this.ids.color}`)
       .set('Authorization', `Bearer ${this.adminToken}`)
       .send({ tallosPorCaja });
     expect(this.response.status).toBe(200);

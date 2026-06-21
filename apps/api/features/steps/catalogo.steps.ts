@@ -27,7 +27,7 @@ async function incorporarItem(
   const pRes = await request(world.app.getHttpServer())
     .post('/api/v1/productos')
     .set('Authorization', auth)
-    .send({ codigo: def.codigo, nombre: def.nombre });
+    .send({ nombre: def.nombre });
   world.response = pRes;
   if (pRes.status !== 201) return;
   world.ids.producto = pRes.body.id;
@@ -43,7 +43,7 @@ async function incorporarItem(
   const cRes = await request(world.app.getHttpServer())
     .post('/api/v1/colores')
     .set('Authorization', auth)
-    .send({ nombre: def.color, variedadId: vRes.body.id });
+    .send({ nombre: def.color, variedadId: vRes.body.id, codigo: def.codigo });
   world.response = cRes;
   if (cRes.status === 201) {
     world.ids.color = cRes.body.id;
