@@ -12,13 +12,16 @@ import { Color } from '../colores/color.entity';
 import { Responsable } from '../responsables/responsable.entity';
 
 @Entity('base_semanal')
-@Unique(['responsableId', 'colorId', 'numeroSemana', 'anio'])
+@Unique(['responsableId', 'colorId', 'numeroSemana', 'anio', 'fincaId'])
 export class BaseSemanal {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ name: 'responsable_id' })
   responsableId: string;
+
+  @Column({ name: 'finca_id', type: 'uuid', nullable: true })
+  fincaId: string | null;
 
   @ManyToOne(() => Responsable, {
     nullable: false,

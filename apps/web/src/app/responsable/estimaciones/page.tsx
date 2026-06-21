@@ -108,7 +108,7 @@ export default function EstimacionesPage() {
         </button>
       </div>
 
-      {fincaNombre && responsableNombre && (
+      {fincaNombre && responsableNombre ? (
         <div className="bg-surface-overlay border border-dorado-500/20 rounded-lg p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
           <div>
             <p className="text-[10px] font-medium text-dorado-500 uppercase tracking-widest mb-1">Responsable Actual</p>
@@ -121,6 +121,12 @@ export default function EstimacionesPage() {
               <h2 className="text-verde-600 font-semibold text-lg">{fincaNombre}</h2>
             </div>
           </div>
+        </div>
+      ) : (
+        <div className="bg-surface-overlay border border-surface-border rounded-lg p-6 mb-6 text-center animate-fade-in">
+          <p className="text-carbon-300 text-sm">
+            Aún no estás asignado a ninguna finca. Contacta a tu administrador para que te asigne una.
+          </p>
         </div>
       )}
 

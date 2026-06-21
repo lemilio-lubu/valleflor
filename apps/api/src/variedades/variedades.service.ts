@@ -32,7 +32,11 @@ export class VariedadesService {
     const where = incluirInactivos
       ? { productoId }
       : { productoId, activo: true };
-    const variedades = await this.variedadRepo.find({ where });
+    // Activas primero, inactivas al final; alfabético dentro de cada grupo.
+    const variedades = await this.variedadRepo.find({
+      where,
+      order: { activo: 'DESC', nombre: 'ASC' },
+    });
     if (variedades.length === 0) return [];
 
     // `eliminable` = sin colores colgando (mismo criterio que remove()).

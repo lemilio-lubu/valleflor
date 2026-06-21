@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Semana } from '../semanas/semana.entity';
 import { RegistroDiario } from '../registros/registro-diario.entity';
+import { Responsable } from '../responsables/responsable.entity';
 import { ResponsableColor } from '../responsables/responsable-color.entity';
 import { Color } from '../colores/color.entity';
 import { ConfiguracionService } from '../configuracion/configuracion.service';
@@ -23,6 +24,8 @@ export class SemanaReconciliationService {
     private readonly semanaRepo: Repository<Semana>,
     @InjectRepository(RegistroDiario)
     private readonly registroRepo: Repository<RegistroDiario>,
+    @InjectRepository(Responsable)
+    private readonly responsableRepo: Repository<Responsable>,
     @InjectRepository(ResponsableColor)
     private readonly respColorRepo: Repository<ResponsableColor>,
     private readonly configuracionService: ConfiguracionService,
@@ -84,7 +87,10 @@ export class SemanaReconciliationService {
    * asignados: agrega los que falten y elimina los que ya no correspondan.
    */
   async reconcileResponsable(responsableId: string): Promise<void> {
-    const semanas = (await this.semanaRepo.find({ where: { responsableId } }))
+    const responsable = await this.responsableRepo.findOne({ where: { id: responsableId } });
+    const fincaId = responsable?.fincaId ?? null;
+
+    const semanas = (await this.semanaRepo.find({ where: { responsableId, fincaId } }))
       .filter((s) => isCurrentOrFutureWeek(s.anio, s.numeroSemana));
     if (semanas.length === 0) return;
 

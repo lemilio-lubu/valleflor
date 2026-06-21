@@ -13,7 +13,7 @@ import { Responsable } from '../responsables/responsable.entity';
 import { RegistroDiario } from '../registros/registro-diario.entity';
 
 @Entity('semanas')
-@Unique(['responsableId', 'numeroSemana', 'anio'])
+@Unique(['responsableId', 'numeroSemana', 'anio', 'fincaId'])
 export class Semana {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -38,6 +38,9 @@ export class Semana {
   })
   @JoinColumn({ name: 'responsable_id' })
   responsable: Responsable;
+
+  @Column({ name: 'finca_id', type: 'uuid', nullable: true })
+  fincaId: string | null;
 
   @OneToMany(() => RegistroDiario, (registro) => registro.semana)
   registros: RegistroDiario[];

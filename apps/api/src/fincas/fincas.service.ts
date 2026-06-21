@@ -38,7 +38,11 @@ export class FincasService {
 
   async findAll(user: JwtUser): Promise<Finca[]> {
     if (user.role === UserRole.ADMIN) {
-      return this.fincaRepo.find({ relations: ['admin'] });
+      // Activas primero, inactivas al final; alfabético dentro de cada grupo.
+      return this.fincaRepo.find({
+        relations: ['admin'],
+        order: { activo: 'DESC', nombre: 'ASC' },
+      });
     }
     const responsable = await this.responsableRepo.findOne({
       where: { userId: user.id },
@@ -131,6 +135,10 @@ export class FincasService {
         }
         throw new ConflictException('El usuario ya está asignado a esta finca');
       }
+      // Al cambiar de finca solo se limpian las asignaciones de colores.
+      // Las semanas y base_semanal se conservan asociadas a su finca_id original,
+      // por lo que el responsable las recupera al volver a esa finca.
+      await this.respColorRepo.delete({ responsableId: existing.id });
       if (existing.deletedAt) {
         await this.responsableRepo.recover(existing);
       }

@@ -19,7 +19,7 @@ const navItems: AppShellNavItem[] = [
 ];
 
 export default function ResponsableLayout({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
 
   useEffect(() => {
@@ -28,9 +28,18 @@ export default function ResponsableLayout({ children }: { children: React.ReactN
     if ((session.user as any)?.role !== 'responsable') router.push('/admin/fincas');
   }, [session, status, router]);
 
+  const fincaNombre = (session?.user as any)?.fincaNombre;
+
+  // Si no hay finca en la sesión, intentar refrescar el JWT: el admin puede
+  // haber asignado la finca después de que el responsable inició sesión.
+  useEffect(() => {
+    if (session && !fincaNombre) {
+      update();
+    }
+  }, [session, fincaNombre, update]);
+
   if (status === 'loading' || !session) return <Spinner />;
 
-  const fincaNombre = (session.user as any)?.fincaNombre;
   const contextLine = fincaNombre ? `Finca ${fincaNombre}` : 'Sin Finca';
 
   return (

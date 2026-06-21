@@ -37,7 +37,11 @@ export class ColoresService {
       const where = incluirInactivos
         ? { variedadId }
         : { variedadId, activo: true };
-      colores = await this.colorRepo.find({ where });
+      // Activos primero, inactivos al final; alfabético dentro de cada grupo.
+      colores = await this.colorRepo.find({
+        where,
+        order: { activo: 'DESC', nombre: 'ASC' },
+      });
     } else {
       colores = await this.colorRepo.find({
         where: { activo: true },

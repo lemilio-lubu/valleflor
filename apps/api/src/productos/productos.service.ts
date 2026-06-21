@@ -29,7 +29,8 @@ export class ProductosService {
   ): Promise<(Producto & { eliminable: boolean })[]> {
     const productos = await this.productoRepo.find({
       where: incluirInactivos ? {} : { activo: true },
-      order: { nombre: 'ASC' },
+      // Activos primero, inactivos al final; alfabético dentro de cada grupo.
+      order: { activo: 'DESC', nombre: 'ASC' },
     });
     if (productos.length === 0) return [];
 

@@ -56,6 +56,9 @@ export class BaseSemanalService {
     if (!semana) throw new NotFoundException(`Semana ${semanaId} no encontrada`);
     const responsableId = semana.responsableId;
 
+    const responsable = await this.responsableRepo.findOne({ where: { id: responsableId } });
+    const fincaId = responsable?.fincaId ?? null;
+
     const registros = await this.registroRepo.find({ where: { colorId, semanaId } });
 
     const cajasTotal = Math.round(registros.reduce((s, r) => s + Number(r.cajas), 0) * 100) / 100;
@@ -65,11 +68,10 @@ export class BaseSemanalService {
     const isPastOrCurrent =
       semana.anio < currentYear ||
       (semana.anio === currentYear && semana.numeroSemana <= currentWeekNum);
-    // Real si tiene datos ingresados, o si la semana ya pasó/es la actual
     const esReal = cajasTotal > 0 || isPastOrCurrent;
 
     let base = await this.baseSemanalRepo.findOne({
-      where: { responsableId, colorId, numeroSemana, anio },
+      where: { responsableId, colorId, numeroSemana, anio, fincaId },
     });
     if (base) {
       base.cajasTotal = cajasTotal;
@@ -81,6 +83,7 @@ export class BaseSemanalService {
         colorId,
         numeroSemana,
         anio,
+        fincaId,
         cajasTotal,
         tallosTotal,
         esReal,
@@ -96,10 +99,11 @@ export class BaseSemanalService {
     colorIds: string[],
     numeroSemana: number,
     anio: number,
+    fincaId: string,
   ): Promise<void> {
     if (colorIds.length === 0) return;
     const registros = await this.baseSemanalRepo.find({
-      where: colorIds.map((colorId) => ({ responsableId, colorId, numeroSemana, anio })),
+      where: colorIds.map((colorId) => ({ responsableId, colorId, numeroSemana, anio, fincaId })),
     });
     for (const r of registros) {
       // Si no había estimación previa, el valor real pasa a ser la estimación
@@ -126,6 +130,7 @@ export class BaseSemanalService {
     const rows = await this.baseSemanalRepo
       .createQueryBuilder('bs')
       .where('bs.responsable_id IN (:...responsableIds)', { responsableIds })
+      .andWhere('bs.finca_id = :fincaId', { fincaId })
       .andWhere('bs.numeroSemana = :numeroSemana', { numeroSemana })
       .andWhere('bs.anio = :anio', { anio })
       .getMany();
@@ -148,8 +153,10 @@ export class BaseSemanalService {
     const responsable = await this.responsableRepo.findOne({ where: { userId } });
     if (!responsable) throw new NotFoundException('No eres responsable de ninguna finca');
 
+    const fincaId = responsable.fincaId;
+
     let base = await this.baseSemanalRepo.findOne({
-      where: { responsableId: responsable.id, colorId, numeroSemana, anio },
+      where: { responsableId: responsable.id, colorId, numeroSemana, anio, fincaId },
     });
     const tallosEstimados = Math.round(cajasEstimadas * divisor * 100) / 100;
 
@@ -159,6 +166,7 @@ export class BaseSemanalService {
     } else {
       base = this.baseSemanalRepo.create({
         responsableId: responsable.id,
+        fincaId,
         colorId,
         numeroSemana,
         anio,
@@ -268,6 +276,7 @@ export class BaseSemanalService {
       .innerJoinAndSelect('color.variedad', 'variedad')
       .innerJoinAndSelect('variedad.producto', 'producto')
       .where('bs.responsable_id = :responsableId', { responsableId: responsable.id })
+      .andWhere('bs.finca_id = :fincaId', { fincaId: responsable.fincaId })
       .andWhere('color.activo = true')
       .andWhere('variedad.activo = true')
       .andWhere('producto.activo = true')
@@ -318,6 +327,7 @@ export class BaseSemanalService {
       .innerJoinAndSelect('color.variedad', 'variedad')
       .innerJoinAndSelect('variedad.producto', 'producto')
       .where('bs.responsable_id = :responsableId', { responsableId: responsable.id })
+      .andWhere('bs.finca_id = :fincaId', { fincaId: responsable.fincaId })
       .andWhere('color.activo = true')
       .andWhere('variedad.activo = true')
       .andWhere('producto.activo = true')
