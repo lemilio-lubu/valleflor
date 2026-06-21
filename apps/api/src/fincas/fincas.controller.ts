@@ -49,15 +49,23 @@ export class FincasController {
   @Patch(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateFincaDto) {
-    return this.fincasService.update(id, dto);
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateFincaDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.fincasService.update(id, dto, user);
   }
 
   @Patch(':id/baja')
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)
-  darDeBaja(@Param('id', ParseUUIDPipe) id: string, @Body('motivoBaja') motivoBaja: string) {
-    return this.fincasService.darDeBaja(id, motivoBaja);
+  darDeBaja(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('motivoBaja') motivoBaja: string,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.fincasService.darDeBaja(id, motivoBaja, user);
   }
 
   @Patch(':id/alta')
@@ -75,8 +83,12 @@ export class FincasController {
   @Post(':id/responsables')
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)
-  assignResponsable(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AssignResponsableDto) {
-    return this.fincasService.assignResponsable(id, dto);
+  assignResponsable(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AssignResponsableDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.fincasService.assignResponsable(id, dto, user);
   }
 
   @Delete(':id/responsables/:responsableId')

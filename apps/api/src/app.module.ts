@@ -16,6 +16,7 @@ import { VentasModule } from './ventas/ventas.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { AdminModule } from './admin/admin.module';
 import { ConsolidadoModule } from './consolidado/consolidado.module';
+import { AuditoriaModule } from './auditoria/auditoria.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { ConsolidadoModule } from './consolidado/consolidado.module';
     ConfiguracionModule,
     AdminModule,
     ConsolidadoModule,
+    AuditoriaModule,
   ],
   providers: [DatabaseBootstrapService],
 })

@@ -12,6 +12,9 @@ import { Variedad } from '../variedades/variedad.entity';
 import { Color } from '../colores/color.entity';
 import { ResponsableColor } from '../responsables/responsable-color.entity';
 import { SemanaReconciliationService } from '../base-semanal/semana-reconciliation.service';
+import { JwtUser } from '../auth/types/jwt-user.type';
+import { AuditoriaService } from '../auditoria/auditoria.service';
+import { AccionAuditoria, ModuloAuditoria } from '../auditoria/movimiento-auditoria.entity';
 
 export interface BulkUploadSummary {
   insertados: number;
@@ -31,9 +34,14 @@ export class AdminService {
     @InjectRepository(Color) private colorRepo: Repository<Color>,
     @InjectRepository(ResponsableColor) private respColorRepo: Repository<ResponsableColor>,
     private readonly reconciliationService: SemanaReconciliationService,
+    private readonly auditoriaService: AuditoriaService,
   ) {}
 
-  async processBulkUpload(file: Express.Multer.File, isPreview = false): Promise<BulkUploadSummary> {
+  async processBulkUpload(
+    file: Express.Multer.File,
+    isPreview = false,
+    actor?: JwtUser,
+  ): Promise<BulkUploadSummary> {
     const summary: BulkUploadSummary = {
       insertados: 0,
       actualizados: 0,
@@ -217,6 +225,17 @@ export class AdminService {
       for (const responsable of responsablesMap.values()) {
         await this.reconciliationService.reconcileResponsable(responsable.id);
       }
+    }
+
+    // Una carga masiva real se audita como un único movimiento (no una entrada
+    // por fila). El modo preview no escribe nada, así que tampoco se audita.
+    if (!isPreview && actor) {
+      await this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.CARGA_MASIVA,
+        modulo: ModuloAuditoria.CATALOGO,
+        valorNuevo: `${summary.insertados} insertados, ${summary.actualizados} actualizados`,
+      });
     }
 
     return summary;

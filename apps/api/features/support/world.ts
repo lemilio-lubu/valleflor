@@ -23,6 +23,13 @@ export class VfWorld extends World {
   // guardan por clave lógica para reutilizarlos entre steps.
   ids: Record<string, string> = {};
 
+  // Módulo de auditoría sobre el que actúa el escenario en curso.
+  moduloAuditoria?: string;
+
+  // Estado de UI simulado para el escenario "ocultar filtros" de la auditoría.
+  // El toggle real es del frontend; aquí se modela en memoria para documentarlo.
+  filtrosVisibles?: boolean;
+
   constructor(opts: IWorldOptions) {
     super(opts);
   }

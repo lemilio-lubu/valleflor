@@ -65,5 +65,7 @@ Then('el sistema rechaza el producto por nombre duplicado', function (this: VfWo
 });
 
 Then('el sistema niega el acceso', function (this: VfWorld) {
-  expect(this.response!.status).toBe(401);
+  // Sin credenciales → 401; autenticado sin rol suficiente → 403. Ambos casos
+  // representan "acceso negado" (lo usa también la auditoría: solo admin).
+  expect([401, 403]).toContain(this.response!.status);
 });

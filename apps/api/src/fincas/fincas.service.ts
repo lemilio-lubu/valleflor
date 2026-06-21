@@ -17,6 +17,8 @@ import { CreateFincaDto } from './dto/create-finca.dto';
 import { UpdateFincaDto } from './dto/update-finca.dto';
 import { AssignResponsableDto } from './dto/assign-responsable.dto';
 import { SemanaReconciliationService } from '../base-semanal/semana-reconciliation.service';
+import { AuditoriaService } from '../auditoria/auditoria.service';
+import { AccionAuditoria, ModuloAuditoria } from '../auditoria/movimiento-auditoria.entity';
 
 @Injectable()
 export class FincasService {
@@ -34,6 +36,7 @@ export class FincasService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     private readonly reconciliationService: SemanaReconciliationService,
+    private readonly auditoriaService: AuditoriaService,
   ) {}
 
   async findAll(user: JwtUser): Promise<Finca[]> {
@@ -67,21 +70,44 @@ export class FincasService {
     }
 
     const finca = this.fincaRepo.create({ nombre: dto.nombre, ubicacion: dto.ubicacion ?? null, adminId: user.id });
-    return this.fincaRepo.save(finca);
+    const saved = await this.fincaRepo.save(finca);
+    await this.auditoriaService.registrar({
+      actor: user,
+      accion: AccionAuditoria.CREACION,
+      modulo: ModuloAuditoria.FINCAS,
+      valorNuevo: saved.nombre,
+    });
+    return saved;
   }
 
-  async update(id: string, dto: UpdateFincaDto): Promise<Finca> {
+  async update(id: string, dto: UpdateFincaDto, user: JwtUser): Promise<Finca> {
     const finca = await this.findOne(id);
+    const nombreAnterior = finca.nombre;
     Object.assign(finca, dto);
-    return this.fincaRepo.save(finca);
+    const saved = await this.fincaRepo.save(finca);
+    await this.auditoriaService.registrar({
+      actor: user,
+      accion: AccionAuditoria.EDICION,
+      modulo: ModuloAuditoria.FINCAS,
+      valorAnterior: nombreAnterior,
+      valorNuevo: saved.nombre,
+    });
+    return saved;
   }
 
-  async darDeBaja(id: string, motivoBaja: string): Promise<Finca> {
+  async darDeBaja(id: string, motivoBaja: string, user: JwtUser): Promise<Finca> {
     const finca = await this.fincaRepo.findOne({ where: { id } });
     if (!finca) throw new NotFoundException(`Finca ${id} no encontrada`);
     finca.activo = false;
     finca.motivoBaja = motivoBaja;
-    return this.fincaRepo.save(finca);
+    const saved = await this.fincaRepo.save(finca);
+    await this.auditoriaService.registrar({
+      actor: user,
+      accion: AccionAuditoria.BAJA,
+      modulo: ModuloAuditoria.FINCAS,
+      valorAnterior: saved.nombre,
+    });
+    return saved;
   }
 
   async darDeAlta(id: string): Promise<Finca> {
@@ -111,14 +137,24 @@ export class FincasService {
   async assignResponsable(
     fincaId: string,
     dto: AssignResponsableDto,
+    actor: JwtUser,
   ): Promise<Responsable> {
-    await this.findOne(fincaId);
+    const finca = await this.findOne(fincaId);
 
     const user = await this.userRepo.findOne({ where: { id: dto.userId } });
     if (!user) throw new NotFoundException(`Usuario ${dto.userId} no encontrado`);
     if (user.role !== UserRole.RESPONSABLE) {
       throw new ForbiddenException('El usuario debe tener rol responsable');
     }
+
+    // Registra la asignación en la auditoría (módulo fincas).
+    const auditarAsignacion = () =>
+      this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.ASIGNACION_RESPONSABLE,
+        modulo: ModuloAuditoria.FINCAS,
+        valorNuevo: `${user.nombre ?? user.email} → ${finca.nombre}`,
+      });
 
     const existing = await this.responsableRepo.findOne({
       where: { userId: dto.userId },
@@ -128,6 +164,7 @@ export class FincasService {
       if (existing.fincaId === fincaId) {
         if (existing.deletedAt) {
           await this.responsableRepo.recover(existing);
+          await auditarAsignacion();
           return this.responsableRepo.findOne({
             where: { id: existing.id },
             relations: ['user'],
@@ -143,6 +180,7 @@ export class FincasService {
         await this.responsableRepo.recover(existing);
       }
       await this.responsableRepo.update(existing.id, { fincaId });
+      await auditarAsignacion();
       return this.responsableRepo.findOne({
         where: { id: existing.id },
         relations: ['user'],
@@ -153,7 +191,9 @@ export class FincasService {
       userId: dto.userId,
       fincaId,
     });
-    return this.responsableRepo.save(responsable);
+    const savedResp = await this.responsableRepo.save(responsable);
+    await auditarAsignacion();
+    return savedResp;
   }
 
   async getProductosResponsable(fincaId: string, responsableId: string): Promise<Producto[]> {

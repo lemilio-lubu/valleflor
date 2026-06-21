@@ -11,6 +11,9 @@ import { Color } from '../colores/color.entity';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
 import { SemanaReconciliationService } from '../base-semanal/semana-reconciliation.service';
+import { JwtUser } from '../auth/types/jwt-user.type';
+import { AuditoriaService } from '../auditoria/auditoria.service';
+import { AccionAuditoria, ModuloAuditoria } from '../auditoria/movimiento-auditoria.entity';
 
 @Injectable()
 export class ProductosService {
@@ -22,6 +25,7 @@ export class ProductosService {
     @InjectRepository(Color)
     private readonly colorRepo: Repository<Color>,
     private readonly reconciliationService: SemanaReconciliationService,
+    private readonly auditoriaService: AuditoriaService,
   ) {}
 
   async findAll(
@@ -51,7 +55,7 @@ export class ProductosService {
     );
   }
 
-  async create(dto: CreateProductoDto): Promise<Producto> {
+  async create(dto: CreateProductoDto, actor?: JwtUser): Promise<Producto> {
     const nombre = dto.nombre.toUpperCase().trim();
 
     const exists = await this.productoRepo.findOne({ where: { nombre } });
@@ -60,12 +64,22 @@ export class ProductosService {
     }
 
     const producto = this.productoRepo.create({ nombre });
-    return this.productoRepo.save(producto);
+    const saved = await this.productoRepo.save(producto);
+    if (actor) {
+      await this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.CREACION,
+        modulo: ModuloAuditoria.CATALOGO,
+        valorNuevo: saved.nombre,
+      });
+    }
+    return saved;
   }
 
-  async update(id: string, dto: UpdateProductoDto): Promise<Producto> {
+  async update(id: string, dto: UpdateProductoDto, actor?: JwtUser): Promise<Producto> {
     const producto = await this.productoRepo.findOne({ where: { id } });
     if (!producto) throw new NotFoundException(`Producto ${id} no encontrado`);
+    const nombreAnterior = producto.nombre;
 
     if (dto.nombre) {
       const nombre = dto.nombre.toUpperCase().trim();
@@ -77,10 +91,20 @@ export class ProductosService {
     }
 
     Object.assign(producto, dto);
-    return this.productoRepo.save(producto);
+    const saved = await this.productoRepo.save(producto);
+    if (actor) {
+      await this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.EDICION,
+        modulo: ModuloAuditoria.CATALOGO,
+        valorAnterior: nombreAnterior,
+        valorNuevo: saved.nombre,
+      });
+    }
+    return saved;
   }
 
-  async darDeBaja(id: string, motivoBaja: string): Promise<Producto> {
+  async darDeBaja(id: string, motivoBaja: string, actor?: JwtUser): Promise<Producto> {
     const producto = await this.productoRepo.findOne({
       where: { id },
       relations: ['variedades', 'variedades.colores'],
@@ -104,6 +128,14 @@ export class ProductosService {
 
     // Reversible: conserva las asignaciones, solo limpia las semanas vivas.
     await this.reconciliationService.reconcileColores(colorIds);
+    if (actor) {
+      await this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.BAJA,
+        modulo: ModuloAuditoria.CATALOGO,
+        valorAnterior: producto.nombre,
+      });
+    }
     return producto;
   }
 

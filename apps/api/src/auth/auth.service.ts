@@ -11,6 +11,8 @@ import { UsersService } from '../users/users.service';
 import { MailService } from '../mail/mail.service';
 import { User, UserRole } from '../users/user.entity';
 import { RegisterDto } from './dto/register.dto';
+import { AuditoriaService } from '../auditoria/auditoria.service';
+import { AccionAuditoria, ModuloAuditoria } from '../auditoria/movimiento-auditoria.entity';
 
 export interface AuthPayload {
   accessToken: string;
@@ -23,6 +25,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private readonly auditoriaService: AuditoriaService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -32,9 +35,9 @@ export class AuthService {
     return valid ? user : null;
   }
 
-  login(user: User): AuthPayload {
+  async login(user: User): Promise<AuthPayload> {
     const payload = { sub: user.id, email: user.email, role: user.role };
-    return {
+    const result: AuthPayload = {
       accessToken: this.jwtService.sign(payload),
       user: {
         id: user.id,
@@ -45,6 +48,15 @@ export class AuthService {
         ...(user.responsable?.finca?.nombre && { fincaNombre: user.responsable.finca.nombre }),
       },
     };
+
+    // El inicio de sesión se audita en su apartado propio "Accesos al sistema".
+    await this.auditoriaService.registrar({
+      actor: { id: user.id, email: user.email, nombre: user.nombre },
+      accion: AccionAuditoria.INICIO_SESION,
+      modulo: ModuloAuditoria.ACCESOS,
+    });
+
+    return result;
   }
 
   async register(dto: RegisterDto): Promise<AuthPayload> {

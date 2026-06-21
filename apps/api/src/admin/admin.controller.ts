@@ -12,6 +12,8 @@ import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtUser } from '../auth/types/jwt-user.type';
 import { UserRole } from '../users/user.entity';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -24,12 +26,13 @@ export class AdminController {
   @UseInterceptors(FileInterceptor('file'))
   async bulkUploadCatalog(
     @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() actor: JwtUser,
     @Body('preview') previewStr?: string,
   ) {
     if (!file) {
       throw new BadRequestException('Archivo no proporcionado');
     }
     const isPreview = previewStr === 'true';
-    return this.adminService.processBulkUpload(file, isPreview);
+    return this.adminService.processBulkUpload(file, isPreview, actor);
   }
 }

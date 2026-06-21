@@ -11,6 +11,9 @@ import { Responsable } from '../responsables/responsable.entity';
 import { Semana } from '../semanas/semana.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { JwtUser } from '../auth/types/jwt-user.type';
+import { AuditoriaService } from '../auditoria/auditoria.service';
+import { AccionAuditoria, ModuloAuditoria } from '../auditoria/movimiento-auditoria.entity';
 
 const BCRYPT_ROUNDS = 10;
 
@@ -23,6 +26,7 @@ export class UsersService {
     private readonly respRepo: Repository<Responsable>,
     @InjectRepository(Semana)
     private readonly semanaRepo: Repository<Semana>,
+    private readonly auditoriaService: AuditoriaService,
   ) {}
 
   async findAll(): Promise<Omit<User, 'passwordHash'>[]> {
@@ -58,7 +62,7 @@ export class UsersService {
     return this.userRepo.count({ where: { role } });
   }
 
-  async create(dto: CreateUserDto): Promise<User> {
+  async create(dto: CreateUserDto, actor?: JwtUser): Promise<User> {
     const existing = await this.findByEmail(dto.email);
     if (existing) {
       throw new ConflictException(`Ya existe un usuario con email ${dto.email}`);
@@ -83,11 +87,21 @@ export class UsersService {
       await this.respRepo.save(resp);
     }
 
+    if (actor) {
+      await this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.CREACION,
+        modulo: ModuloAuditoria.USUARIOS,
+        valorNuevo: savedUser.email,
+      });
+    }
+
     return savedUser;
   }
 
-  async update(id: string, dto: UpdateUserDto): Promise<Omit<User, 'passwordHash'>> {
+  async update(id: string, dto: UpdateUserDto, actor?: JwtUser): Promise<Omit<User, 'passwordHash'>> {
     const user = await this.findOne(id);
+    const emailAnterior = user.email;
 
     if (dto.email && dto.email !== user.email) {
       const existing = await this.findByEmail(dto.email);
@@ -126,12 +140,22 @@ export class UsersService {
       await this.respRepo.softDelete({ userId: saved.id });
     }
 
+    if (actor) {
+      await this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.EDICION,
+        modulo: ModuloAuditoria.USUARIOS,
+        valorAnterior: emailAnterior,
+        valorNuevo: saved.email,
+      });
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash: _, ...safe } = saved;
     return safe as Omit<User, 'passwordHash'>;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, actor?: JwtUser): Promise<void> {
     const user = await this.userRepo.findOne({
       where: { id },
       relations: ['responsable'],
@@ -151,6 +175,15 @@ export class UsersService {
     }
 
     await this.userRepo.softDelete(id);
+
+    if (actor) {
+      await this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.BAJA,
+        modulo: ModuloAuditoria.USUARIOS,
+        valorAnterior: user.email,
+      });
+    }
   }
 
   async updateProfile(
