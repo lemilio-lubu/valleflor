@@ -79,6 +79,43 @@ Given(
   },
 );
 
+// Intenta crear el color del ítem sin código. El código es obligatorio a nivel
+// del ítem (color), no del producto: el DTO lo exige y la respuesta de rechazo
+// queda en el World para que el .feature la verifique.
+When(
+  'el administrador incorpora al catálogo un ítem sin código, del producto {string}, variedad {string} y color {string}',
+  async function (this: VfWorld, producto: string, variedad: string, color: string) {
+    const auth = `Bearer ${this.adminToken}`;
+
+    const pRes = await request(this.app.getHttpServer())
+      .post('/api/v1/productos')
+      .set('Authorization', auth)
+      .send({ nombre: producto });
+    this.response = pRes;
+    if (pRes.status !== 201) return;
+
+    const vRes = await request(this.app.getHttpServer())
+      .post('/api/v1/variedades')
+      .set('Authorization', auth)
+      .send({ nombre: `${producto} ${variedad}`, productoId: pRes.body.id });
+    this.response = vRes;
+    if (vRes.status !== 201) return;
+
+    this.response = await request(this.app.getHttpServer())
+      .post('/api/v1/colores')
+      .set('Authorization', auth)
+      .send({ nombre: color, variedadId: vRes.body.id });
+  },
+);
+
+Then('el sistema rechaza el ítem por falta de código', function (this: VfWorld) {
+  expect(this.response!.status).toBe(400);
+});
+
+Then('el sistema rechaza el ítem por código duplicado', function (this: VfWorld) {
+  expect(this.response!.status).toBe(409);
+});
+
 // Verifica que el ítem quedó registrado en toda su composición: el producto en
 // el catálogo, la variedad colgando del producto y el color colgando de la
 // variedad. Esto prueba la combinación completa, no solo el producto.

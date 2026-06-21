@@ -31,6 +31,15 @@ Característica: Catalogación de productos
     Cuando el administrador incorpora al catálogo el ítem "<nombre>" con código "<codigo>", del producto "<producto>", variedad "<variedad>" y color "<color>"
     Entonces el ítem "<nombre>" queda registrado con su producto, variedad y color
 
+  Escenario: Un ítem necesita un código que lo identifique
+    Cuando el administrador incorpora al catálogo un ítem sin código, del producto "Rosa", variedad "Freedom" y color "Red"
+    Entonces el sistema rechaza el ítem por falta de código
+
+  Escenario: Dos ítems no pueden compartir el mismo código
+    Dado que el catálogo contiene el ítem "Freedom Cherry" con código "8001", del producto "Freedom", variedad "Red" y color "Cherry"
+    Cuando el administrador incorpora al catálogo el ítem "Mondial Light" con código "8001", del producto "Mondial", variedad "Pink" y color "Light"
+    Entonces el sistema rechaza el ítem por código duplicado
+
     Ejemplos:
       | producto  | variedad | color | codigo | nombre            |
       | Bellandes | Dark     | Dark  | 6554   | Nelandes Astassus |
