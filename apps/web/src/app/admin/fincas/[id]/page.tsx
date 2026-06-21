@@ -11,10 +11,16 @@ import { ConfirmModal } from '@/app/components/ConfirmModal';
 
 interface Responsable { id: string; userId: string; user?: { email: string; nombre?: string }; }
 interface Finca { id: string; nombre: string; ubicacion?: string; responsables?: Responsable[]; }
-interface Usuario { id: string; email: string; role: string; nombre?: string; }
+interface Usuario {
+  id: string;
+  email: string;
+  role: string;
+  nombre?: string;
+  responsable?: { finca?: { id: string; nombre: string } | null } | null;
+}
 
-function AsignarModal({ onClose, onConfirm, isPending }: {
-  onClose: () => void; onConfirm: (userId: string) => void; isPending: boolean;
+function AsignarModal({ onClose, onConfirm, isPending, currentFincaId }: {
+  onClose: () => void; onConfirm: (user: Usuario) => void; isPending: boolean; currentFincaId: string;
 }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Usuario | null>(null);
@@ -48,7 +54,12 @@ function AsignarModal({ onClose, onConfirm, isPending }: {
           <div className="max-h-60 overflow-y-auto rounded-lg border border-surface-border divide-y divide-surface-border/50">
             {isLoading && <div className="py-8 text-center text-carbon-400 text-sm">Cargando...</div>}
             {!isLoading && filtered.length === 0 && <div className="py-8 text-center text-carbon-400 text-sm">Sin resultados</div>}
-            {filtered.map((u) => (
+            {filtered.map((u) => {
+              const fincaAnterior =
+                u.responsable?.finca && u.responsable.finca.id !== currentFincaId
+                  ? u.responsable.finca.nombre
+                  : null;
+              return (
               <button key={u.id} type="button" onClick={() => setSelected(u)}
                 className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${selected?.id === u.id ? 'bg-verde-50' : 'hover:bg-surface-overlay'}`}>
                 <div>
@@ -56,14 +67,20 @@ function AsignarModal({ onClose, onConfirm, isPending }: {
                     {u.nombre ?? u.email.split('@')[0].toUpperCase().replace(/\./g, ' ')}
                   </p>
                   <p className={`text-xs font-mono ${selected?.id === u.id ? 'text-verde-500' : 'text-carbon-400'}`}>{u.email}</p>
+                  {fincaAnterior && (
+                    <span className="inline-block mt-1 text-xs text-dorado-500">
+                      Asignado a {fincaAnterior}
+                    </span>
+                  )}
                 </div>
                 {selected?.id === u.id && <Check className="w-4 h-4 text-verde-600 flex-shrink-0" />}
               </button>
-            ))}
+              );
+            })}
           </div>
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center">Cancelar</button>
-            <button type="button" disabled={!selected || isPending} onClick={() => onConfirm(selected!.id)}
+            <button type="button" disabled={!selected || isPending} onClick={() => onConfirm(selected!)}
               className="btn-primary flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed">
               {isPending ? 'Asignando...' : 'Asignar'}
             </button>
@@ -264,6 +281,7 @@ export default function FincaDetallePage() {
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<{ responsableId: string; nombre: string } | null>(null);
+  const [confirmReassign, setConfirmReassign] = useState<{ user: Usuario; fincaAnterior: string } | null>(null);
   const [asignarProductos, setAsignarProductos] = useState<{ responsableId: string; nombre: string } | null>(null);
 
   const { data: finca, isLoading, refetch } = useQuery<Finca>({
@@ -275,9 +293,32 @@ export default function FincaDetallePage() {
 
   const assign = useMutation({
     mutationFn: (userId: string) => api.post(`/fincas/${id}/responsables`, { userId }),
-    onSuccess: async () => { setShowModal(false); await refetch(); toast.success('Responsable asignado'); },
+    onSuccess: async () => {
+      setShowModal(false);
+      setConfirmReassign(null);
+      await refetch();
+      qc.invalidateQueries({ queryKey: ['consolidado-diario'] });
+      qc.invalidateQueries({ queryKey: ['consolidado-semanal'] });
+      qc.invalidateQueries({ queryKey: ['base-semanal'] });
+      toast.success('Responsable asignado');
+    },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? 'Error al asignar responsable'),
   });
+
+  // Si el usuario ya pertenece a otra finca, asignarlo aquí lo desasigna de la
+  // anterior (el backend hace el move). Pedimos confirmación explícita antes.
+  const handleAsignar = (user: Usuario) => {
+    const fincaAnterior =
+      user.responsable?.finca && user.responsable.finca.id !== id
+        ? user.responsable.finca.nombre
+        : null;
+    if (fincaAnterior) {
+      setShowModal(false);
+      setConfirmReassign({ user, fincaAnterior });
+    } else {
+      assign.mutate(user.id);
+    }
+  };
 
   const removeResp = useMutation({
     mutationFn: ({ responsableId }: { responsableId: string; nombre: string }) =>
@@ -360,11 +401,21 @@ export default function FincaDetallePage() {
           </div>
         </div>
 
-      {showModal && <AsignarModal onClose={() => setShowModal(false)} onConfirm={(userId) => assign.mutate(userId)} isPending={assign.isPending} />}
+      {showModal && id && <AsignarModal onClose={() => setShowModal(false)} onConfirm={handleAsignar} isPending={assign.isPending} currentFincaId={id} />}
       {confirmRemove && (
         <ConfirmModal message={`¿Quitar a "${confirmRemove.nombre}" de esta finca?`}
           onConfirm={() => removeResp.mutate(confirmRemove)} onCancel={() => setConfirmRemove(null)}
           confirmLabel="Quitar" isPending={removeResp.isPending} />
+      )}
+      {confirmReassign && (
+        <ConfirmModal
+          message={`${confirmReassign.user.nombre ?? confirmReassign.user.email} ya está asignado a la finca "${confirmReassign.fincaAnterior}".`}
+          description={`Al asignarlo a "${finca?.nombre}" se le quitará de "${confirmReassign.fincaAnterior}". Sus asignaciones de productos y colores se conservarán.`}
+          onConfirm={() => assign.mutate(confirmReassign.user.id)}
+          onCancel={() => { setConfirmReassign(null); setShowModal(true); }}
+          confirmLabel="Reasignar"
+          pendingLabel="Reasignando..."
+          isPending={assign.isPending} />
       )}
       {asignarProductos && id && (
         <AsignarProductosModal fincaId={id} responsableId={asignarProductos.responsableId}

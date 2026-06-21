@@ -111,7 +111,7 @@ function ColorModal({ initial, onSave, onCancel, isPending }: {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Color</label>
+              <label className="form-label">Color <span className="text-red-500 ml-0.5">*</span></label>
               <input
                 autoFocus
                 className="input-field"
@@ -122,7 +122,7 @@ function ColorModal({ initial, onSave, onCancel, isPending }: {
               />
             </div>
             <div>
-              <label className="form-label">Código</label>
+              <label className="form-label">Código <span className="text-red-500 ml-0.5">*</span></label>
               <input
                 className="input-field"
                 placeholder="Ej: 6554"

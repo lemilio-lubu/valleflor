@@ -110,7 +110,19 @@
       "Bash(curl -s -o /dev/null -w 'GET / -> %{http_code} -> %{redirect_url}\\\\n' http://localhost:3000/)",
       "Bash(npm test *)",
       "Bash(dropdb floricultura_test)",
-      "Bash(createdb floricultura_test)"
+      "Bash(createdb floricultura_test)",
+      "Bash(node -e \"const d=require\\('./package.json'\\); console.log\\(JSON.stringify\\(d.scripts,null,2\\)\\); console.log\\('workspaces:',JSON.stringify\\(d.workspaces\\)\\)\")",
+      "Bash(node -e \"const d=require\\('./apps/web/package.json'\\); console.log\\(JSON.stringify\\(d.scripts,null,2\\)\\)\")",
+      "Bash(node -e \"const d=require\\('./apps/api/package.json'\\); console.log\\(JSON.stringify\\(d.scripts,null,2\\)\\)\")",
+      "Bash(pnpm -v)",
+      "Bash(curl -sf http://localhost:3001/api/v1 -o /dev/null)",
+      "Bash(curl -s http://localhost:3001/api/v1)",
+      "Bash(which chromium-cli *)",
+      "Bash(curl -s -X POST http://localhost:3001/api/v1/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"admin@valleflor.com\",\"password\":\"admin123\"}')",
+      "mcp__Claude_in_Chrome__list_connected_browsers",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git rm *)",
+      "Bash(echo \"--- exit: $? ---\")"
     ]
   }
 }
