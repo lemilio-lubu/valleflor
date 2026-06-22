@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { X, Plus, AlertTriangle } from 'lucide-react';
 import { Table, Thead, Th, Tbody, Tr, Td, TdEmpty } from '@/app/components/Table';
+import { AuditoriaButton } from '@/app/components/auditoria/AuditoriaButton';
 
 interface Finca { id: string; nombre: string; ubicacion?: string; activo: boolean; motivoBaja?: string | null; }
 
@@ -75,14 +76,17 @@ export default function FincasPage() {
           <h1 className="section-title">Fincas</h1>
           <p className="text-carbon-400 text-sm mt-1">Gestiona las fincas registradas en el sistema</p>
         </div>
-        <button
-          id="btn-crear-finca"
-          onClick={openCreate}
-          className="btn-primary w-full sm:w-auto shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Nueva finca
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center shrink-0">
+          <AuditoriaButton modulo="fincas" moduloLabel="Fincas" className="w-full sm:w-auto" />
+          <button
+            id="btn-crear-finca"
+            onClick={openCreate}
+            className="btn-primary w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4" />
+            Nueva finca
+          </button>
+        </div>
       </div>
 
       {isLoading ? (

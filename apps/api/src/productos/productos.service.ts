@@ -93,13 +93,9 @@ export class ProductosService {
     Object.assign(producto, dto);
     const saved = await this.productoRepo.save(producto);
     if (actor) {
-      await this.auditoriaService.registrar({
-        actor,
-        accion: AccionAuditoria.EDICION,
-        modulo: ModuloAuditoria.CATALOGO,
-        valorAnterior: nombreAnterior,
-        valorNuevo: saved.nombre,
-      });
+      await this.auditoriaService.registrarCambios(actor, ModuloAuditoria.CATALOGO, [
+        { campo: 'Nombre', valorAnterior: nombreAnterior, valorNuevo: saved.nombre },
+      ]);
     }
     return saved;
   }
@@ -139,7 +135,7 @@ export class ProductosService {
     return producto;
   }
 
-  async darDeAlta(id: string): Promise<Producto> {
+  async darDeAlta(id: string, actor?: JwtUser): Promise<Producto> {
     const producto = await this.productoRepo.findOne({
       where: { id },
       relations: ['variedades', 'variedades.colores'],
@@ -162,6 +158,14 @@ export class ProductosService {
     await this.productoRepo.save(producto);
 
     await this.reconciliationService.reconcileColores(colorIds);
+    if (actor) {
+      await this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.ALTA,
+        modulo: ModuloAuditoria.CATALOGO,
+        valorNuevo: producto.nombre,
+      });
+    }
     return producto;
   }
 

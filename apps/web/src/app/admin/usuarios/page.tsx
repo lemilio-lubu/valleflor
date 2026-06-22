@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 import { Table, Thead, Th, Tbody, Tr, Td, TdEmpty, TrSkeleton } from '@/app/components/Table';
+import { AuditoriaButton } from '@/app/components/auditoria/AuditoriaButton';
 
 const PAGE_SIZE = 10;
 
@@ -176,10 +177,13 @@ export default function UsuariosPage() {
           <h1 className="section-title">Usuarios</h1>
           <p className="text-carbon-400 text-sm mt-1">Cuentas de acceso al sistema</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="btn-primary w-full sm:w-auto shrink-0">
-          <Plus className="w-4 h-4" />
-          Nuevo usuario
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center shrink-0">
+          <AuditoriaButton modulo="usuarios" moduloLabel="Usuarios" className="w-full sm:w-auto" />
+          <button onClick={() => setShowCreate(true)} className="btn-primary w-full sm:w-auto">
+            <Plus className="w-4 h-4" />
+            Nuevo usuario
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">

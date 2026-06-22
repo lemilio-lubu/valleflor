@@ -71,8 +71,8 @@ export class FincasController {
   @Patch(':id/alta')
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)
-  darDeAlta(@Param('id', ParseUUIDPipe) id: string) {
-    return this.fincasService.darDeAlta(id);
+  darDeAlta(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtUser) {
+    return this.fincasService.darDeAlta(id, user);
   }
 
   @Get(':id/responsables')
@@ -125,7 +125,8 @@ export class FincasController {
     @Param('fincaId', ParseUUIDPipe) fincaId: string,
     @Param('responsableId', ParseUUIDPipe) responsableId: string,
     @Body() body: SetAsignacionesDto,
+    @CurrentUser() user: JwtUser,
   ) {
-    return this.fincasService.setAsignacionesResponsable(fincaId, responsableId, body);
+    return this.fincasService.setAsignacionesResponsable(fincaId, responsableId, body, user);
   }
 }

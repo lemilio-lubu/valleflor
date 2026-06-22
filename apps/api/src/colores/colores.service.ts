@@ -13,6 +13,9 @@ import { RegistroDiario } from '../registros/registro-diario.entity';
 import { CreateColorDto } from './dto/create-color.dto';
 import { UpdateColorDto } from './dto/update-color.dto';
 import { SemanaReconciliationService } from '../base-semanal/semana-reconciliation.service';
+import { JwtUser } from '../auth/types/jwt-user.type';
+import { AuditoriaService } from '../auditoria/auditoria.service';
+import { AccionAuditoria, ModuloAuditoria } from '../auditoria/movimiento-auditoria.entity';
 
 @Injectable()
 export class ColoresService {
@@ -26,6 +29,7 @@ export class ColoresService {
     @InjectRepository(RegistroDiario)
     private readonly registroRepo: Repository<RegistroDiario>,
     private readonly reconciliationService: SemanaReconciliationService,
+    private readonly auditoriaService: AuditoriaService,
   ) {}
 
   async findAll(
@@ -89,7 +93,7 @@ export class ColoresService {
     );
   }
 
-  async create(dto: CreateColorDto): Promise<Color> {
+  async create(dto: CreateColorDto, actor?: JwtUser): Promise<Color> {
     const variedad = await this.variedadRepo.findOne({
       where: { id: dto.variedadId },
     });
@@ -121,12 +125,26 @@ export class ColoresService {
       nombreComercial: dto.nombreComercial ?? null,
       tallosPorCaja: dto.tallosPorCaja ?? 400,
     });
-    return this.colorRepo.save(color);
+    const saved = await this.colorRepo.save(color);
+    if (actor) {
+      await this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.CREACION,
+        modulo: ModuloAuditoria.CATALOGO,
+        valorNuevo: `${saved.codigo} · ${saved.nombre}`,
+      });
+    }
+    return saved;
   }
 
-  async update(id: string, dto: UpdateColorDto): Promise<Color> {
+  async update(id: string, dto: UpdateColorDto, actor?: JwtUser): Promise<Color> {
     const color = await this.colorRepo.findOne({ where: { id } });
     if (!color) throw new NotFoundException(`Color ${id} no encontrado`);
+    // Snapshot previo para auditar cada campo del ítem que cambió.
+    const nombreAnterior = color.nombre;
+    const codigoAnterior = color.codigo;
+    const nombreComercialAnterior = color.nombreComercial ?? null;
+    const tallosAnterior = color.tallosPorCaja;
 
     if (dto.nombre) {
       const nombre = dto.nombre.toUpperCase().trim();
@@ -151,10 +169,27 @@ export class ColoresService {
     }
 
     Object.assign(color, dto);
-    return this.colorRepo.save(color);
+    const saved = await this.colorRepo.save(color);
+    if (actor) {
+      await this.auditoriaService.registrarCambios(actor, ModuloAuditoria.CATALOGO, [
+        { campo: 'Nombre', valorAnterior: nombreAnterior, valorNuevo: saved.nombre },
+        { campo: 'Código', valorAnterior: codigoAnterior, valorNuevo: saved.codigo },
+        {
+          campo: 'Nombre comercial',
+          valorAnterior: nombreComercialAnterior,
+          valorNuevo: saved.nombreComercial ?? null,
+        },
+        {
+          campo: 'Tallos por caja',
+          valorAnterior: String(tallosAnterior),
+          valorNuevo: String(saved.tallosPorCaja),
+        },
+      ]);
+    }
+    return saved;
   }
 
-  async darDeBaja(id: string, motivoBaja: string): Promise<Color> {
+  async darDeBaja(id: string, motivoBaja: string, actor?: JwtUser): Promise<Color> {
     const color = await this.colorRepo.findOne({ where: { id } });
     if (!color) throw new NotFoundException(`Color ${id} no encontrado`);
 
@@ -163,10 +198,18 @@ export class ColoresService {
     await this.colorRepo.save(color);
 
     await this.reconciliationService.reconcileColores([color.id]);
+    if (actor) {
+      await this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.BAJA,
+        modulo: ModuloAuditoria.CATALOGO,
+        valorAnterior: `${color.codigo} · ${color.nombre}`,
+      });
+    }
     return color;
   }
 
-  async darDeAlta(id: string): Promise<Color> {
+  async darDeAlta(id: string, actor?: JwtUser): Promise<Color> {
     const color = await this.colorRepo.findOne({
       where: { id },
       relations: ['variedad', 'variedad.producto'],
@@ -186,6 +229,14 @@ export class ColoresService {
     await this.colorRepo.save(color);
 
     await this.reconciliationService.reconcileColores([color.id]);
+    if (actor) {
+      await this.auditoriaService.registrar({
+        actor,
+        accion: AccionAuditoria.ALTA,
+        modulo: ModuloAuditoria.CATALOGO,
+        valorNuevo: `${color.codigo} · ${color.nombre}`,
+      });
+    }
     return color;
   }
 

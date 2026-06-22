@@ -6,6 +6,9 @@ import { BaseSemanalService } from '../base-semanal/base-semanal.service';
 import { UpdateRegistroDto } from './dto/update-registro.dto';
 import { UpdateDivisorDto } from './dto/update-divisor.dto';
 import { BulkUpdateItemDto } from './dto/bulk-update.dto';
+import { JwtUser } from '../auth/types/jwt-user.type';
+import { AuditoriaService } from '../auditoria/auditoria.service';
+import { ModuloAuditoria } from '../auditoria/movimiento-auditoria.entity';
 
 /** Resultado de PATCH /registros/:id — puede incluir un warning de tipeo */
 export interface UpdateRegistroResult {
@@ -19,7 +22,15 @@ export class RegistrosService {
     @InjectRepository(RegistroDiario)
     private readonly registroRepo: Repository<RegistroDiario>,
     private readonly baseSemanalService: BaseSemanalService,
+    private readonly auditoriaService: AuditoriaService,
   ) {}
+
+  /** Etiqueta de contexto del registro para la auditoría (color · semana · día). */
+  private contextoRegistro(registro: RegistroDiario): string {
+    const color = registro.color?.nombre ?? 'color';
+    const semana = registro.semana?.numeroSemana ?? '?';
+    return `${color} · Sem ${semana} · ${registro.dia}`;
+  }
 
   // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -76,8 +87,10 @@ export class RegistrosService {
   async updateCajas(
     id: string,
     dto: UpdateRegistroDto,
+    actor?: JwtUser,
   ): Promise<UpdateRegistroResult> {
     const registro = await this.getOrFail(id);
+    const cajasAnterior = Number(registro.cajas);
 
     // 1. Redondear cajas a máximo 2 decimales
     const cajas = this.round2(dto.cajas);
@@ -107,6 +120,17 @@ export class RegistrosService {
       registro.semana.anio,
     );
 
+    // 6. Auditar el cambio de cajas (solo si el valor realmente cambió).
+    if (actor) {
+      await this.auditoriaService.registrarCambios(actor, ModuloAuditoria.PRODUCCION, [
+        {
+          campo: `Cajas · ${this.contextoRegistro(registro)}`,
+          valorAnterior: String(cajasAnterior),
+          valorNuevo: String(cajas),
+        },
+      ]);
+    }
+
     return warning ? { data: saved, warning } : { data: saved };
   }
 
@@ -114,8 +138,10 @@ export class RegistrosService {
   async updateDivisor(
     id: string,
     dto: UpdateDivisorDto,
+    actor?: JwtUser,
   ): Promise<RegistroDiario> {
     const registro = await this.getOrFail(id);
+    const divisorAnterior = registro.divisorTallos;
 
     registro.divisorTallos = dto.divisorTallos;
     registro.tallos = this.calcTallos(Number(registro.cajas), dto.divisorTallos);
@@ -127,6 +153,16 @@ export class RegistrosService {
       registro.semana.numeroSemana,
       registro.semana.anio,
     );
+
+    if (actor) {
+      await this.auditoriaService.registrarCambios(actor, ModuloAuditoria.PRODUCCION, [
+        {
+          campo: `Tallos por caja · ${this.contextoRegistro(registro)}`,
+          valorAnterior: String(divisorAnterior),
+          valorNuevo: String(dto.divisorTallos),
+        },
+      ]);
+    }
 
     return saved;
   }
@@ -144,14 +180,19 @@ export class RegistrosService {
   /** POST /registros/bulk-update — actualiza múltiples registros */
   async bulkUpdate(
     updates: BulkUpdateItemDto[],
+    actor?: JwtUser,
   ): Promise<UpdateRegistroResult[]> {
     const results: UpdateRegistroResult[] = [];
 
     for (const item of updates) {
-      const result = await this.updateCajas(item.id, {
-        cajas: item.cajas,
-        divisorTallos: item.divisorTallos,
-      });
+      const result = await this.updateCajas(
+        item.id,
+        {
+          cajas: item.cajas,
+          divisorTallos: item.divisorTallos,
+        },
+        actor,
+      );
       results.push(result);
     }
 

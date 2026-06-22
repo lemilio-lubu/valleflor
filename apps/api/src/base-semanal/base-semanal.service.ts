@@ -8,6 +8,8 @@ import { Responsable } from '../responsables/responsable.entity';
 import { ResponsableColor } from '../responsables/responsable-color.entity';
 import { Color } from '../colores/color.entity';
 import { getCurrentISOWeek, getNextWeeks } from '../common/iso-week.util';
+import { AuditoriaService } from '../auditoria/auditoria.service';
+import { ModuloAuditoria } from '../auditoria/movimiento-auditoria.entity';
 
 export interface SemanaData {
   cajas: number;
@@ -39,6 +41,9 @@ export class BaseSemanalService {
     private readonly responsableRepo: Repository<Responsable>,
     @InjectRepository(ResponsableColor)
     private readonly respColorRepo: Repository<ResponsableColor>,
+    @InjectRepository(Color)
+    private readonly colorRepo: Repository<Color>,
+    private readonly auditoriaService: AuditoriaService,
   ) {}
 
   /** Tallos por caja del color, leído desde su producto. */
@@ -159,6 +164,7 @@ export class BaseSemanalService {
       where: { responsableId: responsable.id, colorId, numeroSemana, anio, fincaId },
     });
     const tallosEstimados = Math.round(cajasEstimadas * divisor * 100) / 100;
+    const cajasEstimadasAnterior = base ? Number(base.cajasEstimadas ?? 0) : null;
 
     if (base) {
       base.cajasEstimadas = cajasEstimadas;
@@ -177,7 +183,22 @@ export class BaseSemanalService {
         esReal: false,
       });
     }
-    return this.baseSemanalRepo.save(base);
+    const saved = await this.baseSemanalRepo.save(base);
+
+    // Auditar la estimación (creada o editada). El actor es el responsable.
+    const color = await this.colorRepo.findOne({ where: { id: colorId } });
+    await this.auditoriaService.registrarCambios(
+      { id: userId },
+      ModuloAuditoria.PRODUCCION,
+      [
+        {
+          campo: `Cajas estimadas · ${color?.nombre ?? 'color'} · Sem ${numeroSemana}`,
+          valorAnterior: cajasEstimadasAnterior === null ? null : String(cajasEstimadasAnterior),
+          valorNuevo: String(cajasEstimadas),
+        },
+      ],
+    );
+    return saved;
   }
 
   /** Colores activos asignados al responsable (cadena producto/variedad/color activa). */

@@ -14,6 +14,7 @@ export const AccionAuditoria = {
   CREACION: 'Creación',
   EDICION: 'Edición',
   BAJA: 'Baja',
+  ALTA: 'Alta',
   ASIGNACION_RESPONSABLE: 'Asignación de responsable',
   CARGA_MASIVA: 'Carga masiva',
   INICIO_SESION: 'Inicio de sesión',
@@ -26,6 +27,8 @@ export const ModuloAuditoria = {
   FINCAS: 'fincas',
   USUARIOS: 'usuarios',
   CATALOGO: 'catálogo',
+  // Dato productivo: registros diarios, base semanal y estimaciones.
+  PRODUCCION: 'producción',
   // Apartado propio para los inicios de sesión, separado del historial de cambios.
   ACCESOS: 'accesos',
 } as const;
@@ -53,6 +56,11 @@ export class MovimientoAuditoria {
   @Index()
   @Column({ type: 'varchar' })
   modulo: string;
+
+  // Nombre legible del campo modificado (p. ej. "Nombre", "Email"); solo en
+  // ediciones. Null en creaciones/bajas/asignaciones/cargas/accesos.
+  @Column({ name: 'campo', type: 'varchar', nullable: true })
+  campo: string | null;
 
   @Column({ name: 'valor_anterior', type: 'text', nullable: true })
   valorAnterior: string | null;

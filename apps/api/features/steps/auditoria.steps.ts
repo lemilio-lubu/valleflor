@@ -74,6 +74,13 @@ async function ejecutarAccion(world: VfWorld, modulo: string, accion: string): P
         motivoBaja: 'prueba',
       });
       expect(r.status).toBe(200);
+    } else if (accion === 'Alta') {
+      const baja = await auth(request(server).patch(`${API}/fincas/${id}/baja`)).send({
+        motivoBaja: 'prueba',
+      });
+      expect(baja.status).toBe(200);
+      const alta = await auth(request(server).patch(`${API}/fincas/${id}/alta`)).send({});
+      expect(alta.status).toBe(200);
     }
     return;
   }
@@ -113,6 +120,13 @@ async function ejecutarAccion(world: VfWorld, modulo: string, accion: string): P
       motivoBaja: 'prueba',
     });
     expect(r.status).toBe(200);
+  } else if (accion === 'Alta') {
+    const baja = await auth(request(server).patch(`${API}/productos/${id}/baja`)).send({
+      motivoBaja: 'prueba',
+    });
+    expect(baja.status).toBe(200);
+    const alta = await auth(request(server).patch(`${API}/productos/${id}/alta`)).send({});
+    expect(alta.status).toBe(200);
   }
 }
 
@@ -619,3 +633,59 @@ Then('el sistema muestra los movimientos', function (this: VfWorld) {
 });
 
 // "el sistema niega el acceso" se reutiliza desde productos.steps.ts (401/403).
+
+// ── Edición multi-campo de usuario (un movimiento por campo) ──────────────────
+
+const NUEVA_PASSWORD = 'claveNueva123';
+
+Given(
+  'existe un usuario para editar con nombre {string} y rol responsable',
+  async function (this: VfWorld, nombre: string) {
+    const res = await request(this.app.getHttpServer())
+      .post(`${API}/users`)
+      .set('Authorization', `Bearer ${this.token}`)
+      .send({
+        email: `edit-${uniq()}@valleflor.com`,
+        password: 'claveInicial123',
+        role: 'responsable',
+        nombre,
+      });
+    expect(res.status).toBe(201);
+    this.ids['usuario:editar'] = res.body.id;
+  },
+);
+
+When(
+  '{string} edita ese usuario y cambia su nombre, su rol y su contraseña',
+  async function (this: VfWorld, persona: string) {
+    const res = await request(this.app.getHttpServer())
+      .patch(`${API}/users/${this.ids['usuario:editar']}`)
+      .set('Authorization', `Bearer ${this.tokens[persona] ?? this.token}`)
+      .send({ nombre: 'CarlosMod', role: 'admin', password: NUEVA_PASSWORD });
+    expect(res.status).toBe(200);
+  },
+);
+
+Then(
+  'la auditoría registra un movimiento de Edición de usuarios para el campo {string}',
+  async function (this: VfWorld, campo: string) {
+    const res = await getCambios(this, { modulo: 'usuarios' }, this.adminToken);
+    expect(res.status).toBe(200);
+    const movs = res.body as Array<MovimientoApi & { campo: string | null }>;
+    const match = movs.find((m) => m.accion === 'Edición' && m.campo === campo);
+    expect(match).toBeTruthy();
+  },
+);
+
+Then(
+  'ningún movimiento de auditoría expone la contraseña',
+  async function (this: VfWorld) {
+    const res = await getCambios(this, { modulo: 'usuarios' }, this.adminToken);
+    expect(res.status).toBe(200);
+    const movs = res.body as MovimientoApi[];
+    for (const m of movs) {
+      expect(m.valorAnterior).not.toBe(NUEVA_PASSWORD);
+      expect(m.valorNuevo).not.toBe(NUEVA_PASSWORD);
+    }
+  },
+);

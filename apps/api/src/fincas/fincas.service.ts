@@ -82,16 +82,15 @@ export class FincasService {
 
   async update(id: string, dto: UpdateFincaDto, user: JwtUser): Promise<Finca> {
     const finca = await this.findOne(id);
+    // Snapshot previo para auditar cada campo modificado por separado.
     const nombreAnterior = finca.nombre;
+    const ubicacionAnterior = finca.ubicacion ?? null;
     Object.assign(finca, dto);
     const saved = await this.fincaRepo.save(finca);
-    await this.auditoriaService.registrar({
-      actor: user,
-      accion: AccionAuditoria.EDICION,
-      modulo: ModuloAuditoria.FINCAS,
-      valorAnterior: nombreAnterior,
-      valorNuevo: saved.nombre,
-    });
+    await this.auditoriaService.registrarCambios(user, ModuloAuditoria.FINCAS, [
+      { campo: 'Nombre', valorAnterior: nombreAnterior, valorNuevo: saved.nombre },
+      { campo: 'Ubicación', valorAnterior: ubicacionAnterior, valorNuevo: saved.ubicacion ?? null },
+    ]);
     return saved;
   }
 
@@ -110,12 +109,19 @@ export class FincasService {
     return saved;
   }
 
-  async darDeAlta(id: string): Promise<Finca> {
+  async darDeAlta(id: string, user: JwtUser): Promise<Finca> {
     const finca = await this.fincaRepo.findOne({ where: { id } });
     if (!finca) throw new NotFoundException(`Finca ${id} no encontrada`);
     finca.activo = true;
     finca.motivoBaja = null;
-    return this.fincaRepo.save(finca);
+    const saved = await this.fincaRepo.save(finca);
+    await this.auditoriaService.registrar({
+      actor: user,
+      accion: AccionAuditoria.ALTA,
+      modulo: ModuloAuditoria.FINCAS,
+      valorNuevo: saved.nombre,
+    });
+    return saved;
   }
 
   async findResponsables(fincaId: string): Promise<Responsable[]> {
@@ -147,13 +153,17 @@ export class FincasService {
       throw new ForbiddenException('El usuario debe tener rol responsable');
     }
 
-    // Registra la asignación en la auditoría (módulo fincas).
-    const auditarAsignacion = () =>
+    // Registra la asignación: el campo es a QUIÉN se asigna; el valor anterior
+    // es la finca previa (si la había) y el nuevo es la finca destino.
+    const personaAsignada = user.nombre ?? user.email;
+    const auditarAsignacion = (fincaAnterior: string | null) =>
       this.auditoriaService.registrar({
         actor,
         accion: AccionAuditoria.ASIGNACION_RESPONSABLE,
         modulo: ModuloAuditoria.FINCAS,
-        valorNuevo: `${user.nombre ?? user.email} → ${finca.nombre}`,
+        campo: personaAsignada,
+        valorAnterior: fincaAnterior,
+        valorNuevo: finca.nombre,
       });
 
     const existing = await this.responsableRepo.findOne({
@@ -164,7 +174,7 @@ export class FincasService {
       if (existing.fincaId === fincaId) {
         if (existing.deletedAt) {
           await this.responsableRepo.recover(existing);
-          await auditarAsignacion();
+          await auditarAsignacion(null);
           return this.responsableRepo.findOne({
             where: { id: existing.id },
             relations: ['user'],
@@ -172,6 +182,9 @@ export class FincasService {
         }
         throw new ConflictException('El usuario ya está asignado a esta finca');
       }
+      // Cambio de finca: capturar el nombre de la finca anterior antes de mover.
+      const fincaPrevia = await this.fincaRepo.findOne({ where: { id: existing.fincaId } });
+      const fincaAnteriorNombre = fincaPrevia?.nombre ?? null;
       // Al cambiar de finca solo se limpian las asignaciones de colores.
       // Las semanas y base_semanal se conservan asociadas a su finca_id original,
       // por lo que el responsable las recupera al volver a esa finca.
@@ -180,7 +193,7 @@ export class FincasService {
         await this.responsableRepo.recover(existing);
       }
       await this.responsableRepo.update(existing.id, { fincaId });
-      await auditarAsignacion();
+      await auditarAsignacion(fincaAnteriorNombre);
       return this.responsableRepo.findOne({
         where: { id: existing.id },
         relations: ['user'],
@@ -192,7 +205,7 @@ export class FincasService {
       fincaId,
     });
     const savedResp = await this.responsableRepo.save(responsable);
-    await auditarAsignacion();
+    await auditarAsignacion(null);
     return savedResp;
   }
 
@@ -231,9 +244,17 @@ export class FincasService {
       variedadIds?: string[];
       colorIds?: string[];
     },
+    actor?: JwtUser,
   ): Promise<Producto[]> {
-    const responsable = await this.responsableRepo.findOne({ where: { id: responsableId, fincaId } });
+    const responsable = await this.responsableRepo.findOne({
+      where: { id: responsableId, fincaId },
+      relations: ['user'],
+    });
     if (!responsable) throw new NotFoundException('Responsable no encontrado en esta finca');
+
+    // Estado previo de colores asignados, para auditar qué se añadió/quitó.
+    const asignacionesPrevias = await this.respColorRepo.find({ where: { responsableId } });
+    const colorIdsPrevios = new Set(asignacionesPrevias.map((a) => a.colorId));
 
     const colorIdSet = new Set<string>();
 
@@ -273,6 +294,42 @@ export class FincasService {
     // nuevas asignaciones (agrega/elimina registros diarios según corresponda)
     await this.reconciliationService.reconcileResponsable(responsableId);
 
+    // Auditar el cambio de asignaciones (qué colores se añadieron/quitaron).
+    if (actor) {
+      await this.auditarAsignacionColores(responsable, colorIdsPrevios, colorIdSet, actor);
+    }
+
     return this.getProductosResponsable(fincaId, responsableId);
+  }
+
+  /**
+   * Registra en auditoría el diff de colores asignados a un responsable: un
+   * movimiento con la lista de añadidos y otra con la de quitados (por nombre).
+   */
+  private async auditarAsignacionColores(
+    responsable: Responsable,
+    colorIdsPrevios: Set<string>,
+    colorIdsNuevos: Set<string>,
+    actor: JwtUser,
+  ): Promise<void> {
+    const anadidos = [...colorIdsNuevos].filter((id) => !colorIdsPrevios.has(id));
+    const quitados = [...colorIdsPrevios].filter((id) => !colorIdsNuevos.has(id));
+    if (anadidos.length === 0 && quitados.length === 0) return;
+
+    const nombresDe = async (ids: string[]): Promise<string> => {
+      if (ids.length === 0) return '—';
+      const colores = await this.colorRepo.find({ where: { id: In(ids) } });
+      return colores.map((c) => c.nombre).sort().join(', ');
+    };
+
+    const persona = responsable.user?.nombre ?? responsable.user?.email ?? responsable.id;
+    await this.auditoriaService.registrar({
+      actor,
+      accion: AccionAuditoria.ASIGNACION_RESPONSABLE,
+      modulo: ModuloAuditoria.FINCAS,
+      campo: `Colores asignados · ${persona}`,
+      valorAnterior: await nombresDe(quitados),
+      valorNuevo: await nombresDe(anadidos),
+    });
   }
 }

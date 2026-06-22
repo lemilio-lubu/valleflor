@@ -23,8 +23,16 @@ export interface RegistrarInput {
   actor: ActorAuditoria;
   accion: AccionAuditoria;
   modulo: ModuloAuditoria;
+  campo?: string | null;
   valorAnterior?: string | null;
   valorNuevo?: string | null;
+}
+
+/** Un cambio de campo individual para `registrarCambios`. */
+export interface CambioCampo {
+  campo: string;
+  valorAnterior: string | null;
+  valorNuevo: string | null;
 }
 
 export interface MovimientoDto {
@@ -32,6 +40,7 @@ export interface MovimientoDto {
   responsable: string;
   accion: string;
   modulo: string;
+  campo: string | null;
   valorAnterior: string | null;
   valorNuevo: string | null;
   fecha: Date;
@@ -69,11 +78,35 @@ export class AuditoriaService {
       actorNombre,
       accion: input.accion,
       modulo: input.modulo,
+      campo: input.campo ?? null,
       valorAnterior: input.valorAnterior ?? null,
       valorNuevo: input.valorNuevo ?? null,
       fecha: now(),
     });
     return this.repo.save(mov);
+  }
+
+  /**
+   * Registra una EDICIÓN multi-campo: un movimiento por cada campo que realmente
+   * cambió (compara valorAnterior !== valorNuevo). Si nada cambió, no escribe nada.
+   * Centraliza la comparación para que cada `update()` no la repita.
+   */
+  async registrarCambios(
+    actor: ActorAuditoria,
+    modulo: ModuloAuditoria,
+    cambios: CambioCampo[],
+  ): Promise<void> {
+    for (const c of cambios) {
+      if (c.valorAnterior === c.valorNuevo) continue;
+      await this.registrar({
+        actor,
+        accion: AccionAuditoria.EDICION,
+        modulo,
+        campo: c.campo,
+        valorAnterior: c.valorAnterior,
+        valorNuevo: c.valorNuevo,
+      });
+    }
   }
 
   /** Movimientos del historial de cambios (excluye accesos), con filtros y retención. */
@@ -128,6 +161,7 @@ export class AuditoriaService {
       responsable: m.actorNombre,
       accion: m.accion,
       modulo: m.modulo,
+      campo: m.campo,
       valorAnterior: m.valorAnterior,
       valorNuevo: m.valorNuevo,
       fecha: m.fecha,

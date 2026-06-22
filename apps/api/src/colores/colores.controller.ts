@@ -31,29 +31,31 @@ export class ColoresController {
   }
 
   @Post()
-  create(@Body() dto: CreateColorDto, @CurrentUser() _user: JwtUser) {
-    return this.coloresService.create(dto);
+  create(@Body() dto: CreateColorDto, @CurrentUser() user: JwtUser) {
+    return this.coloresService.create(dto, user);
   }
 
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateColorDto,
+    @CurrentUser() user: JwtUser,
   ) {
-    return this.coloresService.update(id, dto);
+    return this.coloresService.update(id, dto, user);
   }
 
   @Patch(':id/baja')
   darDeBaja(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('motivoBaja') motivoBaja: string,
+    @CurrentUser() user: JwtUser,
   ) {
-    return this.coloresService.darDeBaja(id, motivoBaja);
+    return this.coloresService.darDeBaja(id, motivoBaja, user);
   }
 
   @Patch(':id/alta')
-  darDeAlta(@Param('id', ParseUUIDPipe) id: string) {
-    return this.coloresService.darDeAlta(id);
+  darDeAlta(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtUser) {
+    return this.coloresService.darDeAlta(id, user);
   }
 
   @Delete(':id')

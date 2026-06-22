@@ -10,6 +10,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtUser } from '../auth/types/jwt-user.type';
 import { RegistrosService } from './registros.service';
 import { UpdateRegistroDto } from './dto/update-registro.dto';
 import { UpdateDivisorDto } from './dto/update-divisor.dto';
@@ -37,8 +39,8 @@ export class RegistrosController {
    * Debe ir ANTES de :id para que NestJS no lo confunda con un UUID param.
    */
   @Post('bulk-update')
-  bulkUpdate(@Body() dto: BulkUpdateDto) {
-    return this.registrosService.bulkUpdate(dto.updates);
+  bulkUpdate(@Body() dto: BulkUpdateDto, @CurrentUser() user: JwtUser) {
+    return this.registrosService.bulkUpdate(dto.updates, user);
   }
 
   /** PATCH /registros/:id → actualizar cajas (y opcionalmente divisor_tallos) */
@@ -46,8 +48,9 @@ export class RegistrosController {
   updateCajas(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRegistroDto,
+    @CurrentUser() user: JwtUser,
   ) {
-    return this.registrosService.updateCajas(id, dto);
+    return this.registrosService.updateCajas(id, dto, user);
   }
 
   /** PATCH /registros/:id/divisor → actualizar solo divisor_tallos */
@@ -55,7 +58,8 @@ export class RegistrosController {
   updateDivisor(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateDivisorDto,
+    @CurrentUser() user: JwtUser,
   ) {
-    return this.registrosService.updateDivisor(id, dto);
+    return this.registrosService.updateDivisor(id, dto, user);
   }
 }

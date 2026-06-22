@@ -20,6 +20,7 @@ export class CreateMovimientosAuditoria1750600000000
         "actor_nombre" varchar NOT NULL,
         "accion" varchar NOT NULL,
         "modulo" varchar NOT NULL,
+        "campo" varchar,
         "valor_anterior" text,
         "valor_nuevo" text,
         "fecha" timestamptz NOT NULL,

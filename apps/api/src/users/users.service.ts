@@ -101,7 +101,11 @@ export class UsersService {
 
   async update(id: string, dto: UpdateUserDto, actor?: JwtUser): Promise<Omit<User, 'passwordHash'>> {
     const user = await this.findOne(id);
+    // Snapshot previo para auditar cada campo modificado por separado.
     const emailAnterior = user.email;
+    const nombreAnterior = user.nombre;
+    const rolAnterior = user.role;
+    const cambioPassword = !!dto.password;
 
     if (dto.email && dto.email !== user.email) {
       const existing = await this.findByEmail(dto.email);
@@ -141,13 +145,16 @@ export class UsersService {
     }
 
     if (actor) {
-      await this.auditoriaService.registrar({
-        actor,
-        accion: AccionAuditoria.EDICION,
-        modulo: ModuloAuditoria.USUARIOS,
-        valorAnterior: emailAnterior,
-        valorNuevo: saved.email,
-      });
+      // Un movimiento por cada campo que realmente cambió. La contraseña nunca
+      // expone su valor: solo se registra el hecho del cambio.
+      await this.auditoriaService.registrarCambios(actor, ModuloAuditoria.USUARIOS, [
+        { campo: 'Nombre', valorAnterior: nombreAnterior, valorNuevo: saved.nombre },
+        { campo: 'Email', valorAnterior: emailAnterior, valorNuevo: saved.email },
+        { campo: 'Rol', valorAnterior: rolAnterior, valorNuevo: saved.role },
+        ...(cambioPassword
+          ? [{ campo: 'Contraseña', valorAnterior: '••••••', valorNuevo: 'actualizada' }]
+          : []),
+      ]);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

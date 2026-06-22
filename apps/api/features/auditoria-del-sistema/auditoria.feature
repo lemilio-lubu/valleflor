@@ -14,18 +14,29 @@ Característica: Auditoría de cambios en los datos maestros
       | fincas   | Creación |
       | fincas   | Edición  |
       | fincas   | Baja     |
+      | fincas   | Alta     |
       | usuarios | Creación |
       | usuarios | Edición  |
       | usuarios | Baja     |
       | catálogo | Creación |
       | catálogo | Edición  |
       | catálogo | Baja     |
+      | catálogo | Alta     |
 
   Escenario: Una edición guarda el valor anterior del dato modificado
     Dado que la administradora "Ana" gestiona el módulo de fincas
     Y la finca "La Esperanza" está registrada
     Cuando "Ana" edita la finca y cambia su nombre a "La Esperanza Alta"
     Entonces la auditoría registra un movimiento de Edición con el valor anterior "La Esperanza" y el valor nuevo "La Esperanza Alta"
+
+  Escenario: Una edición de usuario registra un movimiento por cada campo modificado
+    Dado que la administradora "Ana" gestiona el módulo de usuarios
+    Y existe un usuario para editar con nombre "Carlos" y rol responsable
+    Cuando "Ana" edita ese usuario y cambia su nombre, su rol y su contraseña
+    Entonces la auditoría registra un movimiento de Edición de usuarios para el campo "Nombre"
+    Y la auditoría registra un movimiento de Edición de usuarios para el campo "Rol"
+    Y la auditoría registra un movimiento de Edición de usuarios para el campo "Contraseña"
+    Y ningún movimiento de auditoría expone la contraseña
 
   Escenario: La asignación de un responsable a una finca queda registrada en la auditoría
     Dado que la administradora "Ana" gestiona el módulo de fincas

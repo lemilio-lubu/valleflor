@@ -49,6 +49,10 @@ export class AdminService {
       errores: [],
     };
 
+    // Detalle para la auditoría: códigos de ítems creados / actualizados.
+    const codigosCreados: string[] = [];
+    const codigosActualizados: string[] = [];
+
     let workbook;
     try {
       workbook = xlsx.read(file.buffer, { type: 'buffer' });
@@ -183,6 +187,7 @@ export class AdminService {
             await this.colorRepo.save(color);
           }
           summary.insertados++;
+          codigosCreados.push(rCodigo);
         } else {
           // Actualizar atributos de la definición si cambiaron
           let cambio = false;
@@ -191,6 +196,7 @@ export class AdminService {
           if (cambio) {
             if (!isPreview) await this.colorRepo.save(color);
             summary.actualizados++;
+            codigosActualizados.push(rCodigo);
           }
         }
         coloresMap.set(colorKey, color);
@@ -230,11 +236,21 @@ export class AdminService {
     // Una carga masiva real se audita como un único movimiento (no una entrada
     // por fila). El modo preview no escribe nada, así que tampoco se audita.
     if (!isPreview && actor) {
+      // Resumen en valorNuevo y el detalle de códigos afectados en valorAnterior
+      // (creados) / campo, para que la auditoría no quede en un conteo opaco.
+      const listar = (codigos: string[]): string => {
+        if (codigos.length === 0) return '—';
+        const max = 30;
+        return codigos.length > max
+          ? `${codigos.slice(0, max).join(', ')} … (+${codigos.length - max})`
+          : codigos.join(', ');
+      };
       await this.auditoriaService.registrar({
         actor,
         accion: AccionAuditoria.CARGA_MASIVA,
         modulo: ModuloAuditoria.CATALOGO,
-        valorNuevo: `${summary.insertados} insertados, ${summary.actualizados} actualizados`,
+        campo: `Creados: ${listar(codigosCreados)} · Actualizados: ${listar(codigosActualizados)}`,
+        valorNuevo: `${summary.insertados} insertados, ${summary.actualizados} actualizados, ${summary.omitidos} sin cambios`,
       });
     }
 

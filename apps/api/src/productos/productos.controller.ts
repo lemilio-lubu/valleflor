@@ -51,8 +51,8 @@ export class ProductosController {
   }
 
   @Patch(':id/alta')
-  darDeAlta(@Param('id', ParseUUIDPipe) id: string) {
-    return this.productosService.darDeAlta(id);
+  darDeAlta(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser) {
+    return this.productosService.darDeAlta(id, actor);
   }
 
   @Delete(':id')

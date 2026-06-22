@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Filter, X } from 'lucide-react';
 import { ConsolidadoDiario } from './components/ConsolidadoDiario';
 import { ConsolidadoSemanal } from './components/ConsolidadoSemanal';
+import { AuditoriaButton } from '@/app/components/auditoria/AuditoriaButton';
 
 function getCurrentWeekAndYear(): { semana: number; anio: number } {
   const now = new Date();
@@ -73,6 +74,11 @@ export default function ConsolidadoPage() {
             Suma total de estimados por producto — todas las fincas y responsables
           </p>
         </div>
+        <AuditoriaButton
+          modulo="producción"
+          moduloLabel="Producción"
+          className="w-full sm:w-auto shrink-0"
+        />
       </div>
 
       {/* Tabs */}

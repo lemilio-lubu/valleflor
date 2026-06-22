@@ -2,6 +2,7 @@
 
 import { CatalogoProductos } from '@/app/components/catalogo/CatalogoProductos';
 import { BulkUploadCatalog } from './BulkUploadCatalog';
+import { AuditoriaButton } from '@/app/components/auditoria/AuditoriaButton';
 
 export default function CatalogoPage() {
   return (
@@ -13,6 +14,7 @@ export default function CatalogoPage() {
             Catálogo único de productos, variedades y colores para toda la operación
           </p>
         </div>
+        <AuditoriaButton modulo="catálogo" moduloLabel="Catálogo" className="w-full sm:w-auto shrink-0" />
       </div>
 
       {/* Carga masiva */}
