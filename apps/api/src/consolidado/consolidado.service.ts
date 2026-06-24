@@ -14,7 +14,7 @@ export interface ConsolidadoDiarioRow {
   variedad: string;
   color: string;
   codigo: string | null;
-  nombreComercial: string | null;
+  nombreOriginal: string | null;
   dias: Partial<Record<DiaSemana, DiaData>>;
   totalCajas: number;
   totalTallos: number;
@@ -26,7 +26,7 @@ export interface ConsolidadoSemanalRow {
   variedad: string;
   color: string;
   codigo: string | null;
-  nombreComercial: string | null;
+  nombreOriginal: string | null;
   numeroSemana: number;
   cajasEstimadas: number;
   tallosEstimados: number;
@@ -57,7 +57,7 @@ export class ConsolidadoService {
       variedad: string;
       color: string;
       codigo: string | null;
-      nombre_comercial: string | null;
+      nombre_original: string | null;
       dia: string | null;
       cajas: string;
       tallos: string;
@@ -69,11 +69,11 @@ export class ConsolidadoService {
         p.nombre  AS producto,
         v.nombre  AS variedad,
         c.nombre  AS color,
-        c.codigo  AS codigo,
-        c.nombre_comercial AS nombre_comercial,
+        p.codigo  AS codigo,
+        NULL      AS nombre_original,
         rd.dia    AS dia,
         COALESCE(SUM(rd.cajas), 0)  AS cajas,
-        COALESCE(SUM(rd.cajas * c.tallos_por_caja), 0) AS tallos
+        COALESCE(SUM(rd.cajas * p.tallos_por_caja), 0) AS tallos
       FROM colores c
       JOIN variedades v ON v.id = c.variedad_id
       JOIN productos  p ON p.id = v.producto_id
@@ -87,7 +87,7 @@ export class ConsolidadoService {
       WHERE c.activo = true
         AND v.activo = true
         AND p.activo = true
-      GROUP BY p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_comercial, rd.dia
+      GROUP BY p.nombre, v.nombre, c.nombre, p.codigo, rd.dia
       ORDER BY p.nombre, v.nombre, c.nombre
       `,
       [semana ?? null, anio ?? null],
@@ -102,7 +102,7 @@ export class ConsolidadoService {
           variedad: row.variedad,
           color: row.color,
           codigo: row.codigo,
-          nombreComercial: row.nombre_comercial,
+          nombreOriginal: row.nombre_original,
           dias: {},
           totalCajas: 0,
           totalTallos: 0,
@@ -138,7 +138,7 @@ export class ConsolidadoService {
       variedad: string;
       color: string;
       codigo: string | null;
-      nombre_comercial: string | null;
+      nombre_original: string | null;
       numero_semana: string | null;
       cajas_estimadas: string;
       tallos_estimados: string;
@@ -152,13 +152,13 @@ export class ConsolidadoService {
         p.nombre AS producto,
         v.nombre AS variedad,
         c.nombre AS color,
-        c.codigo AS codigo,
-        c.nombre_comercial AS nombre_comercial,
+        p.codigo AS codigo,
+        NULL     AS nombre_original,
         bs.numero_semana,
         COALESCE(SUM(bs.cajas_estimadas), 0)  AS cajas_estimadas,
-        COALESCE(SUM(bs.cajas_estimadas * c.tallos_por_caja), 0) AS tallos_estimados,
+        COALESCE(SUM(bs.cajas_estimadas * p.tallos_por_caja), 0) AS tallos_estimados,
         COALESCE(SUM(bs.cajas_total), 0)      AS cajas_reales,
-        COALESCE(SUM(bs.cajas_total * c.tallos_por_caja), 0)     AS tallos_reales
+        COALESCE(SUM(bs.cajas_total * p.tallos_por_caja), 0)     AS tallos_reales
       FROM colores c
       JOIN variedades v ON v.id = c.variedad_id
       JOIN productos  p ON p.id = v.producto_id
@@ -169,7 +169,7 @@ export class ConsolidadoService {
       WHERE c.activo = true
         AND v.activo = true
         AND p.activo = true
-      GROUP BY p.nombre, v.nombre, c.nombre, c.codigo, c.nombre_comercial, bs.numero_semana
+      GROUP BY p.nombre, v.nombre, c.nombre, p.codigo, bs.numero_semana
       ORDER BY p.nombre, v.nombre, c.nombre, bs.numero_semana
       `,
       [semanaInicio ?? null, semanaFin ?? null, anio ?? null],
@@ -184,7 +184,7 @@ export class ConsolidadoService {
       variedad: row.variedad,
       color: row.color,
       codigo: row.codigo,
-      nombreComercial: row.nombre_comercial,
+      nombreOriginal: row.nombre_original,
       numeroSemana: row.numero_semana !== null ? Number(row.numero_semana) : 0,
       cajasEstimadas: Math.round(Number(row.cajas_estimadas) * 100) / 100,
       tallosEstimados: Math.round(Number(row.tallos_estimados) * 100) / 100,

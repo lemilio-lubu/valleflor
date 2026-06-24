@@ -75,7 +75,8 @@ export class AdminService {
       const rProducto = String(normalizedRow['PRODUCTO'] || '').trim().toUpperCase();
       const rVariedad = String(normalizedRow['VARIEDAD'] || '').trim().toUpperCase();
       const rColor = String(normalizedRow['COLOR'] || '').trim().toUpperCase();
-      const rNombre = String(normalizedRow['NOMBRE'] || '').trim().toUpperCase();
+      const rawLongitud = String(normalizedRow['LONGITUD'] || '').trim();
+      const rLongitud = rawLongitud ? parseInt(rawLongitud, 10) : undefined;
       const rawCaja = String(normalizedRow['CAJA'] || '').trim();
       const rCaja = rawCaja ? parseInt(rawCaja, 10) : undefined;
 
@@ -122,19 +123,32 @@ export class AdminService {
         continue;
       }
 
-      // 3. Find or Create Producto (catálogo global, identificado por nombre)
-      const productoKey = rProducto;
+      // 3. Find or Create Producto (catálogo global, identificado por código)
+      const productoKey = rCodigo;
       let producto = productosMap.get(productoKey);
       if (!producto) {
-        producto = await this.productoRepo.findOne({ where: { nombre: rProducto } });
+        producto = await this.productoRepo.findOne({ where: { codigo: rCodigo } });
         if (!producto) {
-          producto = this.productoRepo.create({ nombre: rProducto });
+          producto = this.productoRepo.create({
+            codigo: rCodigo,
+            nombre: rProducto,
+            longitud: rLongitud ?? null,
+            tallosPorCaja: rCaja ?? 400,
+          });
           if (isPreview) {
             producto.id = crypto.randomUUID();
           } else {
             await this.productoRepo.save(producto);
           }
           summary.insertados++;
+        } else if (
+          (rLongitud !== undefined && producto.longitud !== rLongitud) ||
+          (rCaja !== undefined && producto.tallosPorCaja !== rCaja)
+        ) {
+          if (rLongitud !== undefined) producto.longitud = rLongitud;
+          if (rCaja !== undefined) producto.tallosPorCaja = rCaja;
+          if (!isPreview) await this.productoRepo.save(producto);
+          summary.actualizados++;
         }
         productosMap.set(productoKey, producto);
       }
@@ -156,34 +170,19 @@ export class AdminService {
         variedadesMap.set(variedadKey, variedad);
       }
 
-      // 5. Find or Create Color (la HOJA = definición productiva, identificada por código)
-      const colorKey = rCodigo;
+      // 5. Find or Create Color
+      const colorKey = `${variedad.id}-${rColor}`;
       let color = coloresMap.get(colorKey);
       if (!color) {
-        color = await this.colorRepo.findOne({ where: { codigo: rCodigo } });
+        color = await this.colorRepo.findOne({ where: { nombre: rColor, variedadId: variedad.id } });
         if (!color) {
-          color = this.colorRepo.create({
-            nombre: rColor,
-            variedadId: variedad.id,
-            codigo: rCodigo,
-            nombreComercial: rNombre || null,
-            tallosPorCaja: rCaja ?? 400,
-          });
+          color = this.colorRepo.create({ nombre: rColor, variedadId: variedad.id });
           if (isPreview) {
             color.id = crypto.randomUUID();
           } else {
             await this.colorRepo.save(color);
           }
           summary.insertados++;
-        } else {
-          // Actualizar atributos de la definición si cambiaron
-          let cambio = false;
-          if (rNombre && color.nombreComercial !== rNombre) { color.nombreComercial = rNombre; cambio = true; }
-          if (rCaja !== undefined && color.tallosPorCaja !== rCaja) { color.tallosPorCaja = rCaja; cambio = true; }
-          if (cambio) {
-            if (!isPreview) await this.colorRepo.save(color);
-            summary.actualizados++;
-          }
         }
         coloresMap.set(colorKey, color);
       }

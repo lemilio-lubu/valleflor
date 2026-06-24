@@ -125,7 +125,7 @@ export class SemanaReconciliationService {
           semana.id,
           semana.fechaInicio,
           color.id,
-          color.tallosPorCaja ?? divisorGlobal,
+          color.variedad?.producto?.tallosPorCaja ?? divisorGlobal,
         );
         nuevos.push(...seeds.map((s) => this.registroRepo.create(s)));
       }
