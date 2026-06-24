@@ -121,16 +121,16 @@ Then(
 
 Cosas clave que ya te da la infraestructura (no las reimplementes):
 
-| Necesitas… | Cómo |
-|------------|------|
-| La app HTTP | `this.app.getHttpServer()` (supertest) |
-| Estar autenticado | **automático**: el hook `Before` hace login admin y deja el JWT en `this.token` (también en `this.adminToken`) |
-| Actuar como un responsable | usa el step `Dado que {word} ha iniciado sesión` (`steps/auth.steps.ts`): hace login con `<persona>@valleflor.com` y deja su token en `this.tokens[persona]`. Helper `tokenDe(world, persona)`. Necesario para crear semanas y estimar (esas acciones exigen ser responsable, no admin) |
-| BD limpia por escenario | automático (`hooks.ts` hace TRUNCATE + seed admin antes de cada escenario) |
-| Tiempo determinista | el `hooks.ts` fija el reloj de la app en la **semana ISO 25 de 2026** vía `setNowProvider` (seam `src/common/clock.ts`, usado por `getCurrentISOWeek`). Así "semana actual" es estable y puedes probar bordes (semana 40 = futura, 20 = pasada). NO se fakea el `Date` global (eso da flakiness en este harness in-process) |
-| Recordar recursos entre steps | guárdalos en `this.ids` por clave lógica. Convenciones útiles para el core: `finca:<nombre>`, `responsable:<persona>`, `fincaDe:<persona>`, `semana:<persona>`, `producto`/`variedad`/`color` del último ítem de catálogo |
-| Recordar la respuesta entre steps | guárdala en `this.response` |
-| Aserciones | `import { expect } from 'expect'` (matchers tipo Jest) |
+| Necesitas…                       | Cómo                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| La app HTTP                       | `this.app.getHttpServer()` (supertest)                                                                                                                                                                                                                                                                                                     |
+| Estar autenticado                 | **automático**: el hook `Before` hace login admin y deja el JWT en `this.token` (también en `this.adminToken`)                                                                                                                                                                                                                 |
+| Actuar como un responsable        | usa el step`Dado que {word} ha iniciado sesión` (`steps/auth.steps.ts`): hace login con `<persona>@valleflor.com` y deja su token en `this.tokens[persona]`. Helper `tokenDe(world, persona)`. Necesario para crear semanas y estimar (esas acciones exigen ser responsable, no admin)                                            |
+| BD limpia por escenario           | automático (`hooks.ts` hace TRUNCATE + seed admin antes de cada escenario)                                                                                                                                                                                                                                                                |
+| Tiempo determinista               | el`hooks.ts` fija el reloj de la app en la **semana ISO 25 de 2026** vía `setNowProvider` (seam `src/common/clock.ts`, usado por `getCurrentISOWeek`). Así "semana actual" es estable y puedes probar bordes (semana 40 = futura, 20 = pasada). NO se fakea el `Date` global (eso da flakiness en este harness in-process) |
+| Recordar recursos entre steps     | guárdalos en`this.ids` por clave lógica. Convenciones útiles para el core: `finca:<nombre>`, `responsable:<persona>`, `fincaDe:<persona>`, `semana:<persona>`, `producto`/`variedad`/`color` del último ítem de catálogo                                                                                               |
+| Recordar la respuesta entre steps | guárdala en`this.response`                                                                                                                                                                                                                                                                                                                |
+| Aserciones                        | `import { expect } from 'expect'` (matchers tipo Jest)                                                                                                                                                                                                                                                                                     |
 
 > **Prefijo de rutas**: todas las rutas llevan `/api/v1/...` (el `setGlobalPrefix`). No lo olvides.
 
@@ -148,9 +148,11 @@ Salida esperada: `N scenarios (N passed)`. Si un step queda en `pending` o `unde
 ## 3. Reglas y convenciones
 
 - **BD de pruebas**: las pruebas usan **`floricultura_test`** (NO `floricultura_db`). Créala una vez:
+
   ```bash
   createdb -h localhost -U <tu_usuario> floricultura_test
   ```
+
   El esquema lo crea TypeORM solo (synchronize). Hay un guard que aborta si la BD no es la de test.
 - **Aislamiento**: cada escenario empieza con la BD vacía + un admin sembrado (`admin@valleflor.com` / `admin1234`). No asumas datos de escenarios anteriores.
 - **Datos propios del escenario**: si una prueba necesita una finca/semana/responsable, créalos en un step `Dado` (vía la API o el `DataSource`), no dependas de seeds globales.
@@ -163,14 +165,14 @@ Salida esperada: `N scenarios (N passed)`. Si un step queda en `pending` o `unde
 
 ## 4. Problemas comunes
 
-| Síntoma | Causa / solución |
-|---------|------------------|
-| `Undefined step` | El texto del `.feature` no coincide con ningún step. Copia el snippet sugerido. |
-| Cuelga / `database "floricultura_test" does not exist` | Falta crear la BD: `createdb ... floricultura_test`. |
-| `401` inesperado | Falta el `.set('Authorization', \`Bearer ${this.token}\`)` en el step (el `Before` ya deja `this.token`). |
-| `relation ... does not exist` | La entidad no está en el glob de TypeORM o la BD de test quedó en mal estado: bórrala y deja que synchronize la recree. |
-| Fallos intermitentes que cambian de escenario | Casi siempre hay **otra corrida de pruebas activa** (o un proceso `cucumber` huérfano) compartiendo la BD. Mátalos (`pkill -f cucumber`) y vuelve a correr una sola vez. |
-| Un escenario depende de la fecha real y rompe en otra semana | No uses `new Date()`/números de semana hardcodeados; el reloj está fijo (semana 25/2026) vía `src/common/clock.ts`. Deriva con `getCurrentISOWeek()`. |
-| Quiero ver el detalle del fallo | Abre `cucumber-report.html` o corre con `test:bdd`. |
+| Síntoma                                                     | Causa / solución                                                                                                                                                                   |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Undefined step`                                           | El texto del`.feature` no coincide con ningún step. Copia el snippet sugerido.                                                                                                   |
+| Cuelga /`database "floricultura_test" does not exist`      | Falta crear la BD:`createdb ... floricultura_test`.                                                                                                                               |
+| `401` inesperado                                           | Falta el`.set('Authorization', \`Bearer ${this.token}\`)`en el step (el`Before`ya deja`this.token`).                                                                          |
+| `relation ... does not exist`                              | La entidad no está en el glob de TypeORM o la BD de test quedó en mal estado: bórrala y deja que synchronize la recree.                                                          |
+| Fallos intermitentes que cambian de escenario                | Casi siempre hay**otra corrida de pruebas activa** (o un proceso `cucumber` huérfano) compartiendo la BD. Mátalos (`pkill -f cucumber`) y vuelve a correr una sola vez. |
+| Un escenario depende de la fecha real y rompe en otra semana | No uses`new Date()`/números de semana hardcodeados; el reloj está fijo (semana 25/2026) vía `src/common/clock.ts`. Deriva con `getCurrentISOWeek()`.                       |
+| Quiero ver el detalle del fallo                              | Abre`cucumber-report.html` o corre con `test:bdd`.                                                                                                                              |
 
 Referencia completa de la infraestructura: `.claude/commands/references/bdd-cucumber.md`.
