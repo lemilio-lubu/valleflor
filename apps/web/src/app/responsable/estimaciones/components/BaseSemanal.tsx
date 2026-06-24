@@ -361,16 +361,40 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
 
             return (
               <React.Fragment key={group.producto}>
-                {/* ── Product group header ── */}
+                {/* ── Product group header — subtotal por semana ── */}
                 <tr className="bg-surface-overlay border-t border-surface-border">
-                  <td colSpan={3} className="px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay">
+                  <td colSpan={3} className={`px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}>
                     <span className="text-[11px] font-bold uppercase tracking-widest text-verde-400">
                       {group.producto}
                     </span>
                   </td>
-                  <td colSpan={targetWeeks.length + 1} className="px-3 py-1.5 text-right">
-                    <span className="text-[10px] font-mono tabular-nums font-semibold text-verde-300">
-                      {viewMode === 'cajas' ? 'Cajas' : 'Tallos'}: {productoTotal.toFixed(2)}
+                  {targetWeeks.map((s) => {
+                    const colTotal = group.variedades.reduce((accV, vg) =>
+                      accV + vg.rows.reduce((acc, row) => {
+                        const d = row.semanas[String(s.numeroSemana)];
+                        const key = `${row.colorId}-${s.anio}-${s.numeroSemana}`;
+                        const estimadasCajas = d?.cajasEstimadas ?? 0;
+                        const realesCajas = d?.cajas ?? 0;
+                        const realesTallos = d?.tallos ?? 0;
+                        const estimadasTallos = d?.tallosEstimados ?? 0;
+                        const isReal = d?.esReal ?? false;
+                        const multiplier = estimadasCajas > 0 ? (estimadasTallos / estimadasCajas) : (realesCajas > 0 ? (realesTallos / realesCajas) : 400);
+                        const valCajas = isReal ? realesCajas : parseFloat(localEstimaciones[key] ?? String(estimadasCajas)) || 0;
+                        const valTallos = isReal ? realesTallos : valCajas * multiplier;
+                        return acc + (viewMode === 'cajas' ? valCajas : valTallos);
+                      }, 0)
+                    , 0);
+                    return (
+                      <td key={`psub-${group.producto}-${s.anio}-${s.numeroSemana}`} className="px-2 py-1.5 text-center w-[90px]">
+                        <span className="font-mono text-xs tabular-nums text-verde-300 font-semibold">
+                          {colTotal > 0 ? colTotal.toFixed(2) : <span className="text-carbon-600">—</span>}
+                        </span>
+                      </td>
+                    );
+                  })}
+                  <td className="px-2 py-1.5 text-center w-[90px] border-l border-surface-border">
+                    <span className="font-mono text-xs font-bold text-verde-500 tabular-nums">
+                      {productoTotal.toFixed(2)}
                     </span>
                   </td>
                 </tr>

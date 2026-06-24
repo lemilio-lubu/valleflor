@@ -122,7 +122,8 @@
       "mcp__Claude_in_Chrome__list_connected_browsers",
       "mcp__Claude_Preview__preview_start",
       "Bash(git rm *)",
-      "Bash(echo \"--- exit: $? ---\")"
+      "Bash(echo \"--- exit: $? ---\")",
+      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/web && npx tsc --noEmit -p tsconfig.json 2>&1 | head -40)"
     ]
   }
 }

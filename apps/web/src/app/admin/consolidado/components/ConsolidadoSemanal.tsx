@@ -540,27 +540,50 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
                 (s, r) => s + (isCajas ? r.totalCajasReales : r.totalTallosReales),
                 0,
               );
-              const hasData = group.rows.some((r) => Object.keys(r.semanas).length > 0);
+
+              // Subtotal del producto por cada semana (suma de sus colores),
+              // separado en estimado y real para mostrarlo en las columnas
+              // del encabezado de grupo — la suma total por unidad productiva.
+              const groupWeekTotals = weekCols.map((w) => {
+                let est = 0;
+                let real = 0;
+                for (const r of group.rows) {
+                  const s = r.semanas[w];
+                  if (s) {
+                    est += isCajas ? s.cajasEstimadas : s.tallosEstimados;
+                    real += isCajas ? s.cajasReales : s.tallosReales;
+                  }
+                }
+                return { w, est, real };
+              });
 
               return (
                 <React.Fragment key={`group-${group.producto}`}>
-                  {/* Encabezado de grupo — Producto */}
+                  {/* Encabezado de grupo — Producto con subtotal por semana */}
                   <tr className="bg-surface-overlay border-t border-surface-border">
                     <td
                       colSpan={5}
-                      className="px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay"
+                      className={`px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay border-r border-surface-border transition-shadow ${isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''}`}
                     >
                       <span className="text-[11px] font-bold uppercase tracking-widest text-verde-400">
                         {group.producto}
                       </span>
                     </td>
-                    <td
-                      colSpan={weekCols.length * 2 + 2}
-                      className="px-3 py-1.5 text-right"
-                    >
-                      <span className={`text-[10px] font-mono tabular-nums font-semibold ${hasData ? 'text-verde-300' : 'text-carbon-600'}`}>
-                        {isCajas ? 'Cajas' : 'Tallos'} — Est.: {groupEst.toFixed(2)} · Real: {groupReal.toFixed(2)}
-                      </span>
+                    {groupWeekTotals.map(({ w, est, real }) => (
+                      <React.Fragment key={`gw-${w}`}>
+                        <td className="px-2 py-1.5 text-center font-mono tabular-nums font-semibold text-dorado-400 border-l border-surface-border/20">
+                          {est > 0 ? est.toFixed(2) : <span className="text-carbon-600">—</span>}
+                        </td>
+                        <td className="px-2 py-1.5 text-center font-mono tabular-nums font-semibold text-agro-400">
+                          {real > 0 ? real.toFixed(2) : <span className="text-carbon-600">—</span>}
+                        </td>
+                      </React.Fragment>
+                    ))}
+                    <td className="px-2 py-1.5 text-center font-mono tabular-nums font-bold text-dorado-400 border-l border-surface-border">
+                      {groupEst > 0 ? groupEst.toFixed(2) : <span className="text-carbon-600">—</span>}
+                    </td>
+                    <td className="px-2 py-1.5 text-center font-mono tabular-nums font-bold text-agro-400">
+                      {groupReal > 0 ? groupReal.toFixed(2) : <span className="text-carbon-600">—</span>}
                     </td>
                   </tr>
 
