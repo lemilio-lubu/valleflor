@@ -70,15 +70,14 @@ export class BaseSemanalService {
       (semana.anio === currentYear && semana.numeroSemana <= currentWeekNum);
     const esReal = cajasTotal > 0 || isPastOrCurrent;
 
-    let base = await this.baseSemanalRepo.findOne({
-      where: { responsableId, colorId, numeroSemana, anio, fincaId },
-    });
-    if (base) {
-      base.cajasTotal = cajasTotal;
-      base.tallosTotal = tallosTotal;
-      base.esReal = esReal;
-    } else {
-      base = this.baseSemanalRepo.create({
+    // Upsert atómico: elimina el race condition del patrón find-then-insert.
+    // En conflicto pisa SOLO las columnas de datos reales; deja intactas las
+    // estimaciones (cajas_estimadas/tallos_estimados) que escribe upsertEstimacion.
+    await this.baseSemanalRepo
+      .createQueryBuilder()
+      .insert()
+      .into(BaseSemanal)
+      .values({
         responsableId,
         colorId,
         numeroSemana,
@@ -89,9 +88,17 @@ export class BaseSemanalService {
         esReal,
         cajasEstimadas: 0,
         tallosEstimados: 0,
-      });
-    }
-    return this.baseSemanalRepo.save(base);
+      })
+      .orUpdate(
+        ['cajas_total', 'tallos_total', 'es_real'],
+        ['responsable_id', 'color_id', 'numero_semana', 'anio', 'finca_id'],
+      )
+      .execute();
+
+    const base = await this.baseSemanalRepo.findOne({
+      where: { responsableId, colorId, numeroSemana, anio, fincaId },
+    });
+    return base!;
   }
 
   async resetSemana(
@@ -155,16 +162,15 @@ export class BaseSemanalService {
 
     const fincaId = responsable.fincaId;
 
-    let base = await this.baseSemanalRepo.findOne({
-      where: { responsableId: responsable.id, colorId, numeroSemana, anio, fincaId },
-    });
     const tallosEstimados = Math.round(cajasEstimadas * divisor * 100) / 100;
 
-    if (base) {
-      base.cajasEstimadas = cajasEstimadas;
-      base.tallosEstimados = tallosEstimados;
-    } else {
-      base = this.baseSemanalRepo.create({
+    // Upsert atómico: en conflicto pisa SOLO las columnas de estimación; deja
+    // intactos los datos reales (cajas_total/tallos_total) que escribe recalcular.
+    await this.baseSemanalRepo
+      .createQueryBuilder()
+      .insert()
+      .into(BaseSemanal)
+      .values({
         responsableId: responsable.id,
         fincaId,
         colorId,
@@ -175,9 +181,17 @@ export class BaseSemanalService {
         cajasEstimadas,
         tallosEstimados,
         esReal: false,
-      });
-    }
-    return this.baseSemanalRepo.save(base);
+      })
+      .orUpdate(
+        ['cajas_estimadas', 'tallos_estimados'],
+        ['responsable_id', 'color_id', 'numero_semana', 'anio', 'finca_id'],
+      )
+      .execute();
+
+    const base = await this.baseSemanalRepo.findOne({
+      where: { responsableId: responsable.id, colorId, numeroSemana, anio, fincaId },
+    });
+    return base!;
   }
 
   /** Colores activos asignados al responsable (cadena producto/variedad/color activa). */
