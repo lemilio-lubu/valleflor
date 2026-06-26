@@ -36,7 +36,12 @@ import { ConsolidadoModule } from './consolidado/consolidado.module';
           password: config.get<string>('DATABASE_PASSWORD', 'postgres'),
           database: config.get<string>('DATABASE_NAME', 'floricultura_db'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          migrations: [__dirname + '/database/migrations/**/*{.ts,.js}'],
           synchronize: isDev,
+          // En producción (synchronize off) la app aplica sola las migraciones
+          // pendientes al arrancar, sin depender del start command del deploy.
+          // Garantiza que el esquema nunca quede desactualizado tras un push.
+          migrationsRun: !isDev,
           logging: isDev,
         };
       },
