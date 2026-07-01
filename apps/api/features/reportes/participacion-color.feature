@@ -32,6 +32,11 @@ Característica: Participación por color en la producción semanal
     Cuando un responsable consulta la participación por color de la semana 30 de 2026
     Entonces el sistema niega el acceso a la participación por color
 
+  Escenario: Colores con el mismo nombre en variedades distintas del mismo producto se fusionan en una sola fila
+    Dado que se agrega una variedad adicional "Freedom Naranja" en el producto "Freedom" con el color "Cherry" y 20 cajas en la semana 30 de 2026
+    Cuando el administrador consulta la participación por color de la semana 30 de 2026
+    Entonces existe una única fila de color "Cherry" para el producto "Freedom" con cajasReales 80 en la semana 30
+
   @ui
   Escenario: La participación se muestra con formato de porcentaje
     Entonces la participación 60.5 se formatea como "60.5%"

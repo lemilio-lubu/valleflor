@@ -6,9 +6,7 @@ import { BaseSemanal } from '../base-semanal/base-semanal.entity';
 
 type ParticipacionColorRawRow = {
   producto: string;
-  variedad: string;
   color: string;
-  codigo: string | null;
   numero_semana: string | null;
   cajas_reales: string;
   participacion: string | null;
@@ -16,9 +14,7 @@ type ParticipacionColorRawRow = {
 
 export interface ParticipacionColorRow {
   producto: string;
-  variedad: string;
   color: string;
-  codigo: string | null;
   numeroSemana: number;
   cajasReales: number;
   participacion: number | null;
@@ -214,9 +210,12 @@ export class ConsolidadoService {
   }
 
   /**
-   * Participación por color — muestra TODOS los colores activos con su
+   * Participación por color — muestra TODOS los nombres de color activos con su
    * porcentaje de participación dentro del total de cajas reales del producto
    * en cada semana del rango indicado.
+   * Se agrupa por nombre de color únicamente (ignorando la variedad), porque
+   * un mismo nombre de color puede repetirse en variedades distintas del
+   * mismo producto y debe contarse una sola vez.
    * Colores sin registros en el rango devuelven numeroSemana = 0 (centinela).
    */
   async getParticipacionColor(
@@ -227,9 +226,7 @@ export class ConsolidadoService {
     const rawRows = await this.baseSemanalRepo.manager.query<ParticipacionColorRawRow[]>(
       `SELECT
   p.nombre AS producto,
-  v.nombre AS variedad,
   c.nombre AS color,
-  c.codigo,
   bs.numero_semana,
   COALESCE(SUM(bs.cajas_total), 0) AS cajas_reales,
   SUM(bs.cajas_total) * 100.0
@@ -247,16 +244,14 @@ LEFT JOIN base_semanal bs ON bs.color_id = c.id
 WHERE c.activo = true
   AND v.activo = true
   AND p.activo = true
-GROUP BY p.nombre, v.nombre, c.nombre, c.codigo, bs.numero_semana
-ORDER BY p.nombre, v.nombre, c.nombre, bs.numero_semana`,
+GROUP BY p.nombre, c.nombre, bs.numero_semana
+ORDER BY p.nombre, c.nombre, bs.numero_semana`,
       [semanaInicio ?? null, semanaFin ?? null, anio ?? null],
     );
 
     return rawRows.map((row) => ({
       producto: row.producto,
-      variedad: row.variedad,
       color: row.color,
-      codigo: row.codigo,
       numeroSemana: row.numero_semana !== null ? Number(row.numero_semana) : 0,
       cajasReales: Math.round(Number(row.cajas_reales) * 100) / 100,
       participacion:

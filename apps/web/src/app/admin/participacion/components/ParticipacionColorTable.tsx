@@ -11,9 +11,7 @@ import { FloatingScrollbar } from '@/lib/FloatingScrollbar';
 
 interface FlatRow {
   producto: string;
-  variedad: string;
   color: string;
-  codigo: string | null;
   numeroSemana: number;
   cajasReales: number;
   participacion: number | null;
@@ -26,9 +24,7 @@ interface SemanaPart {
 
 interface PivotRowP {
   producto: string;
-  variedad: string;
   color: string;
-  codigo: string | null;
   semanas: Record<number, SemanaPart>;
   totalCajasReales: number;
 }
@@ -53,13 +49,11 @@ const WEEK_COUNT = 10;
 function pivotParticipacion(flat: FlatRow[]): PivotRowP[] {
   const map = new Map<string, PivotRowP>();
   for (const row of flat) {
-    const key = `${row.producto}||${row.variedad}||${row.color}`;
+    const key = `${row.producto}||${row.color}`;
     if (!map.has(key)) {
       map.set(key, {
         producto: row.producto,
-        variedad: row.variedad,
         color: row.color,
-        codigo: row.codigo,
         semanas: {},
         totalCajasReales: 0,
       });
@@ -184,18 +178,12 @@ export function ParticipacionColorTable({ semanaInicio, semanaFin, anio }: Props
               <th className="table-th md:sticky md:left-0 z-20 bg-surface-overlay min-w-[130px]">
                 Producto
               </th>
-              <th className="table-th md:sticky md:left-[130px] z-20 bg-surface-overlay min-w-[120px]">
-                Variedad
-              </th>
               <th
-                className={`table-th md:sticky md:left-[250px] z-20 bg-surface-overlay min-w-[110px] border-r border-surface-border transition-shadow ${
+                className={`table-th md:sticky md:left-[130px] z-20 bg-surface-overlay min-w-[110px] border-r border-surface-border transition-shadow ${
                   isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''
                 }`}
               >
                 Color
-              </th>
-              <th className="table-th min-w-[90px] border-r border-surface-border/40 text-carbon-200">
-                Código
               </th>
               {weekCols.map((w) => (
                 <th
@@ -224,7 +212,7 @@ export function ParticipacionColorTable({ semanaInicio, semanaFin, anio }: Props
                   {/* Group header row */}
                   <tr className="bg-surface-overlay border-t border-surface-border">
                     <td
-                      colSpan={4}
+                      colSpan={2}
                       className={`px-3 py-1.5 md:sticky md:left-0 z-10 bg-surface-overlay border-r border-surface-border transition-shadow ${
                         isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''
                       }`}
@@ -252,24 +240,18 @@ export function ParticipacionColorTable({ semanaInicio, semanaFin, anio }: Props
                     const sinDatos = Object.keys(row.semanas).length === 0;
                     return (
                       <tr
-                        key={`${row.producto}-${row.variedad}-${row.color}`}
+                        key={`${row.producto}-${row.color}`}
                         className={`table-row-hover border-b border-surface-border/20 transition-opacity ${
                           sinDatos ? 'opacity-40' : ''
                         } ${i % 2 === 0 ? '' : 'bg-surface-overlay/10'}`}
                       >
                         <td className="px-3 py-2 text-carbon-700 whitespace-nowrap text-[11px] md:sticky md:left-0 z-10 bg-white min-w-[130px]" />
-                        <td className="px-3 py-2 text-carbon-200 whitespace-nowrap md:sticky md:left-[130px] z-10 bg-white min-w-[120px]">
-                          {row.variedad}
-                        </td>
                         <td
-                          className={`px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[250px] z-10 bg-white min-w-[110px] border-r border-surface-border transition-shadow ${
+                          className={`px-3 py-2 font-medium text-carbon-100 whitespace-nowrap md:sticky md:left-[130px] z-10 bg-white min-w-[110px] border-r border-surface-border transition-shadow ${
                             isScrolled ? 'shadow-[2px_0_8px_rgba(0,0,0,0.15)]' : ''
                           }`}
                         >
                           {row.color}
-                        </td>
-                        <td className="px-3 py-2 text-carbon-300 font-mono text-[11px] whitespace-nowrap border-r border-surface-border/20">
-                          {row.codigo || <span className="text-carbon-600">—</span>}
                         </td>
                         {weekCols.map((w) => {
                           const s = row.semanas[w];

@@ -172,6 +172,7 @@ async function seedParticipacionBase(world: VfWorld): Promise<void> {
 
   // Store IDs in world for step assertions
   world.ids['seed:responsable'] = responsableId;
+  world.ids['seed:finca'] = fincaId;
   world.ids['seed:colorCherry'] = colorCherryId;
   world.ids['seed:colorWhite'] = colorWhiteId;
   world.ids['seed:colorBlue'] = colorBlueId;
@@ -182,9 +183,7 @@ async function seedParticipacionBase(world: VfWorld): Promise<void> {
 
 interface ParticipacionColorRow {
   producto: string;
-  variedad: string;
   color: string;
-  codigo: string | null;
   numeroSemana: number;
   cajasReales: number;
   participacion: number | null;
@@ -202,6 +201,56 @@ Given(
     _anio: number,
   ) {
     await seedParticipacionBase(this);
+  },
+);
+
+Given(
+  'que se agrega una variedad adicional {string} en el producto {string} con el color {string} y {int} cajas en la semana {int} de {int}',
+  async function (
+    this: VfWorld,
+    nombreVariedad: string,
+    nombreProducto: string,
+    nombreColor: string,
+    cajas: number,
+    semana: number,
+    anio: number,
+  ) {
+    const ds = getDataSource();
+    const [producto] = await ds.query('SELECT id FROM productos WHERE nombre = $1 LIMIT 1', [
+      nombreProducto,
+    ]);
+
+    const variedadId = randomUUID();
+    await ds.query(
+      `INSERT INTO variedades (id, nombre, producto_id, activo, created_at, updated_at)
+       VALUES ($1, $2, $3, true, NOW(), NOW()) ON CONFLICT DO NOTHING`,
+      [variedadId, nombreVariedad, producto.id],
+    );
+
+    const colorId = randomUUID();
+    await ds.query(
+      `INSERT INTO colores (id, nombre, codigo, variedad_id, activo, tallos_por_caja, created_at, updated_at)
+       VALUES ($1, $2, '9999', $3, true, 400, NOW(), NOW()) ON CONFLICT DO NOTHING`,
+      [colorId, nombreColor, variedadId],
+    );
+
+    await ds.query(
+      `INSERT INTO base_semanal
+         (id, responsable_id, finca_id, color_id, numero_semana, anio,
+          cajas_total, tallos_total, cajas_estimadas, tallos_estimados,
+          es_real, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0, 0, false, NOW(), NOW())
+       ON CONFLICT DO NOTHING`,
+      [
+        randomUUID(),
+        this.ids['seed:responsable'],
+        this.ids['seed:finca'],
+        colorId,
+        semana,
+        anio,
+        cajas,
+      ],
+    );
   },
 );
 
@@ -270,9 +319,7 @@ Then('las filas tienen la forma de ParticipacionColorRow', function (this: VfWor
   expect(rows.length).toBeGreaterThan(0);
   const first = rows[0];
   expect(typeof first.producto).toBe('string');
-  expect(typeof first.variedad).toBe('string');
   expect(typeof first.color).toBe('string');
-  expect('codigo' in first).toBe(true);
   expect(typeof first.numeroSemana).toBe('number');
   expect(typeof first.cajasReales).toBe('number');
   // participacion is number | null
@@ -332,6 +379,26 @@ Then(
 Then('el sistema niega el acceso a la participación por color', function (this: VfWorld) {
   expect(this.response!.status).toBe(403);
 });
+
+Then(
+  'existe una única fila de color {string} para el producto {string} con cajasReales {int} en la semana {int}',
+  function (
+    this: VfWorld,
+    color: string,
+    producto: string,
+    cajasReales: number,
+    semana: number,
+  ) {
+    expect(this.response!.status).toBe(200);
+    const rows = this.response!.body as ParticipacionColorRow[];
+
+    const matching = rows.filter(
+      (r) => r.producto === producto && r.color === color && r.numeroSemana === semana,
+    );
+    expect(matching.length).toBe(1);
+    expect(matching[0].cajasReales).toBe(cajasReales);
+  },
+);
 
 // ── @ui steps (pure formatting logic — no HTTP call needed) ──────────────────
 
