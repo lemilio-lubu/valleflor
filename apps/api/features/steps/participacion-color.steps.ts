@@ -34,6 +34,15 @@ const SEED_VARIETY3_NAME = 'Gypsophila Million Stars';
 const SEED_COLOR_PINK = 'Pink';
 const SEED_CODE_PINK = '8004';
 
+// Extra variety added to Freedom to test color-name merging across varieties
+const SEED_CODE_NARANJA = '9999';
+
+// Fourth product — single color with only cajas_estimadas and es_real = false,
+// to test the fallback to estimado when the week has no real data yet
+const SEED_PRODUCT4_NAME = 'Iris';
+const SEED_VARIETY4_NAME = 'Iris Estimado';
+const SEED_CODE_ESTIMADO = '9998';
+
 // ── Seed helper ───────────────────────────────────────────────────────────────
 
 /**
@@ -110,7 +119,7 @@ async function seedParticipacionBase(world: VfWorld): Promise<void> {
          (id, responsable_id, finca_id, color_id, numero_semana, anio,
           cajas_total, tallos_total, cajas_estimadas, tallos_estimados,
           es_real, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0, 0, false, NOW(), NOW())
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0, 0, true, NOW(), NOW())
        ON CONFLICT DO NOTHING`,
       [randomUUID(), responsableId, fincaId, colorId, SEED_SEMANA, SEED_ANIO, cajasTotal],
     );
@@ -142,7 +151,7 @@ async function seedParticipacionBase(world: VfWorld): Promise<void> {
        (id, responsable_id, finca_id, color_id, numero_semana, anio,
         cajas_total, tallos_total, cajas_estimadas, tallos_estimados,
         es_real, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, 0, 0, 0, 0, false, NOW(), NOW())
+     VALUES ($1, $2, $3, $4, $5, $6, 0, 0, 0, 0, true, NOW(), NOW())
      ON CONFLICT DO NOTHING`,
     [randomUUID(), responsableId, fincaId, colorBlueId, SEED_SEMANA, SEED_ANIO],
   );
@@ -173,6 +182,7 @@ async function seedParticipacionBase(world: VfWorld): Promise<void> {
   // Store IDs in world for step assertions
   world.ids['seed:responsable'] = responsableId;
   world.ids['seed:finca'] = fincaId;
+  world.ids['seed:productoFreedom'] = producto1Id;
   world.ids['seed:colorCherry'] = colorCherryId;
   world.ids['seed:colorWhite'] = colorWhiteId;
   world.ids['seed:colorBlue'] = colorBlueId;
@@ -185,7 +195,8 @@ interface ParticipacionColorRow {
   producto: string;
   color: string;
   numeroSemana: number;
-  cajasReales: number;
+  cajas: number;
+  esReal: boolean;
   participacion: number | null;
 }
 
@@ -215,23 +226,25 @@ Given(
     semana: number,
     anio: number,
   ) {
+    // Este step reutiliza la siembra de seedParticipacionBase, que hoy solo
+    // registra el producto "Freedom" bajo world.ids['seed:productoFreedom'].
+    if (nombreProducto !== SEED_PRODUCT_NAME) {
+      throw new Error(`Step solo soporta el producto sembrado "${SEED_PRODUCT_NAME}"`);
+    }
     const ds = getDataSource();
-    const [producto] = await ds.query('SELECT id FROM productos WHERE nombre = $1 LIMIT 1', [
-      nombreProducto,
-    ]);
 
     const variedadId = randomUUID();
     await ds.query(
       `INSERT INTO variedades (id, nombre, producto_id, activo, created_at, updated_at)
        VALUES ($1, $2, $3, true, NOW(), NOW()) ON CONFLICT DO NOTHING`,
-      [variedadId, nombreVariedad, producto.id],
+      [variedadId, nombreVariedad, this.ids['seed:productoFreedom']],
     );
 
     const colorId = randomUUID();
     await ds.query(
       `INSERT INTO colores (id, nombre, codigo, variedad_id, activo, tallos_por_caja, created_at, updated_at)
-       VALUES ($1, $2, '9999', $3, true, 400, NOW(), NOW()) ON CONFLICT DO NOTHING`,
-      [colorId, nombreColor, variedadId],
+       VALUES ($1, $2, $3, $4, true, 400, NOW(), NOW()) ON CONFLICT DO NOTHING`,
+      [colorId, nombreColor, SEED_CODE_NARANJA, variedadId],
     );
 
     await ds.query(
@@ -239,7 +252,7 @@ Given(
          (id, responsable_id, finca_id, color_id, numero_semana, anio,
           cajas_total, tallos_total, cajas_estimadas, tallos_estimados,
           es_real, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0, 0, false, NOW(), NOW())
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0, 0, true, NOW(), NOW())
        ON CONFLICT DO NOTHING`,
       [
         randomUUID(),
@@ -251,6 +264,59 @@ Given(
         cajas,
       ],
     );
+  },
+);
+
+Given(
+  'que existe un color {string} en un producto nuevo con {int} cajas estimadas y sin dato real en la semana {int} de {int}',
+  async function (
+    this: VfWorld,
+    nombreColor: string,
+    cajasEstimadas: number,
+    semana: number,
+    anio: number,
+  ) {
+    const ds = getDataSource();
+
+    const productoId = randomUUID();
+    await ds.query(
+      `INSERT INTO productos (id, nombre, activo, created_at, updated_at)
+       VALUES ($1, $2, true, NOW(), NOW()) ON CONFLICT DO NOTHING`,
+      [productoId, SEED_PRODUCT4_NAME],
+    );
+    const variedadId = randomUUID();
+    await ds.query(
+      `INSERT INTO variedades (id, nombre, producto_id, activo, created_at, updated_at)
+       VALUES ($1, $2, $3, true, NOW(), NOW()) ON CONFLICT DO NOTHING`,
+      [variedadId, SEED_VARIETY4_NAME, productoId],
+    );
+    const colorId = randomUUID();
+    await ds.query(
+      `INSERT INTO colores (id, nombre, codigo, variedad_id, activo, tallos_por_caja, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, true, 400, NOW(), NOW()) ON CONFLICT DO NOTHING`,
+      [colorId, nombreColor, SEED_CODE_ESTIMADO, variedadId],
+    );
+
+    // es_real = false: la semana todavía no tiene dato real, solo estimado.
+    await ds.query(
+      `INSERT INTO base_semanal
+         (id, responsable_id, finca_id, color_id, numero_semana, anio,
+          cajas_total, tallos_total, cajas_estimadas, tallos_estimados,
+          es_real, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 0, 0, $7, 0, false, NOW(), NOW())
+       ON CONFLICT DO NOTHING`,
+      [
+        randomUUID(),
+        this.ids['seed:responsable'],
+        this.ids['seed:finca'],
+        colorId,
+        semana,
+        anio,
+        cajasEstimadas,
+      ],
+    );
+
+    this.ids['seed:productoEstimado'] = productoId;
   },
 );
 
@@ -321,7 +387,8 @@ Then('las filas tienen la forma de ParticipacionColorRow', function (this: VfWor
   expect(typeof first.producto).toBe('string');
   expect(typeof first.color).toBe('string');
   expect(typeof first.numeroSemana).toBe('number');
-  expect(typeof first.cajasReales).toBe('number');
+  expect(typeof first.cajas).toBe('number');
+  expect(typeof first.esReal).toBe('boolean');
   // participacion is number | null
   expect(first.participacion === null || typeof first.participacion === 'number').toBe(true);
 });
@@ -351,14 +418,14 @@ Then(
 
     // The seed inserts Tulipan/Blue with 0 cajas in semana 30 as the only color
     // of that product in that week. WINDOW denominator = 0 → NULLIF → null.
-    const zeroRows = rows.filter((r) => r.cajasReales === 0 && r.numeroSemana > 0);
+    const zeroRows = rows.filter((r) => r.cajas === 0 && r.numeroSemana > 0);
     expect(zeroRows.length).toBeGreaterThan(0);
 
     for (const zeroRow of zeroRows) {
       const siblings = rows.filter(
         (r) => r.producto === zeroRow.producto && r.numeroSemana === zeroRow.numeroSemana,
       );
-      const allZero = siblings.every((r) => r.cajasReales === 0);
+      const allZero = siblings.every((r) => r.cajas === 0);
       if (allZero) {
         expect(zeroRow.participacion).toBeNull();
       }
@@ -396,7 +463,21 @@ Then(
       (r) => r.producto === producto && r.color === color && r.numeroSemana === semana,
     );
     expect(matching.length).toBe(1);
-    expect(matching[0].cajasReales).toBe(cajasReales);
+    expect(matching[0].cajas).toBe(cajasReales);
+  },
+);
+
+Then(
+  'la fila de color {string} en la semana {int} usa el estimado con {int} cajas y esReal false',
+  function (this: VfWorld, color: string, semana: number, cajasEstimadas: number) {
+    expect(this.response!.status).toBe(200);
+    const rows = this.response!.body as ParticipacionColorRow[];
+
+    const row = rows.find((r) => r.color === color && r.numeroSemana === semana);
+    expect(row).toBeTruthy();
+    expect(row!.esReal).toBe(false);
+    expect(row!.cajas).toBe(cajasEstimadas);
+    expect(row!.participacion).toBe(100);
   },
 );
 

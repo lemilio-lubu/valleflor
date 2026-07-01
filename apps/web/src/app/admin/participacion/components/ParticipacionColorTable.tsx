@@ -13,12 +13,15 @@ interface FlatRow {
   producto: string;
   color: string;
   numeroSemana: number;
-  cajasReales: number;
+  cajas: number;
+  /** false cuando la semana aún no tiene dato real y se muestra el estimado */
+  esReal: boolean;
   participacion: number | null;
 }
 
 interface SemanaPart {
-  cajasReales: number;
+  cajas: number;
+  esReal: boolean;
   participacion: number | null;
 }
 
@@ -26,7 +29,7 @@ interface PivotRowP {
   producto: string;
   color: string;
   semanas: Record<number, SemanaPart>;
-  totalCajasReales: number;
+  totalCajas: number;
 }
 
 interface ProductGroup {
@@ -55,17 +58,17 @@ function pivotParticipacion(flat: FlatRow[]): PivotRowP[] {
         producto: row.producto,
         color: row.color,
         semanas: {},
-        totalCajasReales: 0,
+        totalCajas: 0,
       });
     }
     if (row.numeroSemana === 0) continue;
     const entry = map.get(key)!;
     entry.semanas[row.numeroSemana] = {
-      cajasReales: row.cajasReales,
+      cajas: row.cajas,
+      esReal: row.esReal,
       participacion: row.participacion,
     };
-    entry.totalCajasReales =
-      Math.round((entry.totalCajasReales + row.cajasReales) * 100) / 100;
+    entry.totalCajas = Math.round((entry.totalCajas + row.cajas) * 100) / 100;
   }
   return Array.from(map.values());
 }
@@ -202,7 +205,7 @@ export function ParticipacionColorTable({ semanaInicio, semanaFin, anio }: Props
                 let cajas = 0;
                 for (const r of group.rows) {
                   const s = r.semanas[w];
-                  if (s) cajas += s.cajasReales;
+                  if (s) cajas += s.cajas;
                 }
                 return { w, cajas };
               });
@@ -256,13 +259,26 @@ export function ParticipacionColorTable({ semanaInicio, semanaFin, anio }: Props
                         {weekCols.map((w) => {
                           const s = row.semanas[w];
                           const part = s ? s.participacion : null;
+                          const esEstimado = s ? !s.esReal : false;
                           return (
                             <td
                               key={w}
-                              className="px-2 py-2 text-center font-mono tabular-nums text-agro-500 border-l border-surface-border/20"
+                              className={`px-2 py-2 text-center font-mono tabular-nums border-l border-surface-border/20 ${
+                                esEstimado ? 'text-dorado-500' : 'text-agro-500'
+                              }`}
                             >
                               {part !== null ? (
-                                `${part.toFixed(1)}%`
+                                <span
+                                  className="inline-flex items-baseline gap-1"
+                                  title={esEstimado ? 'Estimado — semana sin dato real aún' : undefined}
+                                >
+                                  {`${part.toFixed(1)}%`}
+                                  {esEstimado && (
+                                    <span className="text-[9px] font-semibold uppercase tracking-wide text-dorado-400">
+                                      Est.
+                                    </span>
+                                  )}
+                                </span>
                               ) : (
                                 <span className="text-carbon-700">—</span>
                               )}

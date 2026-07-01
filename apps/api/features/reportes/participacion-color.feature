@@ -37,6 +37,11 @@ Característica: Participación por color en la producción semanal
     Cuando el administrador consulta la participación por color de la semana 30 de 2026
     Entonces existe una única fila de color "Cherry" para el producto "Freedom" con cajasReales 80 en la semana 30
 
+  Escenario: Una semana sin dato real todavía usa el estimado para calcular la participación
+    Dado que existe un color "Lirio" en un producto nuevo con 30 cajas estimadas y sin dato real en la semana 31 de 2026
+    Cuando el administrador consulta la participación por color de la semana 31 de 2026
+    Entonces la fila de color "Lirio" en la semana 31 usa el estimado con 30 cajas y esReal false
+
   @ui
   Escenario: La participación se muestra con formato de porcentaje
     Entonces la participación 60.5 se formatea como "60.5%"

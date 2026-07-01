@@ -8,7 +8,8 @@ type ParticipacionColorRawRow = {
   producto: string;
   color: string;
   numero_semana: string | null;
-  cajas_reales: string;
+  cajas: string;
+  es_real: boolean;
   participacion: string | null;
 };
 
@@ -16,7 +17,9 @@ export interface ParticipacionColorRow {
   producto: string;
   color: string;
   numeroSemana: number;
-  cajasReales: number;
+  cajas: number;
+  /** false cuando la semana aún no tiene dato real y se usó el estimado */
+  esReal: boolean;
   participacion: number | null;
 }
 
@@ -211,11 +214,15 @@ export class ConsolidadoService {
 
   /**
    * Participación por color — muestra TODOS los nombres de color activos con su
-   * porcentaje de participación dentro del total de cajas reales del producto
-   * en cada semana del rango indicado.
+   * porcentaje de participación dentro del total de cajas del producto en cada
+   * semana del rango indicado.
    * Se agrupa por nombre de color únicamente (ignorando la variedad), porque
    * un mismo nombre de color puede repetirse en variedades distintas del
    * mismo producto y debe contarse una sola vez.
+   * Por semana usa el dato real (cajas_total) si ya está disponible
+   * (base_semanal.es_real = true); si la semana todavía no tiene dato real
+   * (es futura), usa el estimado (cajas_estimadas) para poder proyectar la
+   * participación igual.
    * Colores sin registros en el rango devuelven numeroSemana = 0 (centinela).
    */
   async getParticipacionColor(
@@ -228,10 +235,12 @@ export class ConsolidadoService {
   p.nombre AS producto,
   c.nombre AS color,
   bs.numero_semana,
-  COALESCE(SUM(bs.cajas_total), 0) AS cajas_reales,
-  SUM(bs.cajas_total) * 100.0
+  BOOL_AND(COALESCE(bs.es_real, true)) AS es_real,
+  COALESCE(SUM(CASE WHEN bs.es_real THEN bs.cajas_total ELSE bs.cajas_estimadas END), 0) AS cajas,
+  SUM(CASE WHEN bs.es_real THEN bs.cajas_total ELSE bs.cajas_estimadas END) * 100.0
     / NULLIF(
-        SUM(SUM(bs.cajas_total)) OVER (PARTITION BY p.nombre, bs.numero_semana),
+        SUM(SUM(CASE WHEN bs.es_real THEN bs.cajas_total ELSE bs.cajas_estimadas END))
+          OVER (PARTITION BY p.nombre, bs.numero_semana),
         0
       ) AS participacion
 FROM colores c
@@ -253,7 +262,8 @@ ORDER BY p.nombre, c.nombre, bs.numero_semana`,
       producto: row.producto,
       color: row.color,
       numeroSemana: row.numero_semana !== null ? Number(row.numero_semana) : 0,
-      cajasReales: Math.round(Number(row.cajas_reales) * 100) / 100,
+      cajas: Math.round(Number(row.cajas) * 100) / 100,
+      esReal: row.es_real,
       participacion:
         row.participacion !== null
           ? Math.round(Number(row.participacion) * 100) / 100
