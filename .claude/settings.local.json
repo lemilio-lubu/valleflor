@@ -160,7 +160,9 @@
       "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/web && npx tsc --noEmit -p tsconfig.json 2>&1 | head -60 && npx eslint src/app/admin/catalogo/BulkUploadCatalog.tsx 2>&1 | tail -40)",
       "Bash(ls -1t /c/Users/lemil/Downloads/villaflor/apps/api/src/database/migrations/ | head -8)",
       "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/web && npx tsc --noEmit -p tsconfig.json 2>&1 | head -80)",
-      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/web && npx eslint src/app/components/catalogo/CatalogoProductos.tsx \"src/app/admin/fincas/[id]/page.tsx\" src/app/admin/catalogo/BulkUploadCatalog.tsx 2>&1 | tail -60)"
+      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/web && npx eslint src/app/components/catalogo/CatalogoProductos.tsx \"src/app/admin/fincas/[id]/page.tsx\" src/app/admin/catalogo/BulkUploadCatalog.tsx 2>&1 | tail -60)",
+      "Bash(cd /c/Users/lemil/Downloads/villaflor && cat .claude/launch.json 2>/dev/null; echo \"---\"; find . -maxdepth 2 -iname \"docker-compose*.yml\" 2>/dev/null; echo \"---seed---\"; find apps/api -iname \"*seed*\" -not -path \"*/node_modules/*\" 2>/dev/null | head -20)",
+      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/web && npx tsc --noEmit -p tsconfig.json 2>&1 | head -100)"
     ]
   }
 }

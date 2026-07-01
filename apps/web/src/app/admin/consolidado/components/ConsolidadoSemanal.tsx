@@ -207,7 +207,7 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
       const alternateSet        = new Set<number>();
       const groupSet            = new Set<number>();
 
-      const h1: (string | number)[] = ['Código', 'Producto', 'Nombre comercial', 'Variedad', 'Color'];
+      const h1: (string | number)[] = ['Código', 'Nombre comercial', 'Producto', 'Variedad', 'Color'];
       const h2: (string | number)[] = ['', '', '', '', ''];
       weekCols.forEach((w) => { h1.push(`Sem ${w}`, ''); h2.push('Est.', 'Real'); });
       h1.push('Total', '');
@@ -228,15 +228,28 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
         const gReal = group.rows.reduce((s, r) => s + (forCajas ? r.totalCajasReales    : r.totalTallosReales),    0);
         const gRow  = new Array<string | number>(totalCols).fill('');
         gRow[0]            = group.producto.toUpperCase();
-        gRow[totalCols - 2] = `Est: ${gEst.toFixed(2)}`;
-        gRow[totalCols - 1] = `Real: ${gReal.toFixed(2)}`;
+        weekCols.forEach((w, wi) => {
+          let est = 0;
+          let real = 0;
+          for (const r of group.rows) {
+            const s = r.semanas[w];
+            if (s) {
+              est  += forCajas ? s.cajasEstimadas : s.tallosEstimados;
+              real += forCajas ? s.cajasReales    : s.tallosReales;
+            }
+          }
+          gRow[FIXED + wi * 2]     = est;
+          gRow[FIXED + wi * 2 + 1] = real;
+        });
+        gRow[totalCols - 2] = gEst;
+        gRow[totalCols - 1] = gReal;
         aoa.push(gRow);
         groupSet.add(aoa.length - 1);
         rowKinds.push('group');
 
         group.rows.forEach((r, i) => {
           const row: (string | number)[] = [
-            r.codigo || '—', r.producto, r.nombreComercial || '—', r.variedad, r.color,
+            r.codigo || '—', r.nombreComercial || '—', r.producto, r.variedad, r.color,
           ];
           weekCols.forEach((w) => {
             const s = r.semanas[w];
@@ -345,7 +358,8 @@ export function ConsolidadoSemanal({ semanaInicio, semanaFin, anio }: Props) {
             cell.s = { fill: { patternType: 'solid', fgColor: { rgb: COLORS.VERDE_LIGHT } },
               font: { color: { rgb: col < FIXED ? COLORS.VERDE_BG : COLORS.VERDE_TEXT }, bold: true, sz: 9 },
               alignment: { horizontal: col < FIXED ? 'left' : 'center', vertical: 'center' },
-              border: BORDER };
+              border: BORDER, ...(isDataCol ? { numFmt: '0.00' } : {}) };
+            if (isDataCol && typeof cell.v === 'number') cell.z = '0.00';
           } else if (kind === 'data') {
             const bg = isAlt ? COLORS.SURFACE : COLORS.WHITE;
             if (!isDataCol) {

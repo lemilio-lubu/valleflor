@@ -29,6 +29,11 @@ interface BaseSemanalResponse {
   semanas: Array<{ anio: number; numeroSemana: number }>;
   rows: MatrizRow[];
 }
+interface ColorInfo {
+  id: string;
+  codigo: string | null;
+  nombreComercial: string | null;
+}
 
 interface VariedadGroup {
   variedad: string;
@@ -63,6 +68,7 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
   const [filtroProducto, setFiltroProducto] = useState<string>('');
   const [filtroVariedad, setFiltroVariedad] = useState<string>('');
   const [filtroColor, setFiltroColor] = useState<string>('');
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
   const { scrollRef, isScrolled, canScrollRight, isVisible, scrollLeft, scrollRight } = useTableScroll(220);
 
   const { data, isLoading } = useQuery<BaseSemanalResponse>({
@@ -146,100 +152,165 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
     return matchProducto && matchVariedad && matchColor;
   });
 
-  const handleDownloadExcel = () => {
-    const finca = filteredRows[0]?.finca ?? rows[0]?.finca ?? '';
-    const semanaInicio = targetWeeks[0];
-    const semanaFin = targetWeeks[targetWeeks.length - 1];
-    const ahora = new Date();
-    const fechaEmision = ahora.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const horaEmision = ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const tipo = viewMode === 'cajas' ? 'Cajas' : 'Tallos';
+  const handleDownloadExcel = async () => {
+    setIsExportingExcel(true);
+    try {
+      const colores: ColorInfo[] = await api.get('/colores').then((r) => r.data);
+      const colorMap = new Map(colores.map((c) => [c.id, c]));
 
-    const diaHeaders = targetWeeks.map(s => `Sem ${s.numeroSemana}`);
-    const tableHeader = ['Producto', 'Variedad', 'Color', ...diaHeaders, 'Total general'];
+      const finca = filteredRows[0]?.finca ?? rows[0]?.finca ?? '';
+      const semanaInicio = targetWeeks[0];
+      const semanaFin = targetWeeks[targetWeeks.length - 1];
+      const ahora = new Date();
+      const fechaEmision = ahora.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const horaEmision = ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const tipo = viewMode === 'cajas' ? 'Cajas' : 'Tallos';
 
-    type CellState = 'none' | 'estimated' | 'real';
-    const cellState: CellState[][] = [];
+      const diaHeaders = targetWeeks.map(s => `Sem ${s.numeroSemana}`);
+      const tableHeader = ['Código', 'Nombre comercial', 'Producto', 'Variedad', 'Color', ...diaHeaders, 'Total general'];
+      const totalCols = tableHeader.length;
+      const DATA_COL_OFFSET = 5; // Código, Nombre comercial, Producto, Variedad, Color
 
-    const dataRows = filteredRows.map((r, rowIdx) => {
-      cellState[rowIdx] = [];
-      let totalFila = 0;
-      const semCols = targetWeeks.map((s, colIdx) => {
-        const key = `${r.colorId}-${s.anio}-${s.numeroSemana}`;
-        const d = r.semanas[String(s.numeroSemana)];
-        const estimadas = d?.cajasEstimadas ?? 0;
-        const reales = d?.cajas ?? 0;
-        const realesTallos = d?.tallos ?? 0;
-        const isReal = d?.esReal ?? false;
-        const valCajas = isReal ? reales : parseFloat(localEstimaciones[key] ?? String(estimadas)) || 0;
-        const valTallos = isReal ? realesTallos : valCajas * 400; // Simplified for Excel
-        const realVal = viewMode === 'cajas' ? reales : realesTallos;
-        const effectiveEst = parseFloat(localEstimaciones[key] ?? String(estimadas)) || 0;
-        if (realVal > 0) cellState[rowIdx][colIdx] = 'real';
-        else if (effectiveEst > 0) cellState[rowIdx][colIdx] = 'estimated';
-        else cellState[rowIdx][colIdx] = 'none';
-        const finalVal = viewMode === 'cajas' ? valCajas : valTallos;
-        totalFila += finalVal;
-        return finalVal;
+      type CellState = 'none' | 'estimated' | 'real';
+      const cellStateByRow: Record<number, CellState[]> = {};
+      const groupRowSet = new Set<number>();
+      const dataSectionRows: (string | number)[][] = [];
+      const weekGrandTotals = new Array(targetWeeks.length).fill(0);
+      let grandTotal = 0;
+
+      for (const group of groupRows(filteredRows)) {
+        const builtRows = group.variedades.flatMap((v) => v.rows).map((r) => {
+          const rowState: CellState[] = [];
+          let totalFila = 0;
+          const semCols = targetWeeks.map((s, colIdx) => {
+            const key = `${r.colorId}-${s.anio}-${s.numeroSemana}`;
+            const d = r.semanas[String(s.numeroSemana)];
+            const estimadas = d?.cajasEstimadas ?? 0;
+            const reales = d?.cajas ?? 0;
+            const realesTallos = d?.tallos ?? 0;
+            const isReal = d?.esReal ?? false;
+            const valCajas = isReal ? reales : parseFloat(localEstimaciones[key] ?? String(estimadas)) || 0;
+            const valTallos = isReal ? realesTallos : valCajas * 400; // Simplified for Excel
+            const realVal = viewMode === 'cajas' ? reales : realesTallos;
+            const effectiveEst = parseFloat(localEstimaciones[key] ?? String(estimadas)) || 0;
+            rowState[colIdx] = realVal > 0 ? 'real' : effectiveEst > 0 ? 'estimated' : 'none';
+            const finalVal = viewMode === 'cajas' ? valCajas : valTallos;
+            totalFila += finalVal;
+            return finalVal;
+          });
+          const colorInfo = colorMap.get(r.colorId);
+          return {
+            cells: [colorInfo?.codigo || '—', colorInfo?.nombreComercial || '—', r.producto, r.variedad, r.color, ...semCols, totalFila],
+            weekVals: semCols,
+            total: totalFila,
+            state: rowState,
+          };
+        });
+
+        const groupTotal = builtRows.reduce((s, br) => s + br.total, 0);
+        const groupRow = new Array<string | number>(totalCols).fill('');
+        groupRow[0] = group.producto.toUpperCase();
+        targetWeeks.forEach((_, wi) => {
+          groupRow[DATA_COL_OFFSET + wi] = builtRows.reduce((s, br) => s + br.weekVals[wi], 0);
+        });
+        groupRow[totalCols - 1] = groupTotal;
+        dataSectionRows.push(groupRow);
+        groupRowSet.add(dataSectionRows.length - 1);
+
+        for (const br of builtRows) {
+          dataSectionRows.push(br.cells);
+          cellStateByRow[dataSectionRows.length - 1] = br.state;
+          br.weekVals.forEach((v, i) => { weekGrandTotals[i] += v; });
+          grandTotal += br.total;
+        }
+      }
+
+      const totalRow = new Array<string | number>(totalCols).fill('');
+      totalRow[0] = 'TOTAL GENERAL';
+      weekGrandTotals.forEach((v, i) => { totalRow[DATA_COL_OFFSET + i] = v; });
+      totalRow[totalCols - 1] = grandTotal;
+      dataSectionRows.push(totalRow);
+      const totalRowIdx = dataSectionRows.length - 1;
+
+      const HEADER_ROWS = 6; // 4 meta + 1 blank + 1 header row
+
+      const aoa = [
+        ['BASE SEMANAL'],
+        [`Finca: ${finca}`],
+        [`Semanas: ${semanaInicio?.numeroSemana} / ${semanaInicio?.anio}  →  ${semanaFin?.numeroSemana} / ${semanaFin?.anio}`],
+        [`Vista: ${tipo}     |     Fecha de emisión: ${fechaEmision} ${horaEmision}`],
+        [],
+        tableHeader,
+        ...dataSectionRows,
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      const STYLE_MAP = {
+        real:      { fill: { patternType: 'solid', fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '276221' } }, numFmt: '0.00', alignment: { horizontal: 'center' } },
+        estimated: { fill: { patternType: 'solid', fgColor: { rgb: 'FFEB9C' } }, font: { color: { rgb: '9C5700' } }, numFmt: '0.00', alignment: { horizontal: 'center' } },
+      };
+      const GROUP_STYLE = { fill: { patternType: 'solid', fgColor: { rgb: 'E8EDF8' } }, font: { bold: true, color: { rgb: '1B3FA0' } } };
+      const TOTAL_STYLE = { fill: { patternType: 'solid', fgColor: { rgb: '1B3FA0' } }, font: { bold: true, color: { rgb: 'FFFFFF' } } };
+
+      Object.keys(ws).forEach(addr => {
+        if (addr.startsWith('!')) return;
+        const cell = ws[addr];
+        if (cell.t === 'n') cell.z = '0.00';
       });
-      return [r.producto, r.variedad, r.color, ...semCols, totalFila];
-    });
 
-    const totalCols = tableHeader.length;
-    const HEADER_ROWS = 6; // 4 meta + 1 blank + 1 header row
-    const DATA_COL_OFFSET = 3; // Producto, Variedad, Color
-
-    const aoa = [
-      ['BASE SEMANAL'],
-      [`Finca: ${finca}`],
-      [`Semanas: ${semanaInicio?.numeroSemana} / ${semanaInicio?.anio}  →  ${semanaFin?.numeroSemana} / ${semanaFin?.anio}`],
-      [`Vista: ${tipo}     |     Fecha de emisión: ${fechaEmision} ${horaEmision}`],
-      [],
-      tableHeader,
-      ...dataRows,
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-    const STYLE_MAP = {
-      real:      { fill: { patternType: 'solid', fgColor: { rgb: 'C6EFCE' } }, font: { color: { rgb: '276221' } }, numFmt: '0.00', alignment: { horizontal: 'center' } },
-      estimated: { fill: { patternType: 'solid', fgColor: { rgb: 'FFEB9C' } }, font: { color: { rgb: '9C5700' } }, numFmt: '0.00', alignment: { horizontal: 'center' } },
-    };
-
-    Object.keys(ws).forEach(addr => {
-      if (addr.startsWith('!')) return;
-      const cell = ws[addr];
-      if (cell.t === 'n') cell.z = '0.00';
-    });
-
-    cellState.forEach((rowCols, rowIdx) => {
-      rowCols.forEach((state, colIdx) => {
-        if (state === 'none') return;
-        const addr = XLSX.utils.encode_cell({ r: HEADER_ROWS + rowIdx, c: DATA_COL_OFFSET + colIdx });
-        if (!ws[addr]) return;
-        ws[addr].s = STYLE_MAP[state];
+      Object.entries(cellStateByRow).forEach(([rowIdx, states]) => {
+        states.forEach((state, colIdx) => {
+          if (state === 'none') return;
+          const addr = XLSX.utils.encode_cell({ r: HEADER_ROWS + Number(rowIdx), c: DATA_COL_OFFSET + colIdx });
+          if (!ws[addr]) return;
+          ws[addr].s = STYLE_MAP[state];
+        });
       });
-    });
 
-    ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
-      { s: { r: 2, c: 0 }, e: { r: 2, c: totalCols - 1 } },
-      { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols - 1 } },
-    ];
+      groupRowSet.forEach((rowIdx) => {
+        for (let c = 0; c < totalCols; c++) {
+          const addr = XLSX.utils.encode_cell({ r: HEADER_ROWS + rowIdx, c });
+          if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+          ws[addr].s = GROUP_STYLE;
+        }
+      });
 
-    ws['!cols'] = [
-      { wch: 18 }, // Producto
-      { wch: 18 }, // Variedad
-      { wch: 14 }, // Color
-      ...targetWeeks.map(() => ({ wch: 12 })),
-    ];
+      for (let c = 0; c < totalCols; c++) {
+        const addr = XLSX.utils.encode_cell({ r: HEADER_ROWS + totalRowIdx, c });
+        if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+        ws[addr].s = TOTAL_STYLE;
+      }
 
-    ws['!rows'] = [{ hpt: 22 }, { hpt: 15 }, { hpt: 15 }, { hpt: 15 }];
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: totalCols - 1 } },
+        { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols - 1 } },
+        ...Array.from(groupRowSet).map((rowIdx) => ({
+          s: { r: HEADER_ROWS + rowIdx, c: 0 }, e: { r: HEADER_ROWS + rowIdx, c: DATA_COL_OFFSET - 1 },
+        })),
+      ];
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Base Semanal');
-    XLSX.writeFile(wb, `base_semanal_sem${semanaInicio?.numeroSemana}_${semanaInicio?.anio}_${tipo.toLowerCase()}.xlsx`);
+      ws['!cols'] = [
+        { wch: 12 }, // Código
+        { wch: 24 }, // Nombre comercial
+        { wch: 18 }, // Producto
+        { wch: 18 }, // Variedad
+        { wch: 14 }, // Color
+        ...targetWeeks.map(() => ({ wch: 12 })),
+      ];
+
+      ws['!rows'] = [{ hpt: 22 }, { hpt: 15 }, { hpt: 15 }, { hpt: 15 }];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Base Semanal');
+      XLSX.writeFile(wb, `base_semanal_sem${semanaInicio?.numeroSemana}_${semanaInicio?.anio}_${tipo.toLowerCase()}.xlsx`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Error al generar el Excel');
+    } finally {
+      setIsExportingExcel(false);
+    }
   };
 
   return (
@@ -298,11 +369,12 @@ export function BaseSemanal({ fincaId, semanas = 10, startWeek, startYear }: Pro
           </div>
           <button
             onClick={handleDownloadExcel}
-            className="btn-ghost text-xs py-1.5 px-3 flex items-center gap-2"
+            disabled={isExportingExcel}
+            className="btn-ghost text-xs py-1.5 px-3 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Descargar Excel"
           >
-            <Download className="w-4 h-4" />
-            <span>Excel</span>
+            <Download className={`w-4 h-4 ${isExportingExcel ? 'animate-pulse' : ''}`} />
+            <span>{isExportingExcel ? 'Generando…' : 'Excel'}</span>
           </button>
         </div>
       </div>
