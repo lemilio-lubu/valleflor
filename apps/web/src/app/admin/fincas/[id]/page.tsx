@@ -94,7 +94,7 @@ function AsignarModal({ onClose, onConfirm, isPending, currentFincaId }: {
 interface ColorTree {
   id: string;
   nombre: string;
-  codigo: string;
+  codigo: string | null;
   nombreComercial: string | null;
   variedad: { id: string; nombre: string; producto: { id: string; nombre: string } };
 }
@@ -247,7 +247,7 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
                                 <TriCheckbox state={checked ? 'all' : 'none'} />
                                 <span className={`text-sm truncate ${checked ? 'text-verde-700' : 'text-carbon-300'}`}>
                                   {c.nombre}
-                                  <span className="text-[11px] text-carbon-400"> · {c.codigo}{c.nombreComercial ? ` · ${c.nombreComercial}` : ''}</span>
+                                  <span className="text-[11px] text-carbon-400">{c.codigo ? ` · ${c.codigo}` : ''}{c.nombreComercial ? ` · ${c.nombreComercial}` : ''}</span>
                                 </span>
                               </button>
                             );

@@ -31,6 +31,18 @@ Característica: Carga masiva del catálogo
       | NORTE | ANA         | 9001   | Rosa     | Freedom  | Rojo  |
     Entonces la carga reporta 1 omitidos
 
+  Escenario: Una carga sin FINCA ni RESPONSABLE arma el catálogo sin asignar nada
+    Cuando el administrador realiza una carga masiva con:
+      | CODIGO | PRODUCTO | VARIEDAD | COLOR |
+      | 9003   | Clavel   | Standard | Rosa  |
+    Entonces la carga reporta 3 insertados y 0 errores
+
+  Escenario: Una carga con FINCA sin RESPONSABLE arma el catálogo y avisa que no asignó
+    Cuando el administrador realiza una carga masiva con:
+      | FINCA | CODIGO | PRODUCTO | VARIEDAD | COLOR    |
+      | NORTE | 9004   | Clavel   | Standard | Amarillo |
+    Entonces la carga reporta 3 insertados y 1 errores
+
   Escenario: La previsualización no persiste cambios
     Cuando el administrador previsualiza una carga masiva con:
       | FINCA | RESPONSABLE | CODIGO | PRODUCTO | VARIEDAD | COLOR |

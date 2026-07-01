@@ -59,6 +59,18 @@ export class AdminService {
     const variedadesMap = new Map<string, Variedad>();
     const coloresMap = new Map<string, Color>();
 
+    // Devuelve el primer valor no vacío entre varios alias de un mismo header
+    // (ej. "CODIGO" / "CODIGO VAR", "NOMBRE" / "NOMBRE COMERCIAL", "CAJA" / "TALLOS")
+    const pick = (normalizedRow: Record<string, unknown>, ...aliases: string[]): string => {
+      for (const alias of aliases) {
+        const value = normalizedRow[alias];
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+          return String(value).trim().toUpperCase();
+        }
+      }
+      return '';
+    };
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const rowIndex = i + 2; // +1 for 0-index, +1 for header
@@ -69,57 +81,71 @@ export class AdminService {
         normalizedRow[key.trim().toUpperCase()] = row[key];
       }
 
-      const rFinca = String(normalizedRow['FINCA'] || '').trim().toUpperCase();
-      const rResponsable = String(normalizedRow['RESPONSABLE'] || '').trim().toUpperCase();
-      const rCodigo = String(normalizedRow['CODIGO'] || '').trim().toUpperCase();
-      const rProducto = String(normalizedRow['PRODUCTO'] || '').trim().toUpperCase();
-      const rVariedad = String(normalizedRow['VARIEDAD'] || '').trim().toUpperCase();
-      const rColor = String(normalizedRow['COLOR'] || '').trim().toUpperCase();
-      const rNombre = String(normalizedRow['NOMBRE'] || '').trim().toUpperCase();
-      const rawCaja = String(normalizedRow['CAJA'] || '').trim();
+      // FINCA/RESPONSABLE son opcionales: si se incluyen, además de armar el
+      // catálogo se asigna el color al responsable indicado.
+      const rFinca = pick(normalizedRow, 'FINCA');
+      const rResponsable = pick(normalizedRow, 'RESPONSABLE');
+      const rCodigo = pick(normalizedRow, 'CODIGO', 'CODIGO VAR', 'CÓDIGO', 'CÓDIGO VAR');
+      const rProducto = pick(normalizedRow, 'PRODUCTO');
+      const rVariedad = pick(normalizedRow, 'VARIEDAD');
+      const rColor = pick(normalizedRow, 'COLOR');
+      const rNombre = pick(normalizedRow, 'NOMBRE', 'NOMBRE COMERCIAL');
+      const rawCaja = pick(normalizedRow, 'CAJA', 'TALLOS', 'TALLOS POR CAJA');
       const rCaja = rawCaja ? parseInt(rawCaja, 10) : undefined;
 
-      if (!rFinca || !rResponsable || !rCodigo || !rProducto || !rVariedad || !rColor) {
-        summary.errores.push(`Fila ${rowIndex}: Faltan datos requeridos (FINCA, RESPONSABLE, CODIGO, PRODUCTO, VARIEDAD, COLOR).`);
+      // CODIGO es opcional: sin él, el color se identifica por variedad+nombre.
+      if (!rProducto || !rVariedad || !rColor) {
+        summary.errores.push(`Fila ${rowIndex}: Faltan datos requeridos (PRODUCTO, VARIEDAD, COLOR).`);
         continue;
       }
 
-      // 1. Validate Finca — comparación case-insensitive: el alta de fincas
-      // guarda el nombre tal cual (mixed-case) y la carga llega en mayúsculas.
-      let finca = fincasMap.get(rFinca);
-      if (!finca) {
-        finca = await this.fincaRepo
-          .createQueryBuilder('finca')
-          .where('UPPER(finca.nombre) = :nombre', { nombre: rFinca })
-          .getOne();
-        if (finca) fincasMap.set(rFinca, finca);
-      }
-      if (!finca) {
-        summary.errores.push(`Fila ${rowIndex}: La finca '${rFinca}' no existe en el sistema.`);
-        continue;
+      const debeAsignarResponsable = !!rFinca || !!rResponsable;
+      if (debeAsignarResponsable && (!rFinca || !rResponsable)) {
+        summary.errores.push(
+          `Fila ${rowIndex}: Se especificó FINCA o RESPONSABLE sin el otro; no se asignó el color a ningún responsable.`,
+        );
       }
 
-      // 2. Validate Responsable
-      const responsableKey = `${rFinca}-${rResponsable}`;
-      let responsable = responsablesMap.get(responsableKey);
-      if (!responsable) {
-        // Find user by exact name (uppercase) or email
-        const userQuery = this.userRepo.createQueryBuilder('user')
-          .where('UPPER(user.nombre) = :name', { name: rResponsable })
-          .orWhere('UPPER(user.email) = :email', { email: rResponsable })
-          .orWhere("UPPER(SPLIT_PART(user.email, '@', 1)) = :emailPrefix", { emailPrefix: rResponsable });
-        
-        const user = await userQuery.getOne();
-
-        if (user) {
-          responsable = await this.responsableRepo.findOne({ where: { userId: user.id, fincaId: finca.id } });
-          if (responsable) responsablesMap.set(responsableKey, responsable);
+      // 1 y 2. Resolver Finca/Responsable solo cuando la fila pide asignación
+      let finca: Finca | undefined;
+      let responsable: Responsable | undefined;
+      if (debeAsignarResponsable && rFinca && rResponsable) {
+        // Comparación case-insensitive: el alta de fincas guarda el nombre tal
+        // cual (mixed-case) y la carga llega en mayúsculas.
+        finca = fincasMap.get(rFinca);
+        if (!finca) {
+          finca = await this.fincaRepo
+            .createQueryBuilder('finca')
+            .where('UPPER(finca.nombre) = :nombre', { nombre: rFinca })
+            .getOne();
+          if (finca) fincasMap.set(rFinca, finca);
         }
-      }
+        if (!finca) {
+          summary.errores.push(`Fila ${rowIndex}: La finca '${rFinca}' no existe en el sistema.`);
+          continue;
+        }
 
-      if (!responsable) {
-        summary.errores.push(`Fila ${rowIndex}: El responsable '${rResponsable}' no existe o no está asignado a la finca '${rFinca}'.`);
-        continue;
+        const responsableKey = `${rFinca}-${rResponsable}`;
+        responsable = responsablesMap.get(responsableKey);
+        if (!responsable) {
+          // Find user by exact name (uppercase) or email
+          const userQuery = this.userRepo.createQueryBuilder('user')
+            .where('UPPER(user.nombre) = :name', { name: rResponsable })
+            .orWhere('UPPER(user.email) = :email', { email: rResponsable })
+            .orWhere("UPPER(SPLIT_PART(user.email, '@', 1)) = :emailPrefix", { emailPrefix: rResponsable });
+
+          const user = await userQuery.getOne();
+
+          if (user) {
+            responsable = await this.responsableRepo.findOne({ where: { userId: user.id, fincaId: finca.id } });
+            if (responsable) responsablesMap.set(responsableKey, responsable);
+          }
+        }
+
+        if (!responsable) {
+          summary.errores.push(`Fila ${rowIndex}: El responsable '${rResponsable}' no existe o no está asignado a la finca '${rFinca}'.`);
+          continue;
+        }
       }
 
       // 3. Find or Create Producto (catálogo global, identificado por nombre)
@@ -156,16 +182,20 @@ export class AdminService {
         variedadesMap.set(variedadKey, variedad);
       }
 
-      // 5. Find or Create Color (la HOJA = definición productiva, identificada por código)
-      const colorKey = rCodigo;
+      // 5. Find or Create Color (la HOJA = definición productiva).
+      // Con CODIGO, se identifica por código (permite re-cargas consistentes).
+      // Sin CODIGO, se identifica por variedad+nombre (único vía uq_color_nombre_variedad).
+      const colorKey = rCodigo ? `codigo:${rCodigo}` : `variedad:${variedad.id}:${rColor}`;
       let color = coloresMap.get(colorKey);
       if (!color) {
-        color = await this.colorRepo.findOne({ where: { codigo: rCodigo } });
+        color = rCodigo
+          ? (await this.colorRepo.findOne({ where: { codigo: rCodigo } })) ?? undefined
+          : (await this.colorRepo.findOne({ where: { nombre: rColor, variedadId: variedad.id } })) ?? undefined;
         if (!color) {
           color = this.colorRepo.create({
             nombre: rColor,
             variedadId: variedad.id,
-            codigo: rCodigo,
+            codigo: rCodigo || null,
             nombreComercial: rNombre || null,
             tallosPorCaja: rCaja ?? 400,
           });
@@ -188,26 +218,26 @@ export class AdminService {
         coloresMap.set(colorKey, color);
       }
 
-      // 6. Manage ResponsableColor duplicate checks
-      const association = await this.respColorRepo.findOne({
-        where: { responsableId: responsable.id, colorId: color.id }
-      });
+      // 6. Manage ResponsableColor duplicate checks — solo si la fila trae
+      // FINCA + RESPONSABLE (asignación opcional); si no, la fila solo aporta
+      // al catálogo (Producto/Variedad/Color) y no asigna nada.
+      if (responsable) {
+        const association = await this.respColorRepo.findOne({
+          where: { responsableId: responsable.id, colorId: color.id }
+        });
 
-      // Si es un preview, tenemos que asegurarnos de no consultar a la BD con un id de color inventado
-      // Si el id es inventado (uuid válido, pero no en BD), findOne retornará null, lo cual está bien.
-      
-      // Si en memoria ya asociamos este color a este responsable, debemos tratarlo como omitido
-      // Para ello usaremos un Set en memoria
-      // (No hace falta si la carga no suele tener duplicados en la misma hoja, pero es más seguro)
-      
-      if (association) {
-        summary.omitidos++;
-      } else {
-        const newAssoc = this.respColorRepo.create({ responsableId: responsable.id, colorId: color.id });
-        if (!isPreview) {
-          await this.respColorRepo.save(newAssoc);
+        // Si es un preview, tenemos que asegurarnos de no consultar a la BD con un id de color inventado
+        // Si el id es inventado (uuid válido, pero no en BD), findOne retornará null, lo cual está bien.
+
+        if (association) {
+          summary.omitidos++;
+        } else {
+          const newAssoc = this.respColorRepo.create({ responsableId: responsable.id, colorId: color.id });
+          if (!isPreview) {
+            await this.respColorRepo.save(newAssoc);
+          }
+          summary.insertados++;
         }
-        summary.insertados++;
       }
     }
 

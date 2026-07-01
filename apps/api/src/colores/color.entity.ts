@@ -37,9 +37,11 @@ export class Color {
   @Column({ type: 'varchar', nullable: false })
   nombre: string;
 
-  // Código único de la definición productiva (producto+variedad+color), ej. "6554"
-  @Column({ type: 'varchar', length: 50, nullable: false })
-  codigo: string;
+  // Código único de la definición productiva (producto+variedad+color), ej. "6554".
+  // Opcional: la carga masiva permite filas sin código, identificadas por
+  // variedad+nombre en su lugar.
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  codigo: string | null;
 
   // Nombre comercial de la definición productiva, ej. "NELANDES ASTASSUS"
   @Column({ type: 'varchar', length: 200, nullable: true, name: 'nombre_comercial' })

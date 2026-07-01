@@ -62,7 +62,9 @@ export function BulkUploadCatalog() {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ['PRODUCTO', 'VARIEDAD', 'COLOR', 'CODIGO', 'NOMBRE', 'CAJA', 'FINCA', 'RESPONSABLE'];
+    // FINCA y RESPONSABLE son opcionales: si se completan, además de armar el
+    // catálogo se asigna el color al responsable indicado.
+    const headers = ['PRODUCTO', 'VARIEDAD', 'COLOR', 'CODIGO', 'NOMBRE', 'CAJA'];
     const csvContent = "data:text/csv;charset=utf-8," + headers.join(",");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -78,7 +80,10 @@ export function BulkUploadCatalog() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-carbon-50 mb-0.5">Carga masiva</h2>
-          <p className="text-sm text-carbon-400">Importa productos, variedades, colores y responsables mediante Excel</p>
+          <p className="text-sm text-carbon-400">
+            Importa productos, variedades y colores mediante Excel (FINCA y RESPONSABLE son
+            opcionales, solo para asignar el color directamente)
+          </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:flex-shrink-0">
           <button 

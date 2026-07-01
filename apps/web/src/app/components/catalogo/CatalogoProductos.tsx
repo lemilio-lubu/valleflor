@@ -22,7 +22,7 @@ interface Color {
   id: string;
   nombre: string;
   variedadId: string;
-  codigo: string;
+  codigo: string | null;
   nombreComercial: string | null;
   tallosPorCaja: number;
   activo?: boolean;
@@ -441,7 +441,8 @@ export function CatalogoProductos() {
   });
 
   const colorMeta = (c: Color) => {
-    const parts = [`Cód: ${c.codigo}`];
+    const parts: string[] = [];
+    if (c.codigo) parts.push(`Cód: ${c.codigo}`);
     if (c.nombreComercial) parts.push(c.nombreComercial);
     parts.push(`${c.tallosPorCaja} t/caja`);
     return parts.join(' · ');
