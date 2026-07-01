@@ -155,7 +155,8 @@
       "Skill(code-review)",
       "Skill(code-review:*)",
       "Bash(grep -n \"noUnusedParameters\\\\|noUnusedLocals\" /c/Users/lemil/Downloads/villaflor/apps/api/tsconfig.json)",
-      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/api && npx tsc --noEmit -p tsconfig.json 2>&1 | head -80)"
+      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/api && npx tsc --noEmit -p tsconfig.json 2>&1 | head -80)",
+      "Bash(cd /c/Users/lemil/Downloads/villaflor/apps/web && npx tsc --noEmit -p tsconfig.json 2>&1 | head -60 && npx eslint src/app/admin/participacion/components/ParticipacionColorTable.tsx 2>&1 | tail -40)"
     ]
   }
 }

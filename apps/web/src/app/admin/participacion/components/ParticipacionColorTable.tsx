@@ -268,16 +268,8 @@ export function ParticipacionColorTable({ semanaInicio, semanaFin, anio }: Props
                               }`}
                             >
                               {part !== null ? (
-                                <span
-                                  className="inline-flex items-baseline gap-1"
-                                  title={esEstimado ? 'Estimado — semana sin dato real aún' : undefined}
-                                >
+                                <span title={esEstimado ? 'Estimado — semana sin dato real aún' : 'Real'}>
                                   {`${part.toFixed(1)}%`}
-                                  {esEstimado && (
-                                    <span className="text-[9px] font-semibold uppercase tracking-wide text-dorado-400">
-                                      Est.
-                                    </span>
-                                  )}
                                 </span>
                               ) : (
                                 <span className="text-carbon-700">—</span>
