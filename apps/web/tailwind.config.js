@@ -98,10 +98,16 @@ module.exports = {
         'md':  '0 4px 8px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04)',
         'lg':  '0 12px 20px rgba(16,24,40,0.10), 0 4px 8px rgba(16,24,40,0.06)',
       },
+      transitionTimingFunction: {
+        'strong': 'cubic-bezier(0.23, 1, 0.32, 1)',   // ease-out fuerte (UI)
+        'smooth': 'cubic-bezier(0.77, 0, 0.175, 1)',  // ease-in-out (movimiento)
+        'drawer': 'cubic-bezier(0.32, 0.72, 0, 1)',   // drawer iOS
+      },
       animation: {
-        'fade-in':     'fadeIn 0.3s cubic-bezier(0.4,0,0.2,1) forwards',
-        'slide-up':    'slideUp 0.3s cubic-bezier(0,0,0.2,1) forwards',
+        'fade-in':     'fadeIn 0.3s cubic-bezier(0.23,1,0.32,1) forwards',
+        'slide-up':    'slideUp 0.3s cubic-bezier(0.23,1,0.32,1) forwards',
         'pulse-verde': 'pulseVerde 2s ease-in-out infinite',
+        'spin-fast':   'spin 0.65s linear infinite',
       },
       keyframes: {
         fadeIn:  { from: { opacity: '0' }, to: { opacity: '1' } },

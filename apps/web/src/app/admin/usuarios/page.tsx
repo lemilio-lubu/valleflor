@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Edit, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Edit, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/app/components/Dialog';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 import { Table, Thead, Th, Tbody, Tr, Td, TdEmpty, TrSkeleton } from '@/app/components/Table';
 
@@ -69,11 +70,10 @@ function UserModal({ onClose, userToEdit }: { onClose: () => void, userToEdit?: 
   });
 
   return (
-    <div className="modal-overlay">
-      <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-md mx-4 shadow-lg animate-slide-up">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
-          <h3 className="modal-title">{userToEdit ? 'Editar usuario' : 'Nuevo usuario'}</h3>
-          <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors"><X className="w-5 h-5" /></button>
+    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <div className="px-6 py-4 border-b border-surface-border pr-12">
+          <DialogTitle className="modal-title">{userToEdit ? 'Editar usuario' : 'Nuevo usuario'}</DialogTitle>
         </div>
         <form onSubmit={(e) => { e.preventDefault(); save.mutate(form); }} className="p-6 space-y-4">
           <div>
@@ -122,8 +122,8 @@ function UserModal({ onClose, userToEdit }: { onClose: () => void, userToEdit?: 
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -9,7 +9,7 @@ import { AppShell, type AppShellNavItem } from '../components/AppShell';
 function Spinner() {
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="w-8 h-8 border-2 border-verde-600 border-t-transparent rounded-full animate-spin" aria-label="Cargando" />
+      <div className="w-8 h-8 border-2 border-verde-600 border-t-transparent rounded-full animate-spin-fast" aria-label="Cargando" />
     </div>
   );
 }

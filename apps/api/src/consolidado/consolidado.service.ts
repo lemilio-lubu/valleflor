@@ -4,6 +4,26 @@ import { Repository } from 'typeorm';
 import { RegistroDiario, DiaSemana } from '../registros/registro-diario.entity';
 import { BaseSemanal } from '../base-semanal/base-semanal.entity';
 
+type ParticipacionColorRawRow = {
+  producto: string;
+  variedad: string;
+  color: string;
+  codigo: string | null;
+  numero_semana: string | null;
+  cajas_reales: string;
+  participacion: string | null;
+};
+
+export interface ParticipacionColorRow {
+  producto: string;
+  variedad: string;
+  color: string;
+  codigo: string | null;
+  numeroSemana: number;
+  cajasReales: number;
+  participacion: number | null;
+}
+
 export interface DiaData {
   cajas: number;
   tallos: number;
@@ -190,6 +210,59 @@ export class ConsolidadoService {
       tallosEstimados: Math.round(Number(row.tallos_estimados) * 100) / 100,
       cajasReales: Math.round(Number(row.cajas_reales) * 100) / 100,
       tallosReales: Math.round(Number(row.tallos_reales) * 100) / 100,
+    }));
+  }
+
+  /**
+   * Participación por color — muestra TODOS los colores activos con su
+   * porcentaje de participación dentro del total de cajas reales del producto
+   * en cada semana del rango indicado.
+   * Colores sin registros en el rango devuelven numeroSemana = 0 (centinela).
+   */
+  async getParticipacionColor(
+    semanaInicio?: number,
+    semanaFin?: number,
+    anio?: number,
+  ): Promise<ParticipacionColorRow[]> {
+    const rawRows = await this.baseSemanalRepo.manager.query<ParticipacionColorRawRow[]>(
+      `SELECT
+  p.nombre AS producto,
+  v.nombre AS variedad,
+  c.nombre AS color,
+  c.codigo,
+  bs.numero_semana,
+  COALESCE(SUM(bs.cajas_total), 0) AS cajas_reales,
+  SUM(bs.cajas_total) * 100.0
+    / NULLIF(
+        SUM(SUM(bs.cajas_total)) OVER (PARTITION BY p.nombre, bs.numero_semana),
+        0
+      ) AS participacion
+FROM colores c
+JOIN variedades v ON v.id = c.variedad_id
+JOIN productos  p ON p.id = v.producto_id
+LEFT JOIN base_semanal bs ON bs.color_id = c.id
+  AND ($1::int IS NULL OR bs.numero_semana >= $1::int)
+  AND ($2::int IS NULL OR bs.numero_semana <= $2::int)
+  AND ($3::int IS NULL OR bs.anio           = $3::int)
+WHERE c.activo = true
+  AND v.activo = true
+  AND p.activo = true
+GROUP BY p.nombre, v.nombre, c.nombre, c.codigo, bs.numero_semana
+ORDER BY p.nombre, v.nombre, c.nombre, bs.numero_semana`,
+      [semanaInicio ?? null, semanaFin ?? null, anio ?? null],
+    );
+
+    return rawRows.map((row) => ({
+      producto: row.producto,
+      variedad: row.variedad,
+      color: row.color,
+      codigo: row.codigo,
+      numeroSemana: row.numero_semana !== null ? Number(row.numero_semana) : 0,
+      cajasReales: Math.round(Number(row.cajas_reales) * 100) / 100,
+      participacion:
+        row.participacion !== null
+          ? Math.round(Number(row.participacion) * 100) / 100
+          : null,
     }));
   }
 }

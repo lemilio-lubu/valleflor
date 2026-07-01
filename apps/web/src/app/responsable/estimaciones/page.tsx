@@ -8,8 +8,9 @@ import toast from 'react-hot-toast';
 import { SemanaSelector } from './components/SemanaSelector';
 import { PlantillaDiaria } from './components/PlantillaDiaria';
 import { BaseSemanal } from './components/BaseSemanal';
-import { Plus, X, MapPin } from 'lucide-react';
+import { Plus, MapPin } from 'lucide-react';
 import { WeekPickerInput, type WeekValue } from './components/WeekPickerInput';
+import { Dialog, DialogContent, DialogTitle } from '@/app/components/Dialog';
 
 type Tab = 'plantilla' | 'base';
 
@@ -40,13 +41,10 @@ function CreateSemanaModal({ onClose, onCreated }: { onClose: () => void; onCrea
   });
 
   return (
-    <div className="modal-overlay">
-      <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-sm mx-4 shadow-lg animate-slide-up">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
-          <h3 className="modal-title">Nueva Semana</h3>
-          <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-sm">
+        <div className="px-6 py-4 border-b border-surface-border pr-12">
+          <DialogTitle className="modal-title">Nueva Semana</DialogTitle>
         </div>
         <form
           onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
@@ -75,8 +73,8 @@ function CreateSemanaModal({ onClose, onCreated }: { onClose: () => void; onCrea
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

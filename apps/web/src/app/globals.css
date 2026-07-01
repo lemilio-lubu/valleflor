@@ -57,9 +57,14 @@
   --radius-xl:   20px;
   --radius-full: 9999px;
 
+  /* Curvas de easing — fuertes, con carácter (Emil Kowalski) */
+  --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);    /* UI: entradas e interacciones */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);   /* movimiento en pantalla */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);    /* drawer estilo iOS */
+
   /* Transiciones */
-  --transition-fast: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 200ms var(--ease-out);
+  --transition-base: 300ms var(--ease-out);
 }
 
 * { box-sizing: border-box; }
@@ -92,13 +97,13 @@ body {
 /* ── Componentes reutilizables ── */
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-phi-1 px-phi-4 py-phi-2 bg-verde-600 hover:bg-verde-700 text-white font-medium rounded-md transition-all duration-200 text-sm shadow-verde-sm hover:shadow-verde-glow active:scale-95 whitespace-nowrap;
+    @apply inline-flex items-center justify-center gap-phi-1 px-phi-4 py-phi-2 bg-verde-600 hover:bg-verde-700 text-white font-medium rounded-md transition duration-150 ease-strong text-sm shadow-verde-sm hover:shadow-verde-glow active:scale-[0.97] whitespace-nowrap;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-phi-1 px-phi-4 py-phi-2 text-carbon-300 hover:text-carbon-50 hover:bg-surface-overlay font-medium rounded-md transition-all duration-200 text-sm border border-surface-border whitespace-nowrap;
+    @apply inline-flex items-center justify-center gap-phi-1 px-phi-4 py-phi-2 text-carbon-300 hover:text-carbon-50 hover:bg-surface-overlay font-medium rounded-md transition duration-150 ease-strong text-sm border border-surface-border active:scale-[0.97] whitespace-nowrap;
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-phi-1 px-phi-4 py-phi-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md transition-all duration-200 text-sm whitespace-nowrap;
+    @apply inline-flex items-center justify-center gap-phi-1 px-phi-4 py-phi-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md transition duration-150 ease-strong text-sm active:scale-[0.97] whitespace-nowrap;
   }
   .input-field {
     @apply w-full bg-white border border-surface-border rounded-sm px-phi-4 py-phi-2 text-sm text-carbon-50 placeholder-carbon-400 focus:border-verde-600 focus:ring-2 focus:ring-verde-50 transition-colors duration-200 outline-none shadow-xs;
@@ -122,7 +127,7 @@ body {
     @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 mb-6;
   }
   .nav-link {
-    @apply flex items-center gap-phi-2 px-phi-3 py-phi-2 rounded-md text-sm font-medium text-carbon-300 hover:text-carbon-50 hover:bg-surface-overlay transition-all duration-200;
+    @apply flex items-center gap-phi-2 px-phi-3 py-phi-2 rounded-md text-sm font-medium text-carbon-300 hover:text-carbon-50 hover:bg-surface-overlay transition duration-150 ease-strong;
   }
   .nav-link-active {
     @apply flex items-center gap-phi-2 px-phi-3 py-phi-2 rounded-md text-sm font-medium text-verde-600 bg-verde-50 border-l-2 border-verde-600;
@@ -181,4 +186,38 @@ body {
 }
 .scrollbar-always::-webkit-scrollbar-thumb:hover {
   background: var(--text-disabled);
+}
+
+/* ── Radix Dialog — entrada/salida animadas, centradas ── */
+.dialog-overlay[data-state='open']   { animation: dialogOverlayShow 200ms var(--ease-out); }
+.dialog-overlay[data-state='closed'] { animation: dialogOverlayHide 160ms var(--ease-out); }
+
+/* Base centrada: el transform vive acá para no pelear con los keyframes */
+.dialog-content { transform: translate(-50%, -50%); }
+.dialog-content[data-state='open']   { animation: dialogContentShow 240ms var(--ease-out); }
+.dialog-content[data-state='closed'] { animation: dialogContentHide 180ms var(--ease-out); }
+
+@keyframes dialogOverlayShow { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dialogOverlayHide { from { opacity: 1; } to { opacity: 0; } }
+@keyframes dialogContentShow {
+  from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes dialogContentHide {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -48%) scale(0.98); }
+}
+
+/* Accesibilidad — respetar a quien marea el movimiento.
+   Neutraliza desplazamientos/scale y deja transiciones casi instantáneas,
+   sin quitar por completo el feedback de color/opacidad. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -1,7 +1,7 @@
 import {
+  BadRequestException,
   Controller,
   Get,
-  ParseIntPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -10,6 +10,21 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
 import { ConsolidadoService } from './consolidado.service';
+
+/**
+ * El ValidationPipe global (transform: true) corre antes que cualquier pipe
+ * de parámetro y castea con `+value` los query params tipados `number`,
+ * convirtiendo un parámetro ausente (`undefined`) en `NaN` antes de que
+ * ParseIntPipe({ optional: true }) pueda detectarlo como ausente. Por eso
+ * estas rutas reciben el valor crudo como `string` y lo parsean a mano.
+ */
+function parseOptionalInt(value: string | undefined, paramName: string): number | undefined {
+  if (value === undefined || value === '') return undefined;
+  if (!/^-?\d+$/.test(value)) {
+    throw new BadRequestException(`Validation failed (numeric string is expected) for "${paramName}"`);
+  }
+  return parseInt(value, 10);
+}
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
@@ -23,9 +38,11 @@ export class ConsolidadoController {
    */
   @Get('diario')
   getDiario(
-    @Query('semana', new ParseIntPipe({ optional: true })) semana?: number,
-    @Query('anio', new ParseIntPipe({ optional: true })) anio?: number,
+    @Query('semana') semanaRaw?: string,
+    @Query('anio') anioRaw?: string,
   ) {
+    const semana = parseOptionalInt(semanaRaw, 'semana');
+    const anio = parseOptionalInt(anioRaw, 'anio');
     return this.consolidadoService.getDiario(semana, anio);
   }
 
@@ -35,10 +52,30 @@ export class ConsolidadoController {
    */
   @Get('semanal')
   getSemanal(
-    @Query('semanaInicio', new ParseIntPipe({ optional: true })) semanaInicio?: number,
-    @Query('semanaFin', new ParseIntPipe({ optional: true })) semanaFin?: number,
-    @Query('anio', new ParseIntPipe({ optional: true })) anio?: number,
+    @Query('semanaInicio') semanaInicioRaw?: string,
+    @Query('semanaFin') semanaFinRaw?: string,
+    @Query('anio') anioRaw?: string,
   ) {
+    const semanaInicio = parseOptionalInt(semanaInicioRaw, 'semanaInicio');
+    const semanaFin = parseOptionalInt(semanaFinRaw, 'semanaFin');
+    const anio = parseOptionalInt(anioRaw, 'anio');
     return this.consolidadoService.getSemanal(semanaInicio, semanaFin, anio);
+  }
+
+  /**
+   * GET /consolidado/participacion-color?semanaInicio=19&semanaFin=29&anio=2026
+   * Retorna la participación porcentual de cada color dentro del total de cajas
+   * reales del producto para el rango de semanas indicado.
+   */
+  @Get('participacion-color')
+  getParticipacionColor(
+    @Query('semanaInicio') semanaInicioRaw?: string,
+    @Query('semanaFin') semanaFinRaw?: string,
+    @Query('anio') anioRaw?: string,
+  ) {
+    const semanaInicio = parseOptionalInt(semanaInicioRaw, 'semanaInicio');
+    const semanaFin = parseOptionalInt(semanaFinRaw, 'semanaFin');
+    const anio = parseOptionalInt(anioRaw, 'anio');
+    return this.consolidadoService.getParticipacionColor(semanaInicio, semanaFin, anio);
   }
 }

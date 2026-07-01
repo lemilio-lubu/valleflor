@@ -5,8 +5,8 @@
       "name": "web",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@floricultura/web", "dev"],
-      "port": 3000,
-      "autoPort": false
+      "port": 3001,
+      "autoPort": true
     }
   ]
 }

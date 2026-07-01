@@ -6,8 +6,9 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, ChevronDown, Minus, Search, X, UserPlus, Check, UserMinus, Settings2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Minus, Search, UserPlus, Check, UserMinus, Settings2 } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
+import { Dialog, DialogContent, DialogTitle } from '@/app/components/Dialog';
 
 interface Responsable { id: string; userId: string; user?: { email: string; nombre?: string }; }
 interface Finca { id: string; nombre: string; ubicacion?: string; responsables?: Responsable[]; }
@@ -39,11 +40,10 @@ function AsignarModal({ onClose, onConfirm, isPending, currentFincaId }: {
   }, [usuarios, search]);
 
   return (
-    <div className="modal-overlay">
-      <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-md mx-4 shadow-lg animate-slide-up">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
-          <h3 className="modal-title">Asignar responsable</h3>
-          <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors"><X className="w-5 h-5" /></button>
+    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <div className="px-6 py-4 border-b border-surface-border pr-12">
+          <DialogTitle className="modal-title">Asignar responsable</DialogTitle>
         </div>
         <div className="p-6 space-y-4">
           <div className="relative">
@@ -86,8 +86,8 @@ function AsignarModal({ onClose, onConfirm, isPending, currentFincaId }: {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -187,14 +187,11 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
   const isLoading = loadingColores || loadingAsignados;
 
   return (
-    <div className="modal-overlay">
-      <div className="bg-surface-raised border border-surface-border rounded-xl w-full max-w-lg mx-4 shadow-lg animate-slide-up">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
-          <div>
-            <h3 className="modal-title">Asignar productos, variedades y colores</h3>
-            <p className="text-xs text-carbon-400 mt-0.5">{responsableNombre}</p>
-          </div>
-          <button onClick={onClose} className="text-carbon-400 hover:text-carbon-50 transition-colors"><X className="w-5 h-5" /></button>
+    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <div className="px-6 py-4 border-b border-surface-border pr-12">
+          <DialogTitle className="modal-title">Asignar productos, variedades y colores</DialogTitle>
+          <p className="text-xs text-carbon-400 mt-0.5">{responsableNombre}</p>
         </div>
         <div className="p-6">
           {isLoading && <div className="py-8 text-center text-carbon-400 text-sm">Cargando...</div>}
@@ -271,8 +268,8 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

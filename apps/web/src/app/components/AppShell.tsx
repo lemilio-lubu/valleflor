@@ -92,21 +92,22 @@ export function AppShell({
         </span>
       </header>
 
-      {/* Overlay del drawer */}
-      {open && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {/* Overlay del drawer — fade sincronizado con el panel */}
+      <div
+        className={[
+          'fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-[260ms] ease-drawer',
+          open ? 'opacity-100' : 'opacity-0 pointer-events-none',
+        ].join(' ')}
+        onClick={() => setOpen(false)}
+        aria-hidden="true"
+      />
 
       {/* Sidebar / Drawer */}
       <aside
         id="app-sidebar"
         className={[
           'fixed top-0 left-0 h-full w-64 lg:w-56 bg-surface-raised border-r border-surface-border z-50 flex flex-col',
-          'transition-transform duration-200 ease-out',
+          'transition-transform duration-[260ms] ease-drawer',
           'lg:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full',
         ].join(' ')}
