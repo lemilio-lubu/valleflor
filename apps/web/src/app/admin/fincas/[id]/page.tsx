@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, ChevronDown, Minus, Search, UserPlus, Check, UserMinus, Settings2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Minus, Search, UserPlus, Check, UserMinus, Settings2, X } from 'lucide-react';
 import { ConfirmModal } from '@/app/components/ConfirmModal';
 import { Dialog, DialogContent, DialogTitle } from '@/app/components/Dialog';
 
@@ -100,6 +100,35 @@ interface ColorTree {
 }
 type TriState = 'none' | 'some' | 'all';
 
+// Normaliza para búsqueda insensible a mayúsculas y acentos
+const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+// Resalta el fragmento que matchea la búsqueda (comparación sobre texto normalizado,
+// con mapeo por carácter para no desfasar índices cuando hay acentos)
+function Highlight({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>;
+  const chars = Array.from(text);
+  const normed = chars.map(norm);
+  const idx = normed.join('').indexOf(query);
+  if (idx === -1) return <>{text}</>;
+  let pos = 0;
+  let start = -1;
+  let end = chars.length;
+  for (let i = 0; i < chars.length; i++) {
+    if (start === -1 && pos >= idx) start = i;
+    pos += normed[i].length;
+    if (pos >= idx + query.length) { end = i + 1; break; }
+  }
+  if (start === -1) return <>{text}</>;
+  return (
+    <>
+      {chars.slice(0, start).join('')}
+      <span className="text-verde-600 font-semibold">{chars.slice(start, end).join('')}</span>
+      {chars.slice(end).join('')}
+    </>
+  );
+}
+
 // Casilla tri-estado reutilizable
 function TriCheckbox({ state }: { state: TriState }) {
   const active = state !== 'none';
@@ -118,6 +147,8 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
   const [selected, setSelected] = useState<Set<string> | null>(null);
   const [expandedProd, setExpandedProd] = useState<Set<string>>(new Set());
   const [expandedVar, setExpandedVar] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
+  const q = norm(search.trim());
 
   const { data: colores = [], isLoading: loadingColores } = useQuery<ColorTree[]>({
     queryKey: ['catalogo-arbol'],
@@ -148,6 +179,34 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
     }
     return prodMap;
   }, [colores]);
+
+  // Árbol filtrado por búsqueda: un match en producto muestra todo su subárbol,
+  // un match en variedad muestra todos sus colores, un match en color muestra sus ancestros
+  const arbolFiltrado = useMemo(() => {
+    if (!q) return arbol;
+    const filtered: typeof arbol = new Map();
+    for (const [prodId, { producto, variedades }] of arbol) {
+      if (norm(producto.nombre).includes(q)) {
+        filtered.set(prodId, { producto, variedades });
+        continue;
+      }
+      const varMap: typeof variedades = new Map();
+      for (const [varId, { variedad, colores: cols }] of variedades) {
+        if (norm(variedad.nombre).includes(q)) {
+          varMap.set(varId, { variedad, colores: cols });
+          continue;
+        }
+        const matched = cols.filter((c) =>
+          norm(c.nombre).includes(q) ||
+          (c.codigo && norm(c.codigo).includes(q)) ||
+          (c.nombreComercial && norm(c.nombreComercial).includes(q)),
+        );
+        if (matched.length > 0) varMap.set(varId, { variedad, colores: matched });
+      }
+      if (varMap.size > 0) filtered.set(prodId, { producto, variedades: varMap });
+    }
+    return filtered;
+  }, [arbol, q]);
 
   function triState(ids: string[]): TriState {
     if (ids.length === 0) return 'none';
@@ -199,11 +258,33 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
             <div className="empty-state py-8">Sin colores en el catálogo. Agrégalos desde el catálogo.</div>
           )}
           {!isLoading && arbol.size > 0 && (
-            <div className="mb-6 max-h-80 overflow-y-auto rounded-lg border border-surface-border divide-y divide-surface-border/50">
-              {[...arbol.values()].map(({ producto, variedades }) => {
+            <>
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-carbon-400" />
+              <input type="text" placeholder="Buscar producto, variedad, color o código..."
+                className="input-field pl-9 pr-9" value={search}
+                onChange={(e) => setSearch(e.target.value)} autoFocus />
+              {search && (
+                <button type="button" onClick={() => setSearch('')} aria-label="Limpiar búsqueda"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-carbon-400 hover:text-carbon-50">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {arbolFiltrado.size === 0 && (
+              <div className="mb-6 py-8 text-center">
+                <p className="text-sm text-carbon-400 mb-3">Sin resultados para «{search.trim()}»</p>
+                <button type="button" onClick={() => setSearch('')} className="btn-ghost text-sm">
+                  Limpiar búsqueda
+                </button>
+              </div>
+            )}
+            {arbolFiltrado.size > 0 && (
+            <div className="mb-3 max-h-96 overflow-y-auto rounded-lg border border-surface-border divide-y divide-surface-border/50">
+              {[...arbolFiltrado.values()].map(({ producto, variedades }) => {
                 const prodColorIds = [...variedades.values()].flatMap((v) => v.colores.map((c) => c.id));
                 const prodState = triState(prodColorIds);
-                const prodOpen = expandedProd.has(producto.id);
+                const prodOpen = q ? true : expandedProd.has(producto.id);
                 return (
                   <div key={producto.id}>
                     {/* Producto */}
@@ -215,7 +296,7 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
                       <button type="button" onClick={() => setMany(prodColorIds, prodState !== 'all')}
                         className="flex items-center gap-2 flex-1 min-w-0 text-left">
                         <TriCheckbox state={prodState} />
-                        <span className="text-sm font-medium text-carbon-50 truncate">{producto.nombre}</span>
+                        <span className="text-sm font-medium text-carbon-50 truncate"><Highlight text={producto.nombre} query={q} /></span>
                       </button>
                     </div>
 
@@ -223,7 +304,7 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
                     {prodOpen && [...variedades.values()].map(({ variedad, colores: cols }) => {
                       const varColorIds = cols.map((c) => c.id);
                       const varState = triState(varColorIds);
-                      const varOpen = expandedVar.has(variedad.id);
+                      const varOpen = q ? true : expandedVar.has(variedad.id);
                       return (
                         <div key={variedad.id}>
                           <div className="flex items-center gap-2 pl-8 pr-3 py-2 hover:bg-surface-overlay">
@@ -234,7 +315,7 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
                             <button type="button" onClick={() => setMany(varColorIds, varState !== 'all')}
                               className="flex items-center gap-2 flex-1 min-w-0 text-left">
                               <TriCheckbox state={varState} />
-                              <span className="text-sm text-carbon-200 truncate">{variedad.nombre}</span>
+                              <span className="text-sm text-carbon-200 truncate"><Highlight text={variedad.nombre} query={q} /></span>
                             </button>
                           </div>
 
@@ -246,8 +327,11 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
                                 className={`w-full flex items-center gap-2 pl-[60px] pr-3 py-1.5 text-left transition-colors ${checked ? 'bg-verde-50' : 'hover:bg-surface-overlay'}`}>
                                 <TriCheckbox state={checked ? 'all' : 'none'} />
                                 <span className={`text-sm truncate ${checked ? 'text-verde-700' : 'text-carbon-300'}`}>
-                                  {c.nombre}
-                                  <span className="text-[11px] text-carbon-400">{c.codigo ? ` · ${c.codigo}` : ''}{c.nombreComercial ? ` · ${c.nombreComercial}` : ''}</span>
+                                  <Highlight text={c.nombre} query={q} />
+                                  <span className="text-[11px] text-carbon-400">
+                                    {c.codigo ? <> · <Highlight text={c.codigo} query={q} /></> : ''}
+                                    {c.nombreComercial ? <> · <Highlight text={c.nombreComercial} query={q} /></> : ''}
+                                  </span>
                                 </span>
                               </button>
                             );
@@ -259,6 +343,11 @@ function AsignarProductosModal({ fincaId, responsableId, responsableNombre, onCl
                 );
               })}
             </div>
+            )}
+            <p className="text-xs text-carbon-400 mb-4">
+              {currentSelected.size} {currentSelected.size === 1 ? 'color seleccionado' : 'colores seleccionados'}
+            </p>
+            </>
           )}
           <div className="flex gap-3">
             <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center">Cancelar</button>
